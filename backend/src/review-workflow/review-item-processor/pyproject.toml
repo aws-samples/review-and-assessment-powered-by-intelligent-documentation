@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "review-item-processor"
+version = "0.1.0"
+description = "Review Item Processor for Strands Agent"
+authors = ["aws-samples <https://github.com/aws-samples>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+run-mcp-servers-with-aws-lambda = { path = "./run_mcp_servers_with_aws_lambda-0.2.1.post2.dev0+254672e-py3-none-any.whl" }
+strands-agents = ">=0.1.5"
+strands-agents-tools = ">=0.1.5"
+pillow = ">=11.2.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

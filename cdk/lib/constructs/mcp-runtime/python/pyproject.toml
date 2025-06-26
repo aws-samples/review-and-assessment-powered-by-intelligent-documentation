@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "mcp-runtime"
+version = "0.1.0"
+description = "MCP Runtime for Strands Agent"
+authors = ["aws-samples <https://github.com/aws-samples>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+run-mcp-servers-with-aws-lambda = { path = "./run_mcp_servers_with_aws_lambda-0.2.1.post2.dev0+254672e-py3-none-any.whl" }
+uv = ">=0.7.12"
+mcp-server-time = ">=0.1.0"
+boto3 = ">=1.28.0"
+mcp = ">=1.9.2"
+pydantic = ">=2.11.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

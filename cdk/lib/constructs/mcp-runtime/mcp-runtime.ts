@@ -54,6 +54,12 @@ export class McpRuntime extends Construct {
         },
         memorySize: 1024,
         architecture: lambda.Architecture.ARM_64,
+        bundling: {
+          command: [
+            "bash", "-c",
+            "pip install poetry && poetry export -f requirements.txt > /asset-output/requirements.txt && pip install -r /asset-output/requirements.txt"
+          ],
+        },
       }
     );
 
