@@ -453,7 +453,7 @@ export const makePrismaReviewResultRepository = async (
         checkList: true,
       },
       orderBy: {
-        id: "asc",
+        checkId: "asc",
       },
     });
 
