@@ -1,108 +1,108 @@
 # Review & Assessment Powered by Intelligent Documentation (RAPID)
 
-[English](./docs/en/README_en.md) | [日本語](README.md)
+[English](README.md) | [日本語](./docs/ja/README_ja.md)
 
-このサンプルは生成 AI (Amazon Bedrock) を活用した書類審査ソリューションです。膨大な書類と複雑なチェックリストによる審査業務を、Human in the Loop アプローチで効率化します。チェックリストの構造化から AI による審査、そして人間の最終判断までの一連のプロセスをサポートし、審査時間の短縮と品質向上を実現します。
+This sample is a document review solution powered by generative AI (Amazon Bedrock). It streamlines review processes involving extensive documents and complex checklists using a Human in the Loop approach. It supports the entire process from checklist structuring to AI-assisted review and final human judgment, reducing review time and improving quality.
 
-![](./docs/imgs/ja_summary.png)
+![](./docs/imgs/en_summary.png)
 
 > [!Important]
-> このツールは意思決定支援のみを目的としており、専門的判断や法的助言を提供するものではありません。すべての最終判断は適切な資格を持つ人間の専門家が行う必要があります。
+> This tool is intended only for decision support and does not provide professional judgment or legal advice. All final judgments must be made by qualified human experts.
 
 > [!Warning]
-> 本サンプルは予告なく破壊的な変更を行う恐れがあります。
+> This sample may undergo breaking changes without prior notice.
 
-## 主なユースケース
+## Key Use Cases
 
-### 製品仕様書の要件適合レビュー
+### Product Specification Compliance Review
 
-製品開発における仕様書が、要求仕様や業界標準を満たしているかを効率的に確認します。年間数千件に及ぶ仕様書を、数百の確認項目と照合する作業を自動化。AI が仕様書から関連情報を抽出・構造化し、要件との照合結果を可視化。レビュアーは効率的に最終確認を行えます。
+Efficiently verify that product development specifications meet requirements and industry standards. Automate the process of comparing thousands of specifications annually against hundreds of checkpoints. AI extracts and structures relevant information from specifications, visualizing compliance results. Reviewers can efficiently perform final verification.
 
-### 技術マニュアルの品質確認
+### Technical Manual Quality Verification
 
-複雑な技術マニュアルが社内ガイドラインや業界標準に準拠しているかを確認します。年間数万ページの技術文書を、数千項目の品質基準と照合する作業を支援。必要な技術情報の記載漏れや矛盾を自動検出し、一貫性のある高品質なマニュアル作成をサポートします。
+Verify that complex technical manuals comply with internal guidelines and industry standards. Support the process of comparing tens of thousands of pages of technical documentation annually against thousands of quality criteria. Automatically detect missing technical information and inconsistencies, supporting the creation of consistent, high-quality manuals.
 
-### 調達文書のコンプライアンス確認
+### Procurement Document Compliance Verification
 
-調達文書や提案書が必要な要件を満たしているかをチェックします。数百ページにわたる文書から必要情報を自動抽出し、年間数万件のドキュメントレビューを効率化。要件リストとの照合結果を人間が最終確認することで、調達プロセスのスピードと精度を向上させます。
+Check that procurement documents and proposals meet necessary requirements. Automatically extract required information from documents spanning hundreds of pages, streamlining thousands of document reviews annually. Improve procurement process speed and accuracy by having humans verify compliance results against requirement lists.
 
-## スクリーンショット
+## Screenshots
 
-![](./docs/imgs/ja_new_review.png)
-![](./docs/imgs/ja_new_review_floor_plan.png)
-![](./docs/imgs/ja_review_result.png)
-![](./docs/imgs/ja_review_result_ng.png)
+![](./docs/imgs/en_new_review.png)
+![](./docs/imgs/en_new_review_floor_plan.png)
+![](./docs/imgs/en_review_result.png)
+![](./docs/imgs/en_review_result_ng.png)
 
-## デプロイ方法
+## Deployment Methods
 
-デプロイには以下の 2 つの方法があります：
+There are two methods for deployment:
 
-### 1. CloudShell を使用したデプロイ（簡単に始めたい方向け）
+### 1. Deployment Using CloudShell (For Those Who Want to Start Easily)
 
-ローカル環境の準備が不要で、AWS CloudShell を使用してブラウザから簡単に直接デプロイできる方法です。
+This method allows you to deploy directly from your browser using AWS CloudShell without preparing a local environment.
 
-1. **Amazon Bedrock モデルの有効化**
+1. **Enable Amazon Bedrock Models**
 
-   AWS Management Console から Bedrock モデルアクセスにアクセスし、以下のモデルへのアクセスを有効化してください：
+   Access Bedrock Model Access from the AWS Management Console and enable access to the following models:
 
    - Anthropic Claude 3.7 Sonnet
    - Amazon Nova Premier
 
-   デフォルトではオレゴン (us-west-2) リージョンを使用しますが、`--bedrock-region` オプションで変更可能です。
+   By default, the Oregon (us-west-2) region is used, but you can change it with the `--bedrock-region` option.
 
-2. **AWS CloudShell を開く**
+2. **Open AWS CloudShell**
 
-   [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home)をデプロイしたいリージョンで開きます。
+   Open [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home) in the region where you want to deploy.
 
-3. **デプロイスクリプトの実行**
+3. **Run the Deployment Script**
 
    ```bash
    wget -O - https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/bin.sh | bash
    ```
 
-   このワンライナーコマンドで、リポジトリのクローンからデプロイまでが自動的に実行されます。
+   This one-liner command automatically executes everything from repository cloning to deployment.
 
-4. **カスタムパラメータの指定（オプション）**
+4. **Specify Custom Parameters (Optional)**
 
    ```bash
    wget -O - https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/bin.sh | bash -s -- --ipv4-ranges '["192.168.0.0/16"]'
    ```
 
-   利用可能なオプション：
+   Available options:
 
-   - `--ipv4-ranges`: フロントエンド WAF で許可する IPv4 アドレス範囲（JSON 配列形式）
-   - `--ipv6-ranges`: フロントエンド WAF で許可する IPv6 アドレス範囲（JSON 配列形式）
-   - `--disable-ipv6`: IPv6 サポートを無効にする
-   - `--auto-migrate`: デプロイ時に自動的にデータベースマイグレーションを実行するかどうか
-   - `--cognito-self-signup`: Cognito User Pool のセルフサインアップを有効にするかどうか（true/false）
-   - `--cognito-user-pool-id`: 既存の Cognito User Pool ID（指定しない場合は新規作成）
-   - `--cognito-user-pool-client-id`: 既存の Cognito User Pool Client ID（指定しない場合は新規作成）
-   - `--cognito-domain-prefix`: Cognito ドメインのプレフィックス（指定しない場合は自動生成）
-   - `--mcp-admin`: MCP ランタイム Lambda 関数に管理者権限を付与するかどうか（true/false）
-   - `--bedrock-region`: Amazon Bedrock を利用するリージョン（デフォルト：us-west-2）
-   - `--document-model`: ドキュメント処理に使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
-   - `--image-model`: 画像レビューに使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
-   - `--repo-url`: デプロイするリポジトリの URL
-   - `--branch`: デプロイするブランチ名
-   - `--tag`: デプロイする特定の Git タグ
+   - `--ipv4-ranges`: IPv4 address ranges to allow in the frontend WAF (JSON array format)
+   - `--ipv6-ranges`: IPv6 address ranges to allow in the frontend WAF (JSON array format)
+   - `--disable-ipv6`: Disable IPv6 support
+   - `--auto-migrate`: Whether to automatically run database migration during deployment
+   - `--cognito-self-signup`: Whether to enable self-signup for the Cognito User Pool (true/false)
+   - `--cognito-user-pool-id`: Existing Cognito User Pool ID (creates new if not specified)
+   - `--cognito-user-pool-client-id`: Existing Cognito User Pool Client ID (creates new if not specified)
+   - `--cognito-domain-prefix`: Prefix for the Cognito domain (auto-generated if not specified)
+   - `--mcp-admin`: Whether to grant admin privileges to the MCP runtime Lambda function (true/false)
+   - `--bedrock-region`: Region to use for Amazon Bedrock (default: us-west-2)
+   - `--document-model`: AI model ID for document processing (default: us.anthropic.claude-3-7-sonnet-20250219-v1:0)
+   - `--image-model`: AI model ID for image review processing (default: us.anthropic.claude-3-7-sonnet-20250219-v1:0)
+   - `--repo-url`: URL of the repository to deploy
+   - `--branch`: Branch name to deploy
+   - `--tag`: Deploy a specific Git tag
 
-5. **デプロイ後の確認**
+5. **Post-Deployment Verification**
 
-   デプロイが完了すると、フロントエンド URL と API の URL が表示されます。
-   表示された URL にアクセスして、アプリケーションを利用開始できます。
+   Upon completion of the deployment, the frontend URL and API URL will be displayed.
+   Access the displayed URL to start using the application.
 
 > [!Important]
-> このデプロイ方法では、オプションパラメータを設定しない場合、URL を知っている誰でもサインアップできます。本番環境での使用には、IP アドレス制限の追加やセルフサインアップの無効化 (`--cognito-self-signup=false`) を強くお勧めします。
+> With this deployment method, if you do not set option parameters, anyone who knows the URL can sign up. For production use, we strongly recommend adding IP address restrictions and disabling self-signup (`--cognito-self-signup=false`).
 
-### 2. ローカル環境からのデプロイ（カスタマイズが必要な場合に推奨）
+### 2. Deployment from Local Environment (Recommended for Customization)
 
-- このリポジトリをクローン
+- Clone this repository
 
 ```
 git clone https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git
 ```
 
-- バックエンドの準備
+- Prepare the backend
 
 ```
 cd review-and-assessment-powered-by-intelligent-documentation
@@ -112,27 +112,27 @@ npm run prisma:generate
 npm run build
 ```
 
-- CDK パッケージのインストール
+- Install CDK packages
 
 ```
 cd ../cdk
 npm ci
 ```
 
-- 必要に応じて、[parameter.ts](./cdk/parameter.ts) を編集してください。詳細は[パラメータカスタマイズ](#パラメータカスタマイズ)をご覧ください。
-- CDK をデプロイする前に、デプロイ先のリージョンに対して一度ブートストラップを実行する必要があります。
+- Edit [parameter.ts](./cdk/lib/parameter.ts) as needed. See [Parameter Customization](#parameter-customization) for details.
+- Before deploying CDK, you need to bootstrap once for the target region.
 
 ```
 npx cdk bootstrap
 ```
 
-- サンプルプロジェクトをデプロイ
+- Deploy the sample project
 
 ```
 npx cdk deploy --require-approval never --all
 ```
 
-- 以下のような出力が表示されます。Web アプリの URL は `RapidStack.FrontendURL` に出力されますので、ブラウザからアクセスしてください。
+- You will see output like the following. Access the Web application URL displayed in `RapidStack.FrontendURL` from your browser.
 
 ```sh
  ✅  RapidStack
@@ -144,69 +144,69 @@ Output:
 RapidStack.FrontendURL = https://xxxxx.cloudfront.net
 ```
 
-## パラメータカスタマイズ
+## Parameter Customization
 
-CDK デプロイ時に以下のパラメータをカスタマイズできます:
+The following parameters can be customized during CDK deployment:
 
-| パラメータグループ     | パラメータ名                  | 説明                                                                                           | デフォルト値                              |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **WAF 設定**           | allowedIpV4AddressRanges      | フロントエンド WAF で許可する IPv4 範囲                                                        | ["0.0.0.0/1", "128.0.0.0/1"] (すべて許可) |
-|                        | allowedIpV6AddressRanges      | フロントエンド WAF で許可する IPv6 範囲                                                        | ["0000::/1", "8000::/1"] (すべて許可)     |
-| **Cognito 設定**       | cognitoUserPoolId             | 既存の Cognito User Pool ID                                                                    | 新規作成                                  |
-|                        | cognitoUserPoolClientId       | 既存の Cognito User Pool Client ID                                                             | 新規作成                                  |
-|                        | cognitoDomainPrefix           | Cognito ドメインのプレフィックス                                                               | 自動生成                                  |
-|                        | cognitoSelfSignUpEnabled      | Cognito User Pool のセルフサインアップを有効にするかどうか                                     | true (有効)                               |
-| **マイグレーション**   | autoMigrate                   | デプロイ時に自動的にマイグレーションを実行するかどうか                                         | true (自動実行する)                       |
-| **MCP 機能**           | mcpAdmin                      | MCP ランタイム Lambda 関数に管理者権限を付与するかどうか ([詳細](./docs/ja/mcp-features.md))   | false (無効)                              |
-| **Map State 並行処理** | reviewMapConcurrency          | レビュープロセッサの Map State 並行処理数 (スロットリングと相談して設定が必要)                 | 1                                         |
-| **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサのインライン Map State 並行処理数 (スロットリングと相談して設定が必要) | 1                                         |
+| Parameter Group           | Parameter Name                | Description                                                                                                          | Default Value                              |
+| ------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **WAF Configuration**     | allowedIpV4AddressRanges      | IPv4 ranges to allow in the frontend WAF                                                                             | ["0.0.0.0/1", "128.0.0.0/1"] (all allowed) |
+|                           | allowedIpV6AddressRanges      | IPv6 ranges to allow in the frontend WAF                                                                             | ["0000::/1", "8000::/1"] (all allowed)     |
+| **Cognito Settings**      | cognitoUserPoolId             | Existing Cognito User Pool ID                                                                                        | Create new                                 |
+|                           | cognitoUserPoolClientId       | Existing Cognito User Pool Client ID                                                                                 | Create new                                 |
+|                           | cognitoDomainPrefix           | Cognito domain prefix                                                                                                | Auto-generated                             |
+|                           | cognitoSelfSignUpEnabled      | Whether to enable self-signup for Cognito User Pool                                                                  | true (enabled)                             |
+| **Migration**             | autoMigrate                   | Whether to automatically run migration during deployment                                                             | true (auto-run)                            |
+| **MCP Features**          | mcpAdmin                      | Whether to grant admin privileges to the MCP runtime Lambda function ([details](./docs/en/mcp-features.md))                  | false (disabled)                           |
+| **Map State Concurrency** | reviewMapConcurrency          | Map State concurrency for the Review Processor (must be configured in consultation with throttling limits)           | 1                                          |
+| **Map State Concurrency** | checklistInlineMapConcurrency | Inline Map State concurrency for the Checklist Processor (must be configured in consultation with throttling limits) | 1                                          |
 
-### AI モデルのカスタマイズ
+### AI Model Customization
 
-このアプリケーションは Strands エージェントがファイル読み込みなどのツールを使用するため、**ツール使用に対応したモデル**を選択する必要があります。
+This application uses Strands agents with tools such as file reading, so you must select **models that support tool use**.
 
-**ツール使用対応モデルの例**:
+**Examples of tool use supported models**:
 
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
 - `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
 
-**重要な注意事項**:
+**Important Notes**:
 
-- **Cross-region inference profiles**: Cross-region inference を利用する場合は、`us.`, `eu.`, `apac.` などの地域プレフィックス付きモデル ID が必須です
+- **Cross-region inference profiles**: When using cross-region inference, regional prefixes like `us.`, `eu.`, `apac.` are required for model IDs
 
-- **公式ドキュメント**: [Amazon Bedrock でサポートされているモデルと機能](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
+- **Official Documentation**: [Supported models and model features - Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
 
-**設定例**:
+**Configuration Example**:
 
 ```typescript
 // cdk/lib/parameter.ts
 export const parameters = {
   documentProcessingModelId: "mistral.mistral-large-2407-v1:0", // Mistral Large 2
-  bedrockRegion: "ap-northeast-1", // 東京リージョン
+  bedrockRegion: "ap-northeast-1", // Tokyo region
   // ...
 };
 ```
 
-設定するには`cdk/lib/parameter.ts` ファイルを直接編集してください。
+To configure these, directly edit the `cdk/lib/parameter.ts` file.
 
 > [!CAUTION]
-> 本番環境では、`cognitoSelfSignUpEnabled: false` に設定することでセルフサインアップを無効化することを強く推奨します。セルフサインアップを有効にしたままにすると、誰でもアカウント登録が可能となるため、セキュリティリスクとなる可能性があります。
-> デフォルトでは `autoMigrate` パラメータが `true` に設定されており、デプロイ時に自動的にデータベースマイグレーションが実行されます。本番環境や重要なデータを含む環境では、このパラメータを `false` に設定し、マイグレーションを手動で制御することを検討してください。
+> For production environments, it is strongly recommended to set `cognitoSelfSignUpEnabled: false` to disable self-signup. Leaving self-signup enabled allows anyone to register an account, which may pose a security risk.
+> By default, the `autoMigrate` parameter is set to `true`, which automatically runs database migrations during deployment. For production environments or environments containing important data, consider setting this parameter to `false` and controlling migrations manually.
 
-## 開発者向け情報
+## Developer Information
 
-- [開発者ガイド](./docs/ja/developer-guide.md): 技術仕様、アーキテクチャ、開発環境設定
+- [Developer Guide](./docs/en/developer-guide.md): Technical specifications, architecture, development environment setup
 
-## コンタクト
+## Contact
 
 - [Takehiro Suzuki](https://github.com/statefb)
 - [Kenta Sato](https://github.com/kenta-sato3)
 
-## コントリビューション
+## Contribution
 
-[CONTRIBUTING](./CONTRIBUTING.md)をご確認ください。
+See [CONTRIBUTING](./CONTRIBUTING.md) for more information.
 
-## ライセンス
+## License
 
-本プロジェクトは [LICENSE](./LICENSE) に記載されたライセンスの下で配布されています。
+This project is distributed under the license described in [LICENSE](./LICENSE).
