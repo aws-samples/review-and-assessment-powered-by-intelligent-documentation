@@ -159,7 +159,7 @@ export default function Sidebar() {
                 <div className="mb-2 flex items-center">
                   <HiUser className="mr-2 h-5 w-5" />
                   <span className="truncate text-sm">
-                    {user.username || user.email}
+                    { user.email || user.username}
                   </span>
                 </div>
                 <button
