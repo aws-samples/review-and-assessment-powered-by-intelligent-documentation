@@ -94,7 +94,7 @@ After deploying with CDK, follow these steps:
 
 ## Coding Standards
 
-Refer to [.amazonq/rules](../.amazonq/rules).
+Refer to [.amazonq/rules](../../.amazonq/rules).
 
 ## DB Reset (Environment Cleanup)
 
