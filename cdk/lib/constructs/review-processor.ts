@@ -39,6 +39,12 @@ export interface ReviewProcessorProps {
    * @default "us-west-2"
    */
   bedrockRegion: string;
+
+  /**
+   * Citation機能を有効にするかどうか
+   * @default true
+   */
+  enableCitations: boolean;
 }
 
 export class ReviewProcessor extends Construct {
@@ -128,6 +134,7 @@ export class ReviewProcessor extends Construct {
           // MCPサーバーLambdaのARNを設定
           PY_MCP_LAMBDA_ARN: props.McpRuntime.pythonMcpServer.functionArn,
           NODE_MCP_LAMBDA_ARN: props.McpRuntime.typescriptMcpServer.functionArn,
+          ENABLE_CITATIONS: props.enableCitations.toString(),
         },
         architecture: lambda.Architecture.ARM_64,
       }
