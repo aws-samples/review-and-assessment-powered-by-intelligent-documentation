@@ -61,6 +61,14 @@ const parameterSchema = z.object({
     .default(false)
     .describe("MCPランタイムLambda関数に管理者権限を付与するかどうか"),
 
+  // Citation機能設定
+  // Amazon Bedrock Citations API for PDF documents with Claude models
+  // Ref: https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/
+  enableCitations: z
+    .boolean()
+    .default(true)
+    .describe("Citation機能を有効にするかどうか"),
+
   // Map State並行処理設定
   reviewMapConcurrency: z
     .number()

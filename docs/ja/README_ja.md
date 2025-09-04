@@ -148,18 +148,19 @@ RapidStack.FrontendURL = https://xxxxx.cloudfront.net
 
 CDK デプロイ時に以下のパラメータをカスタマイズできます:
 
-| パラメータグループ     | パラメータ名                  | 説明                                                                                           | デフォルト値                              |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **WAF 設定**           | allowedIpV4AddressRanges      | フロントエンド WAF で許可する IPv4 範囲                                                        | ["0.0.0.0/1", "128.0.0.0/1"] (すべて許可) |
-|                        | allowedIpV6AddressRanges      | フロントエンド WAF で許可する IPv6 範囲                                                        | ["0000::/1", "8000::/1"] (すべて許可)     |
-| **Cognito 設定**       | cognitoUserPoolId             | 既存の Cognito User Pool ID                                                                    | 新規作成                                  |
-|                        | cognitoUserPoolClientId       | 既存の Cognito User Pool Client ID                                                             | 新規作成                                  |
-|                        | cognitoDomainPrefix           | Cognito ドメインのプレフィックス                                                               | 自動生成                                  |
-|                        | cognitoSelfSignUpEnabled      | Cognito User Pool のセルフサインアップを有効にするかどうか                                     | true (有効)                               |
-| **マイグレーション**   | autoMigrate                   | デプロイ時に自動的にマイグレーションを実行するかどうか                                         | true (自動実行する)                       |
-| **MCP 機能**           | mcpAdmin                      | MCP ランタイム Lambda 関数に管理者権限を付与するかどうか ([詳細](./mcp-features.md))   | false (無効)                              |
-| **Map State 並行処理** | reviewMapConcurrency          | レビュープロセッサの Map State 並行処理数 (スロットリングと相談して設定が必要)                 | 1                                         |
-| **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサのインライン Map State 並行処理数 (スロットリングと相談して設定が必要) | 1                                         |
+| パラメータグループ     | パラメータ名                  | 説明                                                                                                                                                                   | デフォルト値                              |
+| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **WAF 設定**           | allowedIpV4AddressRanges      | フロントエンド WAF で許可する IPv4 範囲                                                                                                                                | ["0.0.0.0/1", "128.0.0.0/1"] (すべて許可) |
+|                        | allowedIpV6AddressRanges      | フロントエンド WAF で許可する IPv6 範囲                                                                                                                                | ["0000::/1", "8000::/1"] (すべて許可)     |
+| **Cognito 設定**       | cognitoUserPoolId             | 既存の Cognito User Pool ID                                                                                                                                            | 新規作成                                  |
+|                        | cognitoUserPoolClientId       | 既存の Cognito User Pool Client ID                                                                                                                                     | 新規作成                                  |
+|                        | cognitoDomainPrefix           | Cognito ドメインのプレフィックス                                                                                                                                       | 自動生成                                  |
+|                        | cognitoSelfSignUpEnabled      | Cognito User Pool のセルフサインアップを有効にするかどうか                                                                                                             | true (有効)                               |
+| **マイグレーション**   | autoMigrate                   | デプロイ時に自動的にマイグレーションを実行するかどうか                                                                                                                 | true (自動実行する)                       |
+| **MCP 機能**           | mcpAdmin                      | MCP ランタイム Lambda 関数に管理者権限を付与するかどうか ([詳細](./mcp-features.md))                                                                                   | false (無効)                              |
+| **Citations API**      | enableCitations               | PDF ドキュメントの Citations API を有効にするかどうか ([AWS 発表](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/)) | true (有効)                               |
+| **Map State 並行処理** | reviewMapConcurrency          | レビュープロセッサの Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                                         | 1                                         |
+| **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサのインライン Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                         | 1                                         |
 
 ### AI モデルのカスタマイズ
 

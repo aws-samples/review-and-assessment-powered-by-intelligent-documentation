@@ -39,12 +39,18 @@ export interface ReviewProcessorProps {
    * @default "us-west-2"
    */
   bedrockRegion: string;
+
+  /**
+   * Citation機能を有効にするかどうか
+   * @default true
+   */
+  enableCitations: boolean;
 }
 
 export class ReviewProcessor extends Construct {
   public readonly stateMachine: sfn.StateMachine;
   public readonly reviewLambda: lambda.Function;
-  public readonly reviewMcpLambda: lambdaPython.PythonFunction;
+  public readonly reviewMcpLambda: lambda.DockerImageFunction;
   public readonly securityGroup: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: ReviewProcessorProps) {
@@ -97,17 +103,21 @@ export class ReviewProcessor extends Construct {
       }
     );
 
-    // Pythonベースの審査Lambda関数を作成
-    this.reviewMcpLambda = new lambdaPython.PythonFunction(
+    // Pythonベースの審査Lambda関数を作成（Docker）
+    this.reviewMcpLambda = new lambda.DockerImageFunction(
       this,
       "ReviewItemProcessorMcpFunction",
       {
-        entry: path.join(
-          __dirname,
-          "../../../backend/src/review-workflow/review-item-processor"
+        code: lambda.DockerImageCode.fromImageAsset(
+          path.join(
+            __dirname,
+            "../../../backend/src/review-workflow/review-item-processor"
+          ),
+          {
+            file: "Dockerfile",
+            platform: Platform.LINUX_ARM64,
+          }
         ),
-        handler: "handler",
-        runtime: lambda.Runtime.PYTHON_3_13,
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         // vpc: props.vpc,
@@ -124,15 +134,9 @@ export class ReviewProcessor extends Construct {
           // MCPサーバーLambdaのARNを設定
           PY_MCP_LAMBDA_ARN: props.McpRuntime.pythonMcpServer.functionArn,
           NODE_MCP_LAMBDA_ARN: props.McpRuntime.typescriptMcpServer.functionArn,
+          ENABLE_CITATIONS: props.enableCitations.toString(),
         },
         architecture: lambda.Architecture.ARM_64,
-        bundling: {
-          command: [
-            "bash",
-            "-c",
-            "pip install -r requirements-locked.txt -t /asset-output && cp -r . /asset-output/",
-          ],
-        },
       }
     );
 
