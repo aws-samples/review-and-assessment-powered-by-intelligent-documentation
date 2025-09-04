@@ -271,7 +271,8 @@ def list_tools_sync(client: MCPClient) -> List[Dict[str, Any]]:
         return []
 
 
-def run_strands_agent(
+# Agent execution functions
+def _run_strands_agent_legacy(
     prompt: str,
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
@@ -280,21 +281,7 @@ def run_strands_agent(
     base_tools: Optional[List[Any]] = None,
     mcpServers: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """
-    Run the Strands agent with the given prompt and file paths.
-
-    Args:
-        prompt: Prompt for the agent
-        file_paths: List of local file paths to process
-        model_id: Bedrock model ID to use
-        system_prompt: System prompt for the agent
-        temperature: Temperature setting for the model
-        base_tools: Base tools to include (file_read, image_reader, etc.)
-        mcpServers: List of MCP server configurations to use
-
-    Returns:
-        Agent response
-    """
+    """Run Strands agent with traditional file_read approach"""
     logger.debug(f"Running Strands agent with {len(file_paths)} files")
     logger.debug(f"File paths: {file_paths}")
     logger.debug(f"Using model: {model_id}, system prompt: {system_prompt}")
@@ -381,7 +368,7 @@ def run_strands_agent(
         response = agent(full_prompt)
         logger.debug("Agent response received")
 
-        result = agent_message_to_dict(response.message)
+        result = _agent_message_to_dict_legacy(response.message)
         logger.debug("type(response.message)=%s", type(response.message))
         logger.debug("message.content (trunc)=%s", str(response.message)[:300])
 
@@ -399,7 +386,7 @@ def run_strands_agent(
         return result
 
 
-def run_strands_agent_with_citations(
+def _run_strands_agent_with_citations(
     prompt: str,
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
@@ -475,7 +462,7 @@ def run_strands_agent_with_citations(
         response = agent(content)
 
         # Process citation-enabled response
-        result = agent_message_to_dict_with_citations(response.message)
+        result = _agent_message_to_dict_with_citations(response.message)
 
         # Add metadata
         review_meta = meta_tracker.get_review_meta(response)
@@ -487,10 +474,12 @@ def run_strands_agent_with_citations(
         return result
 
 
-def agent_message_to_dict(message: Any) -> Dict[str, Any]:
-    """
-    Convert AgentResult.message (dict or list) to a result dict.
-    """
+
+
+
+# Message parsing functions
+def _agent_message_to_dict_legacy(message: Any) -> Dict[str, Any]:
+    """Convert AgentResult.message (dict or list) to a result dict."""
     if isinstance(message, dict) and "content" in message:
         texts = [
             block.get("text", "")
@@ -521,7 +510,7 @@ def agent_message_to_dict(message: Any) -> Dict[str, Any]:
     return fallback
 
 
-def agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
+def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
     """Convert AgentResult.message to result dict with citation support"""
     logger.debug("=== CITATION PROCESSING DEBUG ===")
     logger.debug(f"Message type: {type(message)}")
@@ -703,35 +692,26 @@ def agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
         }
 
 
-def get_document_review_prompt(
+
+
+
+# Prompt generation functions
+def _get_document_review_prompt_legacy(
     language_name: str,
     check_name: str,
     check_description: str,
-    use_citations: bool = False,
 ) -> str:
-    """PDF document review prompt with optional citation support"""
-
-    document_access_section = (
-        """## DOCUMENT ACCESS
-The actual files are attached as documents with citation support enabled."""
-        if use_citations
-        else """## DOCUMENT ACCESS
+    """PDF document review prompt for legacy file_read approach"""
+    
+    document_access_section = """## DOCUMENT ACCESS
 The actual files are attached. Use the provided *file_read* tool to open and inspect each file."""
-    )
 
-    json_schema = (
-        f"""{{
+    json_schema = f"""{{
   "result": "pass" | "fail",
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning> (IN {language_name})",
-  "shortExplanation": "<≤80 characters summary> (IN {language_name})","""
-        + (
-            ""
-            if use_citations
-            else f"""
-  "extractedText": "<relevant excerpt> (IN {language_name})","""
-        )
-        + f"""
+  "shortExplanation": "<≤80 characters summary> (IN {language_name})",
+  "extractedText": "<relevant excerpt> (IN {language_name})",
   "pageNumber": <integer starting from 1>,
   "verificationDetails": {{
     "sourcesDetails": [
@@ -742,52 +722,8 @@ The actual files are attached. Use the provided *file_read* tool to open and ins
     ]
   }}
 }}"""
-    )
 
-    if use_citations:
-        # Citation用: 自然文→JSON（マーカー付き）
-        return f"""
-You are an AI assistant that reviews documents.
-Please review the provided documents based on the following check item.
-
-Check item: {check_name}
-Description: {check_description}
-
-{document_access_section}
-
-## WHEN & HOW TO USE MCP TOOLS
-You have access to additional MCP tools.   
-Follow these guidelines:
-
-- WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
-  → **USE** a search/scrape-type MCP tool to confirm with external sources.
-- WHEN the document content is incomplete, ambiguous, or contradictory  
-  → **USE** MCP tools to gather supplementary evidence.
-- WHEN precise definitions of technical terms or regulations are required  
-  → **USE** an MCP tool to consult official or authoritative references.
-- WHEN confirming the existence or legitimacy of an organisation/person  
-  → **USE** an MCP tool that can access public registries or databases.
-- WHEN the topic involves events or regulations updated within the last 2 years  
-  → **USE** an MCP tool to obtain the latest information.
-- WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more MCP tools to raise your confidence.
-
-## OUTPUT FORMAT (STRICT)
-1) First, provide a **brief natural language response in {language_name}** (1-3 sentences) explaining your assessment and citing relevant document sections.
-2) Then, output **ONLY the JSON** enclosed in the markers below. Do not output JSON outside these markers.
-
-<<JSON_START>>
-{json_schema}
-<<JSON_END>>
-
-IMPORTANT: 
-- ALL JSON field values must be in {language_name}
-- The natural language response will enable citation generation
-- Only output JSON within the specified markers
-""".strip()
-    else:
-        # 従来通り: JSON直接出力
-        return f"""
+    return f"""
 You are an AI assistant that reviews documents.
 Please review the provided documents based on the following check item.
 
@@ -861,6 +797,87 @@ Do **not** output anything outside the JSON. Do **not** use markdown code fences
 
 REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON, MUST BE IN {language_name}.
 """.strip()
+
+
+def _get_document_review_prompt_with_citations(
+    language_name: str,
+    check_name: str,
+    check_description: str,
+) -> str:
+    """PDF document review prompt with citation support"""
+    
+    document_access_section = """## DOCUMENT ACCESS
+The actual files are attached as documents with citation support enabled."""
+
+    json_schema = f"""{{
+  "result": "pass" | "fail",
+  "confidence": <number between 0 and 1>,
+  "explanation": "<detailed reasoning> (IN {language_name})",
+  "shortExplanation": "<≤80 characters summary> (IN {language_name})",
+  "pageNumber": <integer starting from 1>,
+  "verificationDetails": {{
+    "sourcesDetails": [
+      {{
+        "description": "<brief description of external source> (IN {language_name})",
+        "mcpName": "<name of MCP tool used>"
+      }}
+    ]
+  }}
+}}"""
+
+    return f"""
+You are an AI assistant that reviews documents.
+Please review the provided documents based on the following check item.
+
+Check item: {check_name}
+Description: {check_description}
+
+{document_access_section}
+
+## WHEN & HOW TO USE MCP TOOLS
+You have access to additional MCP tools.   
+Follow these guidelines:
+
+- WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
+  → **USE** a search/scrape-type MCP tool to confirm with external sources.
+- WHEN the document content is incomplete, ambiguous, or contradictory  
+  → **USE** MCP tools to gather supplementary evidence.
+- WHEN precise definitions of technical terms or regulations are required  
+  → **USE** an MCP tool to consult official or authoritative references.
+- WHEN confirming the existence or legitimacy of an organisation/person  
+  → **USE** an MCP tool that can access public registries or databases.
+- WHEN the topic involves events or regulations updated within the last 2 years  
+  → **USE** an MCP tool to obtain the latest information.
+- WHEN your estimated confidence would fall below **0.80**  
+  → **USE** one or more MCP tools to raise your confidence.
+
+## OUTPUT FORMAT (STRICT)
+1) First, provide a **brief natural language response in {language_name}** (1-3 sentences) explaining your assessment and citing relevant document sections.
+2) Then, output **ONLY the JSON** enclosed in the markers below. Do not output JSON outside these markers.
+
+<<JSON_START>>
+{json_schema}
+<<JSON_END>>
+
+IMPORTANT: 
+- ALL JSON field values must be in {language_name}
+- The natural language response will enable citation generation
+- Only output JSON within the specified markers
+""".strip()
+
+
+# Legacy compatibility
+def get_document_review_prompt(
+    language_name: str,
+    check_name: str,
+    check_description: str,
+    use_citations: bool = False,
+) -> str:
+    """PDF document review prompt with optional citation support"""
+    if use_citations:
+        return _get_document_review_prompt_with_citations(language_name, check_name, check_description)
+    else:
+        return _get_document_review_prompt_legacy(language_name, check_name, check_description)
 
 
 def get_image_review_prompt(
@@ -967,6 +984,88 @@ MUST BE IN {language_name}.
 """.strip()
 
 
+# Main processing functions
+def _should_use_citations(document_paths: list, model_id: str, has_images: bool) -> bool:
+    """Determine if citations should be used based on files and model"""
+    # No citations for images
+    if has_images:
+        return False
+    
+    # Check global citation flag and model support
+    return ENABLE_CITATIONS and supports_citations(model_id)
+
+
+def _process_review_with_citations(
+    document_bucket: str,
+    document_paths: list,
+    check_name: str,
+    check_description: str,
+    language_name: str = "日本語",
+    model_id: str = DOCUMENT_MODEL_ID,
+    mcpServers: Optional[List[Dict[str, Any]]] = None,
+    local_file_paths: List[str] = None,
+) -> Dict[str, Any]:
+    """Citation-enabled processing path"""
+    logger.debug("Using citation-enabled processing")
+    
+    prompt = _get_document_review_prompt_with_citations(
+        language_name, check_name, check_description
+    )
+    
+    system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
+    
+    result = _run_strands_agent_with_citations(
+        prompt=prompt,
+        file_paths=local_file_paths,
+        model_id=model_id,
+        system_prompt=system_prompt,
+        mcpServers=mcpServers,
+    )
+    
+    result["reviewType"] = "PDF"
+    return result
+
+
+def _process_review_legacy(
+    document_bucket: str,
+    document_paths: list,
+    check_name: str,
+    check_description: str,
+    language_name: str = "日本語",
+    model_id: str = DOCUMENT_MODEL_ID,
+    mcpServers: Optional[List[Dict[str, Any]]] = None,
+    local_file_paths: List[str] = None,
+    has_images: bool = False,
+) -> Dict[str, Any]:
+    """Traditional file_read processing path"""
+    logger.debug("Using legacy file_read processing")
+    
+    if has_images:
+        prompt = get_image_review_prompt(
+            language_name, check_name, check_description, model_id
+        )
+        tools = [file_read, image_reader]
+        review_type = "IMAGE"
+    else:
+        prompt = _get_document_review_prompt_legacy(
+            language_name, check_name, check_description
+        )
+        tools = [file_read]
+        review_type = "PDF"
+    
+    system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
+    
+    result = _run_strands_agent_legacy(
+        prompt=prompt,
+        file_paths=local_file_paths,
+        model_id=model_id,
+        system_prompt=system_prompt,
+        base_tools=tools,
+        mcpServers=mcpServers,
+    )
+    
+    result["reviewType"] = review_type
+    return result
 def process_review(
     document_bucket: str,
     document_paths: list,
@@ -978,18 +1077,7 @@ def process_review(
 ) -> Dict[str, Any]:
     """
     Process a document review using Strands agent with local file reading.
-
-    Args:
-        document_bucket: S3 bucket containing the documents
-        document_paths: List of S3 keys to the documents
-        check_name: Name of the check item
-        check_description: Description of the check item
-        language_name: Language to use for the review
-        model_id: Bedrock model ID to use
-        mcp_servers: MCP servers configuration to use
-
-    Returns:
-        Review results
+    Main dispatcher that chooses between citation and legacy processing.
     """
     logger.debug(f"Processing review for check: {check_name}")
     logger.debug(f"Documents: {len(document_paths)} files from bucket {document_bucket}")
@@ -1042,64 +1130,30 @@ def process_review(
         # Use sanitized file paths for agent
         local_file_paths = sanitized_file_paths
 
-        # Select appropriate model and prompt based on file types
-        selected_model_id = model_id
+        # Select appropriate model based on file types
+        selected_model_id = IMAGE_MODEL_ID if has_images else DOCUMENT_MODEL_ID
         if has_images:
-            # Use image-specific model
-            selected_model_id = IMAGE_MODEL_ID
             logger.debug(f"Using image processing model: {selected_model_id}")
-            prompt = get_image_review_prompt(
-                language_name, check_name, check_description, selected_model_id
-            )
-            logger.debug("Using image review prompt template")
         else:
-            # Use document processing model for non-image files
-            selected_model_id = DOCUMENT_MODEL_ID
+            logger.debug(f"Using document processing model: {selected_model_id}")
 
-            # Citation usage determination
-            use_citations = ENABLE_CITATIONS and supports_citations(selected_model_id)
+        # Citation decision logic
+        use_citations = _should_use_citations(document_paths, selected_model_id, has_images)
+        logger.debug(f"Citation usage decision: {use_citations}")
 
-            prompt = get_document_review_prompt(
-                language_name, check_name, check_description, use_citations=use_citations
+        # Dispatch to appropriate processing method
+        if use_citations:
+            result = _process_review_with_citations(
+                document_bucket, document_paths, check_name, check_description,
+                language_name, selected_model_id, mcpServers, local_file_paths
             )
-            logger.debug(
-                f"Using document review prompt template (citations: {use_citations})"
-            )
-
-        # Select tools based on file types
-        tools = [file_read]
-        if has_images:
-            tools.append(image_reader)
-            logger.debug("Added image_reader tool for image processing")
-
-        # Define system prompt
-        system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-
-        # Run agent with appropriate method
-        logger.debug("Running Strands agent for document review")
-
-        if not has_images and ENABLE_CITATIONS and supports_citations(selected_model_id):
-            # Citation mode for PDF files
-            result = run_strands_agent_with_citations(
-                prompt=prompt,
-                file_paths=local_file_paths,
-                model_id=selected_model_id,
-                system_prompt=system_prompt,
-                mcpServers=mcpServers,
-            )
-            logger.debug("Used citation-enabled agent")
+            logger.debug("Used citation-enabled processing")
         else:
-            # Traditional mode
-            result = run_strands_agent(
-                prompt=prompt,
-                file_paths=local_file_paths,
-                model_id=selected_model_id,
-                system_prompt=system_prompt,
-                base_tools=tools,
-                mcpServers=mcpServers,
+            result = _process_review_legacy(
+                document_bucket, document_paths, check_name, check_description,
+                language_name, selected_model_id, mcpServers, local_file_paths, has_images
             )
-            logger.debug("Used traditional agent")
-        logger.info(f"Agent completed with result: {result['result']}")
+            logger.debug("Used legacy processing")
 
         # Ensure all required fields exist
         logger.debug("Validating result fields")
@@ -1122,10 +1176,8 @@ def process_review(
             logger.debug("Adding missing 'sourcesDetails' field")
             result["verificationDetails"]["sourcesDetails"] = []
 
-        # Add file type specific fields and explicit reviewType
+        # Add file type specific fields if missing
         if has_images:
-            # Add image-specific fields if missing
-            result["reviewType"] = "IMAGE"
             if "usedImageIndexes" not in result:
                 logger.debug("Adding missing 'usedImageIndexes' field")
                 result["usedImageIndexes"] = []
@@ -1133,8 +1185,6 @@ def process_review(
                 logger.debug("Adding missing 'boundingBoxes' field")
                 result["boundingBoxes"] = []
         else:
-            # Add PDF-specific fields if missing
-            result["reviewType"] = "PDF"
             if "extractedText" not in result:
                 logger.debug("Adding missing 'extractedText' field")
                 result["extractedText"] = ""

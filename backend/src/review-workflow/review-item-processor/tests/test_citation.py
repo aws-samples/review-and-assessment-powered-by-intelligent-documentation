@@ -105,8 +105,8 @@ def test_process_review_local(document_paths, check_name, check_description, lan
     """Modified process_review for local testing without S3"""
     from agent import (
         get_document_review_prompt, 
-        run_strands_agent_with_citations, 
-        run_strands_agent,
+        _run_strands_agent_with_citations, 
+        _run_strands_agent_legacy,
         supports_citations,
         ENABLE_CITATIONS,
         DOCUMENT_MODEL_ID,
@@ -156,7 +156,7 @@ def test_process_review_local(document_paths, check_name, check_description, lan
     
     # Run agent
     if use_citations:
-        result = run_strands_agent_with_citations(
+        result = _run_strands_agent_with_citations(
             prompt=prompt,
             file_paths=document_paths,
             model_id=selected_model_id,
@@ -164,7 +164,7 @@ def test_process_review_local(document_paths, check_name, check_description, lan
             mcpServers=mcpServers,
         )
     else:
-        result = run_strands_agent(
+        result = _run_strands_agent_legacy(
             prompt=prompt,
             file_paths=document_paths,
             model_id=selected_model_id,
