@@ -121,6 +121,7 @@ PY_MCP_LAMBDA_ARN = os.environ.get("PY_MCP_LAMBDA_ARN", "")
 NODE_MCP_LAMBDA_ARN = os.environ.get("NODE_MCP_LAMBDA_ARN", "")
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
+ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
 # Models that support prompt and tool caching
 # Base model IDs that support prompt and tool caching (without region prefixes)
 CACHE_SUPPORTED_BASE_MODELS = {
@@ -175,6 +176,21 @@ def supports_caching(model_id: str) -> bool:
     return False
 
 
+CITATION_SUPPORTED_MODELS = {
+    "anthropic.claude-sonnet-4-20250514-v1:0",
+    "anthropic.claude-opus-4-20250514-v1:0",
+    "anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "anthropic.claude-3-5-sonnet-20241022-v2:0",
+}
+
+
+def supports_citations(model_id: str) -> bool:
+    """Check if model supports Citations API"""
+    # Handle cross-region inference profiles (us.anthropic.xxx)
+    base_model = model_id.split(".", 1)[-1] if "." in model_id else model_id
+    return base_model in CITATION_SUPPORTED_MODELS
+
+
 def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     """
     Create an MCP client for the given server configuration.
@@ -185,25 +201,27 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     Returns:
         MCPClient: Initialized MCP client
     """
-    logger.debug(f"Creating MCP client with config: {mcp_server_cfg}")
+    logger.info(f"Creating MCP client with config: {mcp_server_cfg}")
     cmd = mcp_server_cfg.get("command")
 
     if cmd == "uvx":
         fn_arn = PY_MCP_LAMBDA_ARN
-        logger.debug(f"Using Python MCP Lambda ARN: {fn_arn}")
+        logger.info(f"Using Python MCP Lambda ARN: {fn_arn}")
     elif cmd == "npx":
         fn_arn = NODE_MCP_LAMBDA_ARN
-        logger.debug(f"Using Node MCP Lambda ARN: {fn_arn}")
+        logger.info(f"Using Node MCP Lambda ARN: {fn_arn}")
     else:
         raise ValueError(f"Unsupported command: {cmd}")
 
-    return MCPClient(
-        lambda: lambda_function_client(
-            LambdaFunctionParameters(
-                function_name=fn_arn, region_name=AWS_REGION, mcp_server=mcp_server_cfg
-            )
-        )
+    lambda_params = LambdaFunctionParameters(
+        function_name=fn_arn, region_name=AWS_REGION, mcp_server=mcp_server_cfg
     )
+
+    logger.info(
+        f"Lambda parameters: function_name={fn_arn}, region={AWS_REGION}, mcp_server={mcp_server_cfg}"
+    )
+
+    return MCPClient(lambda: lambda_function_client(lambda_params))
 
 
 def sanitize_file_name(filename: str) -> str:
@@ -277,7 +295,7 @@ def run_strands_agent(
     Returns:
         Agent response
     """
-    logger.info(f"Running Strands agent with {len(file_paths)} files")
+    logger.debug(f"Running Strands agent with {len(file_paths)} files")
     logger.debug(f"File paths: {file_paths}")
     logger.debug(f"Using model: {model_id}, system prompt: {system_prompt}")
 
@@ -289,20 +307,20 @@ def run_strands_agent(
     logger.debug(f"mcpServers input: {type(mcpServers)}, value: {mcpServers}")
 
     if mcpServers and isinstance(mcpServers, list) and len(mcpServers) > 0:
-        logger.info(f"Using {len(mcpServers)} MCP server(s)")
+        logger.debug(f"Using {len(mcpServers)} MCP server(s)")
         mcp_servers = mcpServers
     else:
-        logger.info("No MCP servers specified or empty array, running without MCP tools")
+        logger.debug("No MCP servers specified or empty array, running without MCP tools")
         mcp_servers = []
 
     logger.debug(f"Final MCP servers configuration: {mcp_servers}")
 
     with ExitStack() as stack:
         # Create MCP clients
-        logger.info("Creating MCP clients")
+        logger.debug("Creating MCP clients")
         clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
 
-        logger.info("Gathering tools from all MCP clients")
+        logger.debug("Gathering tools from all MCP clients")
 
         mcp_tools = list(
             itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
@@ -321,14 +339,14 @@ def run_strands_agent(
         tools_to_use = base_tools if base_tools else [file_read]
         # Combine with MCP tools
         tools = tools_to_use + mcp_tools
-        logger.info(f"Total tools available: {len(tools)}")
+        logger.debug(f"Total tools available: {len(tools)}")
 
         # Create Strands agent
-        logger.info(f"Creating Strands agent with model: {model_id}")
+        logger.debug(f"Creating Strands agent with model: {model_id}")
 
         # Check if model supports caching
         model_supports_cache = supports_caching(model_id)
-        logger.info(f"Model {model_id} caching support: {model_supports_cache}")
+        logger.debug(f"Model {model_id} caching support: {model_supports_cache}")
 
         # Configure BedrockModel with conditional caching
         bedrock_config = {
@@ -341,9 +359,9 @@ def run_strands_agent(
         if model_supports_cache:
             bedrock_config["cache_prompt"] = "default"  # Enable system prompt caching
             bedrock_config["cache_tools"] = "default"  # Enable tool definitions caching
-            logger.info("Caching enabled for system prompt and tools")
+            logger.debug("Caching enabled for system prompt and tools")
         else:
-            logger.info("Caching disabled - model does not support prompt caching")
+            logger.debug("Caching disabled - model does not support prompt caching")
 
         agent = Agent(
             model=BedrockModel(**bedrock_config),
@@ -355,11 +373,11 @@ def run_strands_agent(
         files_prompt = "\n".join([f"- '{file_path}'" for file_path in file_paths])
         full_prompt = f"{prompt}\n\nPlease analyze the following files:\n{files_prompt}"
 
-        logger.info(f"Running agent with prompt: {full_prompt[:100]}...")
+        logger.debug(f"Running agent with prompt: {full_prompt[:100]}...")
         logger.debug(f"Full prompt: {full_prompt}")
 
         # Run agent synchronously
-        logger.info("Executing agent completion")
+        logger.debug("Executing agent completion")
         response = agent(full_prompt)
         logger.debug("Agent response received")
 
@@ -367,7 +385,7 @@ def run_strands_agent(
         logger.debug("type(response.message)=%s", type(response.message))
         logger.debug("message.content (trunc)=%s", str(response.message)[:300])
 
-        logger.info("Extracting usage metrics from agent result")
+        logger.debug("Extracting usage metrics from agent result")
         review_meta = meta_tracker.get_review_meta(response)
         result["reviewMeta"] = review_meta
         result["inputTokens"] = review_meta["input_tokens"]
@@ -378,6 +396,94 @@ def run_strands_agent(
             f"Token usage: input={review_meta['input_tokens']}, output={review_meta['output_tokens']}, cost=${review_meta['total_cost']:.6f}"
         )
         logger.debug(f"Extracted result dict: {result}")
+        return result
+
+
+def run_strands_agent_with_citations(
+    prompt: str,
+    file_paths: List[str],
+    model_id: str = DOCUMENT_MODEL_ID,
+    system_prompt: str = "You are an expert document reviewer.",
+    temperature: float = 0.0,
+    mcpServers: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Run Strands agent with citation support (PDF only)"""
+
+    logger.debug(f"Running Strands agent with citations for {len(file_paths)} files")
+
+    meta_tracker = ReviewMetaTracker(model_id)
+
+    # MCP servers setup
+    mcp_servers = mcpServers if mcpServers and isinstance(mcpServers, list) else []
+
+    with ExitStack() as stack:
+        # Create MCP clients
+        clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
+        mcp_tools = list(
+            itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
+        )
+
+        # Citation mode: document-based, file_read not required
+        tools = mcp_tools  # MCP tools only
+
+        # Prepare files in document format
+        content = []
+        for file_path in file_paths:
+            try:
+                with open(file_path, "rb") as f:
+                    file_bytes = f.read()
+            except Exception as e:
+                logger.error(f"Failed to read file {file_path}: {e}")
+                continue  # Skip to next file
+
+            # Sanitize filename
+            filename = os.path.basename(file_path)
+            sanitized_name = sanitize_file_name(filename)
+
+            content.append(
+                {
+                    "document": {
+                        "name": sanitized_name,
+                        "source": {"bytes": file_bytes},
+                        "format": "pdf",
+                        "citations": {"enabled": True},
+                    }
+                }
+            )
+
+        content.append({"text": prompt})
+
+        # BedrockModel configuration
+        model_supports_cache = supports_caching(model_id)
+        bedrock_config = {
+            "model_id": model_id,
+            "region_name": BEDROCK_REGION,
+            "temperature": temperature,
+            "streaming": False,
+        }
+        if model_supports_cache:
+            bedrock_config["cache_prompt"] = "default"
+            bedrock_config["cache_tools"] = "default"
+
+        agent = Agent(
+            model=BedrockModel(**bedrock_config),
+            tools=tools,
+            system_prompt=system_prompt,
+        )
+
+        # Execute agent
+        response = agent(content)
+
+        # Process citation-enabled response
+        result = agent_message_to_dict_with_citations(response.message)
+
+        # Add metadata
+        review_meta = meta_tracker.get_review_meta(response)
+        result["reviewMeta"] = review_meta
+        result["inputTokens"] = review_meta["input_tokens"]
+        result["outputTokens"] = review_meta["output_tokens"]
+        result["totalCost"] = review_meta["total_cost"]
+
         return result
 
 
@@ -397,7 +503,7 @@ def agent_message_to_dict(message: Any) -> Dict[str, Any]:
 
     logger.debug("combined text (first 400) = %s", combined[:400])
 
-    # 文字列中の { … } を最初に貪欲に拾う
+    # Extract first greedy match of { … } from string
     m = re.search(r"\{.*\}", combined, re.DOTALL)
     if m:
         json_str = m.group(0)
@@ -415,29 +521,280 @@ def agent_message_to_dict(message: Any) -> Dict[str, Any]:
     return fallback
 
 
+def agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
+    """Convert AgentResult.message to result dict with citation support"""
+    logger.debug("=== CITATION PROCESSING DEBUG ===")
+    logger.debug(f"Message type: {type(message)}")
+
+    if isinstance(message, dict) and "content" in message:
+        text_blocks = []
+        citations_blocks = []
+
+        logger.debug(f"Content blocks count: {len(message['content'])}")
+
+        for i, block in enumerate(message["content"]):
+            if isinstance(block, dict):
+                block_type = list(block.keys())[0]
+                logger.debug(f"Block {i}: {block_type}")
+
+                if "text" in block:
+                    text_content = block["text"]
+                    text_blocks.append(text_content)
+                    logger.debug(f"  Text block length: {len(text_content)}")
+                    logger.debug(f"  Text preview: {text_content[:100]}...")
+                elif "citationsContent" in block:
+                    citations_blocks.append(block["citationsContent"])
+                    citations = block["citationsContent"]
+                    logger.debug(f"  Citations block found")
+                    logger.debug(
+                        f"  Citations keys: {list(citations.keys()) if isinstance(citations, dict) else 'Not dict'}"
+                    )
+                    if isinstance(citations, dict) and "citations" in citations:
+                        logger.debug(f"  Citations count: {len(citations['citations'])}")
+
+        combined = "".join(text_blocks).strip()
+        logger.debug(f"Combined text length: {len(combined)}")
+        logger.debug(f"Combined text preview: {combined[:200]}...")
+
+        # Extract JSON between markers
+        json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
+
+        if json_match:
+            json_str = json_match.group(1).strip()
+            logger.debug(f"Marker JSON found, length: {len(json_str)}")
+            logger.debug(f"Marker JSON preview: {json_str[:200]}...")
+            try:
+                result = json.loads(json_str)
+                logger.debug(f"Marker JSON parsed successfully")
+                logger.debug(f"Result keys: {list(result.keys())}")
+
+                # Set all citation information as extractedText
+                if citations_blocks:
+                    logger.debug(f"Processing {len(citations_blocks)} citation blocks")
+                    all_citations = []
+                    for j, citations_block in enumerate(citations_blocks):
+                        logger.debug(f"  Citation block {j}: {type(citations_block)}")
+                        for k, citation in enumerate(
+                            citations_block.get("citations", [])
+                        ):
+                            logger.debug(f"    Citation {k}: {list(citation.keys())}")
+                            source_content = citation.get("sourceContent", [{}])[0].get(
+                                "text", ""
+                            )
+                            logger.debug(
+                                f"    Source content length: {len(source_content)}"
+                            )
+                            if source_content:
+                                all_citations.append(source_content)
+                                logger.debug(
+                                    f"    Added citation: {source_content[:50]}..."
+                                )
+
+                    if all_citations:
+                        result["extractedText"] = "\n\n".join(all_citations)
+                        logger.debug(
+                            f"Set extractedText with {len(all_citations)} citations"
+                        )
+                        logger.debug(
+                            f"Final extractedText length: {len(result['extractedText'])}"
+                        )
+                    else:
+                        result["extractedText"] = (
+                            "No specific text citations were found in the document."
+                        )
+                        logger.debug("No citations found, set fallback text")
+                else:
+                    result["extractedText"] = (
+                        "No specific text citations were found in the document."
+                    )
+                    logger.debug("No citation blocks found")
+
+                return result
+            except Exception as e:
+                logger.error(f"Marker JSON parsing failed: {e}")
+                logger.error(f"JSON string: {json_str}")
+        else:
+            logger.warning("No JSON markers found, trying fallback JSON extraction")
+            # Fallback: try conventional JSON extraction
+            m = re.search(r"\{.*\}", combined, re.DOTALL)
+            if m:
+                json_str = m.group(0)
+                logger.debug(f"Fallback JSON found, length: {len(json_str)}")
+                try:
+                    result = json.loads(json_str)
+                    logger.debug(f"Fallback JSON parsed successfully")
+
+                    # Set citation information as extractedText
+                    if citations_blocks:
+                        all_citations = []
+                        for citations_block in citations_blocks:
+                            for citation in citations_block.get("citations", []):
+                                source_content = citation.get("sourceContent", [{}])[
+                                    0
+                                ].get("text", "")
+                                if source_content:
+                                    all_citations.append(source_content)
+
+                        if all_citations:
+                            result["extractedText"] = "\n\n".join(all_citations)
+                            logger.debug(
+                                f"Fallback: Set extractedText with {len(all_citations)} citations"
+                            )
+                        else:
+                            result["extractedText"] = (
+                                "No specific text citations were found in the document."
+                            )
+                    else:
+                        result["extractedText"] = (
+                            "No specific text citations were found in the document."
+                        )
+
+                    return result
+                except Exception as e:
+                    logger.error(f"Fallback JSON parsing failed: {e}")
+
+        # Final fallback processing
+        logger.debug("Using final fallback processing")
+        fallback = {
+            "result": "fail",
+            "confidence": 0.5,
+            "explanation": combined,
+            "shortExplanation": "Failed to analyze JSON parse",
+        }
+
+        # Set citation information as extractedText (fallback mode)
+        if citations_blocks:
+            logger.debug(f"Processing citations in final fallback mode")
+            all_citations = []
+            for citations_block in citations_blocks:
+                for citation in citations_block.get("citations", []):
+                    source_content = citation.get("sourceContent", [{}])[0].get(
+                        "text", ""
+                    )
+                    if source_content:
+                        all_citations.append(source_content)
+
+            if all_citations:
+                fallback["extractedText"] = "\n\n".join(all_citations)
+                logger.debug(
+                    f"Final fallback: Set extractedText with {len(all_citations)} citations"
+                )
+            else:
+                fallback["extractedText"] = (
+                    "No specific text citations were found in the document."
+                )
+                logger.debug("Final fallback: No citations found")
+        else:
+            fallback["extractedText"] = (
+                "No specific text citations were found in the document."
+            )
+            logger.debug("Final fallback: No citation blocks")
+
+        return fallback
+    else:
+        logger.error(f"Unexpected message format: {type(message)}")
+        combined = str(message).strip()
+        return {
+            "result": "fail",
+            "confidence": 0.5,
+            "explanation": combined,
+            "shortExplanation": "Failed to analyze",
+            "extractedText": "No specific text citations were found in the document.",
+        }
+
+
 def get_document_review_prompt(
-    language_name: str, check_name: str, check_description: str
+    language_name: str,
+    check_name: str,
+    check_description: str,
+    use_citations: bool = False,
 ) -> str:
-    """
-    Get the PDF document review prompt template.
+    """PDF document review prompt with optional citation support"""
 
-    Args:
-        language_name: Language name to use in the prompt
-        check_name: Name of the check item
-        check_description: Description of the check item
+    document_access_section = (
+        """## DOCUMENT ACCESS
+The actual files are attached as documents with citation support enabled."""
+        if use_citations
+        else """## DOCUMENT ACCESS
+The actual files are attached. Use the provided *file_read* tool to open and inspect each file."""
+    )
 
-    Returns:
-        Formatted prompt template
-    """
-    return f"""
+    json_schema = (
+        f"""{{
+  "result": "pass" | "fail",
+  "confidence": <number between 0 and 1>,
+  "explanation": "<detailed reasoning> (IN {language_name})",
+  "shortExplanation": "<≤80 characters summary> (IN {language_name})","""
+        + (
+            ""
+            if use_citations
+            else f"""
+  "extractedText": "<relevant excerpt> (IN {language_name})","""
+        )
+        + f"""
+  "pageNumber": <integer starting from 1>,
+  "verificationDetails": {{
+    "sourcesDetails": [
+      {{
+        "description": "<brief description of external source> (IN {language_name})",
+        "mcpName": "<name of MCP tool used>"
+      }}
+    ]
+  }}
+}}"""
+    )
+
+    if use_citations:
+        # Citation用: 自然文→JSON（マーカー付き）
+        return f"""
 You are an AI assistant that reviews documents.
 Please review the provided documents based on the following check item.
 
 Check item: {check_name}
 Description: {check_description}
 
-## DOCUMENT ACCESS
-The actual files are attached. Use the provided *file_read* tool to open and inspect each file.
+{document_access_section}
+
+## WHEN & HOW TO USE MCP TOOLS
+You have access to additional MCP tools.   
+Follow these guidelines:
+
+- WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
+  → **USE** a search/scrape-type MCP tool to confirm with external sources.
+- WHEN the document content is incomplete, ambiguous, or contradictory  
+  → **USE** MCP tools to gather supplementary evidence.
+- WHEN precise definitions of technical terms or regulations are required  
+  → **USE** an MCP tool to consult official or authoritative references.
+- WHEN confirming the existence or legitimacy of an organisation/person  
+  → **USE** an MCP tool that can access public registries or databases.
+- WHEN the topic involves events or regulations updated within the last 2 years  
+  → **USE** an MCP tool to obtain the latest information.
+- WHEN your estimated confidence would fall below **0.80**  
+  → **USE** one or more MCP tools to raise your confidence.
+
+## OUTPUT FORMAT (STRICT)
+1) First, provide a **brief natural language response in {language_name}** (1-3 sentences) explaining your assessment and citing relevant document sections.
+2) Then, output **ONLY the JSON** enclosed in the markers below. Do not output JSON outside these markers.
+
+<<JSON_START>>
+{json_schema}
+<<JSON_END>>
+
+IMPORTANT: 
+- ALL JSON field values must be in {language_name}
+- The natural language response will enable citation generation
+- Only output JSON within the specified markers
+""".strip()
+    else:
+        # 従来通り: JSON直接出力
+        return f"""
+You are an AI assistant that reviews documents.
+Please review the provided documents based on the following check item.
+
+Check item: {check_name}
+Description: {check_description}
+
+{document_access_section}
 
 ## WHEN & HOW TO USE MCP TOOLS
 You have access to additional MCP tools.   
@@ -463,22 +820,7 @@ THIS IS A STRICT REQUIREMENT. **ALL TEXT, INCLUDING EVERY JSON FIELD VALUE, MUST
 Determine whether the document complies with the check item and respond **only** in the following JSON format.  
 Do **not** output anything outside the JSON. Do **not** use markdown code fences such as ```json.
 
-{{
-  "result": "pass" | "fail",
-  "confidence": <number between 0 and 1>,
-  "explanation": "<detailed reasoning> (IN {language_name})",
-  "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "extractedText": "<relevant excerpt> (IN {language_name})",
-  "pageNumber": <integer starting from 1>,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
-}}
+{json_schema}
 
 ### Confidence‐score examples
 - **High** (0.90 – 1.00): clear evidence, obvious compliance/non-compliance  
@@ -649,8 +991,8 @@ def process_review(
     Returns:
         Review results
     """
-    logger.info(f"Processing review for check: {check_name}")
-    logger.info(f"Documents: {len(document_paths)} files from bucket {document_bucket}")
+    logger.debug(f"Processing review for check: {check_name}")
+    logger.debug(f"Documents: {len(document_paths)} files from bucket {document_bucket}")
     logger.debug(f"Document paths: {document_paths}")
     logger.debug(f"Using default model: {model_id}, language: {language_name}")
 
@@ -664,7 +1006,7 @@ def process_review(
 
     try:
         # Download files from S3
-        logger.info(f"Downloading {len(document_paths)} files from S3")
+        logger.debug(f"Downloading {len(document_paths)} files from S3")
         s3_client = boto3.client("s3")
 
         # Dictionary to map sanitized file paths to original file paths
@@ -677,7 +1019,7 @@ def process_review(
             # Create sanitized filename
             sanitized_basename = sanitize_file_name(original_basename)
             if original_basename != sanitized_basename:
-                logger.info(
+                logger.debug(
                     f"Sanitized filename '{original_basename}' to '{sanitized_basename}'"
                 )
 
@@ -690,12 +1032,12 @@ def process_review(
 
             s3_client.download_file(document_bucket, path, sanitized_path)
             sanitized_file_paths.append(sanitized_path)
-            logger.info(f"Downloaded {path} to {sanitized_path}")
+            logger.debug(f"Downloaded {path} to {sanitized_path}")
 
             # Check if this is an image file
             if ext in IMAGE_FILE_EXTENSIONS:
                 has_images = True
-                logger.info(f"Detected image file: {original_basename}")
+                logger.debug(f"Detected image file: {original_basename}")
 
         # Use sanitized file paths for agent
         local_file_paths = sanitized_file_paths
@@ -705,38 +1047,58 @@ def process_review(
         if has_images:
             # Use image-specific model
             selected_model_id = IMAGE_MODEL_ID
-            logger.info(f"Using image processing model: {selected_model_id}")
+            logger.debug(f"Using image processing model: {selected_model_id}")
             prompt = get_image_review_prompt(
                 language_name, check_name, check_description, selected_model_id
             )
-            logger.info("Using image review prompt template")
+            logger.debug("Using image review prompt template")
         else:
             # Use document processing model for non-image files
             selected_model_id = DOCUMENT_MODEL_ID
+
+            # Citation usage determination
+            use_citations = ENABLE_CITATIONS and supports_citations(selected_model_id)
+
             prompt = get_document_review_prompt(
-                language_name, check_name, check_description
+                language_name, check_name, check_description, use_citations=use_citations
             )
-            logger.info("Using document review prompt template")
+            logger.debug(
+                f"Using document review prompt template (citations: {use_citations})"
+            )
 
         # Select tools based on file types
         tools = [file_read]
         if has_images:
             tools.append(image_reader)
-            logger.info("Added image_reader tool for image processing")
+            logger.debug("Added image_reader tool for image processing")
 
         # Define system prompt
         system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
 
-        # Run agent with flattened parameters
-        logger.info("Running Strands agent for document review")
-        result = run_strands_agent(
-            prompt=prompt,
-            file_paths=local_file_paths,
-            model_id=selected_model_id,
-            system_prompt=system_prompt,
-            base_tools=tools,
-            mcpServers=mcpServers,
-        )
+        # Run agent with appropriate method
+        logger.debug("Running Strands agent for document review")
+
+        if not has_images and ENABLE_CITATIONS and supports_citations(selected_model_id):
+            # Citation mode for PDF files
+            result = run_strands_agent_with_citations(
+                prompt=prompt,
+                file_paths=local_file_paths,
+                model_id=selected_model_id,
+                system_prompt=system_prompt,
+                mcpServers=mcpServers,
+            )
+            logger.debug("Used citation-enabled agent")
+        else:
+            # Traditional mode
+            result = run_strands_agent(
+                prompt=prompt,
+                file_paths=local_file_paths,
+                model_id=selected_model_id,
+                system_prompt=system_prompt,
+                base_tools=tools,
+                mcpServers=mcpServers,
+            )
+            logger.debug("Used traditional agent")
         logger.info(f"Agent completed with result: {result['result']}")
 
         # Ensure all required fields exist
@@ -787,7 +1149,7 @@ def process_review(
 
     finally:
         # Clean up temporary files
-        logger.info("Cleaning up temporary files")
+        logger.debug("Cleaning up temporary files")
         for file_path in local_file_paths:
             if os.path.exists(file_path):
                 logger.debug(f"Removing temporary file: {file_path}")
@@ -795,4 +1157,4 @@ def process_review(
         if os.path.exists(temp_dir):
             logger.debug(f"Removing temporary directory: {temp_dir}")
             os.rmdir(temp_dir)
-        logger.info("Cleanup complete")
+        logger.debug("Cleanup complete")

@@ -17,7 +17,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-LATEST_PROTOCOL_VERSION = "2025-03-26"
+LATEST_PROTOCOL_VERSION = "2025-06-18"
+SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"]
 
 # ---------------------------------------------------------------------------------
 # Why we override these environment variables
@@ -124,6 +125,7 @@ def build_stdio_server_params(spec: Optional[McpServerSpec]) -> StdioServerParam
     """
     Convert a validated McpServerSpec (or None) into StdioServerParameters.
     """
+    logger.info(f"Building server params from spec: {spec}")
 
     for d in FIXED_ENV.values():
         # Ensure the directories exist
@@ -136,6 +138,8 @@ def build_stdio_server_params(spec: Optional[McpServerSpec]) -> StdioServerParam
         if spec and spec.args
         else ["awslabs.aws-documentation-mcp-server@latest"]
     )
+
+    logger.info(f"Final MCP server command: {command}, args: {args}")
 
     merged_env = {**os.environ, **FIXED_ENV}
     if spec and spec.env:
@@ -168,14 +172,14 @@ def handle_initialize(params, request_id):
     client_version = params.get("protocolVersion")
 
     # Check if client version is supported
-    if client_version != LATEST_PROTOCOL_VERSION:
+    if client_version not in SUPPORTED_PROTOCOL_VERSIONS:
         return {
             "jsonrpc": "2.0",
             "error": {
                 "code": -32602,
                 "message": "Unsupported protocol version",
                 "data": {
-                    "supported": [LATEST_PROTOCOL_VERSION],
+                    "supported": SUPPORTED_PROTOCOL_VERSIONS,
                     "requested": client_version,
                 },
             },
@@ -228,6 +232,7 @@ def handler(event, context):
         return None
 
     spec_json = event.get("mcpServer")
+    logger.info(f"Received mcpServer configuration: {spec_json}")
     spec: Optional[McpServerSpec] = None
     if spec_json is not None:
         try:
