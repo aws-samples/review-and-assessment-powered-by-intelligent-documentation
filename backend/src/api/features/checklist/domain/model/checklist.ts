@@ -5,12 +5,18 @@ import {
   UpdateChecklistItemRequest,
 } from "../../routes/handlers";
 import { ParsedChecklistItem } from "../../../../../checklist-workflow/common/types";
+import type { CheckList } from "../../../../../../prisma/client";
 
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
   COMPLETED = "completed",
   FAILED = "failed",
+}
+
+export interface AmbiguityDetectionResult {
+  suggestions: string[];
+  detectedAt: Date;
 }
 
 export interface CheckListSetEntity {
@@ -58,6 +64,7 @@ export interface CheckListItemEntity {
   setId: string;
   name: string;
   description?: string;
+  ambiguityReview?: AmbiguityDetectionResult;
 }
 
 export interface CheckListItemDetail extends CheckListItemEntity {
@@ -144,6 +151,41 @@ export const CheckListItemDomain = {
       name,
       description: description || "",
       parentId: parent_id ? String(parent_id) : undefined,
+    };
+  },
+
+  fromPrismaCheckListItem: (prismaItem: CheckList): CheckListItemEntity => {
+    return {
+      id: prismaItem.id,
+      setId: prismaItem.checkListSetId,
+      name: prismaItem.name,
+      description: prismaItem.description ?? undefined,
+      parentId: prismaItem.parentId ?? undefined,
+      ambiguityReview: prismaItem.ambiguityReview
+        ? {
+            suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
+            detectedAt: new Date(
+              (prismaItem.ambiguityReview as any).detectedAt
+            ),
+          }
+        : undefined,
+    };
+  },
+
+  toPrismaCheckListItem: (item: CheckListItemEntity): CheckList => {
+    return {
+      id: item.id,
+      name: item.name,
+      description: item.description ?? null,
+      checkListSetId: item.setId,
+      parentId: item.parentId ?? null,
+      documentId: null,
+      ambiguityReview: item.ambiguityReview
+        ? {
+            suggestions: item.ambiguityReview.suggestions,
+            detectedAt: item.ambiguityReview.detectedAt.toISOString(),
+          }
+        : null,
     };
   },
 };

@@ -7,6 +7,8 @@ import {
   CheckListSetEntity,
   CHECK_LIST_STATUS,
   CheckListSetDetailModel,
+  CheckListItemDomain,
+  AmbiguityDetectionResult,
 } from "./model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 
@@ -45,6 +47,10 @@ export interface CheckRepository {
   updateCheckListItem(params: { newItem: CheckListItemEntity }): Promise<void>;
   deleteCheckListItemById(params: { itemId: string }): Promise<void>;
   checkSetEditable(params: { setId: string }): Promise<boolean>;
+  updateAmbiguityReview(params: {
+    itemId: string;
+    ambiguityReview: AmbiguityDetectionResult;
+  }): Promise<void>;
 }
 
 export const makePrismaCheckRepository = async (
@@ -327,6 +333,8 @@ export const makePrismaCheckRepository = async (
         description: true,
         parentId: true,
         checkListSetId: true,
+        documentId: true,
+        ambiguityReview: true,
       },
       orderBy: { id: "asc" },
     });
@@ -368,14 +376,13 @@ export const makePrismaCheckRepository = async (
     );
 
     // 結果を新しいモデル形式に変換して返す
-    const mappedItems = items.map((item) => ({
-      id: item.id,
-      setId: item.checkListSetId,
-      name: item.name,
-      description: item.description ?? "",
-      parentId: item.parentId ?? undefined,
-      hasChildren: parentsWithChildren.has(item.id),
-    }));
+    const mappedItems = items.map((item) => {
+      const entity = CheckListItemDomain.fromPrismaCheckListItem(item);
+      return {
+        ...entity,
+        hasChildren: parentsWithChildren.has(item.id),
+      };
+    });
 
     console.log(
       `[Repository] Final items with hasChildren:`,
@@ -583,6 +590,23 @@ export const makePrismaCheckRepository = async (
     return count === 0;
   };
 
+  const updateAmbiguityReview = async (params: {
+    itemId: string;
+    ambiguityReview: AmbiguityDetectionResult;
+  }): Promise<void> => {
+    const prismaData = CheckListItemDomain.toPrismaCheckListItem({
+      id: params.itemId,
+      ambiguityReview: params.ambiguityReview,
+    } as CheckListItemEntity);
+
+    await client.checkList.update({
+      where: { id: params.itemId },
+      data: {
+        ambiguityReview: prismaData.ambiguityReview as any,
+      },
+    });
+  };
+
   return {
     storeCheckListSet,
     deleteCheckListSetById,
@@ -597,5 +621,6 @@ export const makePrismaCheckRepository = async (
     updateCheckListItem,
     deleteCheckListItemById,
     checkSetEditable,
+    updateAmbiguityReview,
   };
 };

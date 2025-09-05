@@ -6,6 +6,7 @@ import { processWithLLM } from "./document-processing/llm-processing";
 import { aggregatePageResults } from "./aggregate-results";
 import { storeChecklistItemsToDb } from "./store-to-db";
 import { checklistErrorHandler } from "./handle-error";
+import { detectAmbiguity } from "./ambiguity-detection";
 
 export const handler = async (event: any): Promise<any> => {
   console.log("受信イベント:", JSON.stringify(event, null, 2));
@@ -20,6 +21,8 @@ export const handler = async (event: any): Promise<any> => {
       return await handleAggregatePageResults(event);
     case "storeToDb":
       return await handleStoreToDb(event);
+    case "detectAmbiguity":
+      return await handleDetectAmbiguity(event);
     case "handleError":
       return await handleError(event);
     default:
@@ -65,6 +68,16 @@ async function handleStoreToDb(event: any) {
   return await storeChecklistItemsToDb({
     documentId: event.documentId,
     checkListSetId: event.checkListSetId,
+  });
+}
+
+/**
+ * 曖昧さ検知ハンドラー
+ */
+async function handleDetectAmbiguity(event: any) {
+  return await detectAmbiguity({
+    checkListSetId: event.checkListSetId,
+    userId: event.userId,
   });
 }
 

@@ -15,6 +15,7 @@ import {
   modifyCheckListItem,
   removeCheckListItem,
 } from "../usecase/checklist-item";
+import { detectChecklistAmbiguity } from "../usecase/ambiguity-detection";
 import { CHECK_LIST_STATUS } from "../domain/model/checklist";
 
 interface Document {
@@ -331,6 +332,23 @@ export const deleteChecklistItemHandler = async (
     setId,
     itemId,
   });
+  reply.code(200).send({
+    success: true,
+    data: {},
+  });
+};
+
+export const detectAmbiguityHandler = async (
+  request: FastifyRequest<{ Params: { setId: string } }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { setId } = request.params;
+
+  await detectChecklistAmbiguity({
+    checkListSetId: setId,
+    userId: request.user?.sub,
+  });
+
   reply.code(200).send({
     success: true,
     data: {},
