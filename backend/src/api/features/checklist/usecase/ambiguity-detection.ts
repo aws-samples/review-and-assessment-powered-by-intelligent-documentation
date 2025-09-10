@@ -20,11 +20,15 @@ export const detectChecklistAmbiguity = async (params: {
     true
   );
 
+  // Filter items with description
   const itemsWithDescription = allItems.filter((item) => item.description);
 
-  // Process items in batches with controlled concurrency
-  for (let i = 0; i < itemsWithDescription.length; i += concurrency) {
-    const batch = itemsWithDescription.slice(i, i + concurrency);
+  // Filter to leaf nodes only (items that are not parents of other items)
+  const leafItems = itemsWithDescription.filter((item) => !item.hasChildren);
+
+  // Process leaf items in batches with controlled concurrency
+  for (let i = 0; i < leafItems.length; i += concurrency) {
+    const batch = leafItems.slice(i, i + concurrency);
 
     await Promise.all(
       batch.map(async (item) => {

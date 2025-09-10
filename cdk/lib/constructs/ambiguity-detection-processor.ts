@@ -72,6 +72,7 @@ export class AmbiguityDetectionProcessor extends Construct {
       },
       securityGroups: [this.securityGroup],
       database: props.databaseConnection,
+      architecture: lambda.Architecture.ARM_64,
       environment: {
         BEDROCK_REGION: props.bedrockRegion,
       },
