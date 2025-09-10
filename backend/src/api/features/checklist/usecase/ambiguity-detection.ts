@@ -6,20 +6,21 @@ import {
 
 export const detectChecklistAmbiguity = async (params: {
   checkListSetId: string;
-  userId?: string;
+  userId: string;
   concurrency?: number;
   deps?: { repo?: CheckRepository };
 }): Promise<void> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
   const concurrency = params.concurrency || 1;
 
-  const items = await repo.findCheckListItems(
+  // Get all items for context
+  const allItems = await repo.findCheckListItems(
     params.checkListSetId,
     undefined,
     true
   );
 
-  const itemsWithDescription = items.filter((item) => item.description);
+  const itemsWithDescription = allItems.filter((item) => item.description);
 
   // Process items in batches with controlled concurrency
   for (let i = 0; i < itemsWithDescription.length; i += concurrency) {
@@ -30,6 +31,7 @@ export const detectChecklistAmbiguity = async (params: {
         const result = await detectAmbiguity({
           description: item.description!,
           userId: params.userId,
+          checklistContext: allItems,
         });
 
         if (result) {

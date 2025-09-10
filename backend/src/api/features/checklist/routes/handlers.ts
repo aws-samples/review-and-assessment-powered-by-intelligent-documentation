@@ -370,10 +370,19 @@ export const detectAmbiguityHandler = async (
   reply: FastifyReply
 ): Promise<void> => {
   const { setId } = request.params;
+  const userId = request.user?.sub;
+
+  if (!userId) {
+    reply.code(401).send({
+      success: false,
+      error: "User authentication required",
+    });
+    return;
+  }
 
   await detectChecklistAmbiguity({
     checkListSetId: setId,
-    userId: request.user?.sub,
+    userId,
   });
 
   reply.code(200).send({

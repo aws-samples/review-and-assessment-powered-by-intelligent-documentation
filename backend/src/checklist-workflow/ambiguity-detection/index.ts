@@ -2,7 +2,7 @@ import { detectChecklistAmbiguity } from "../../api/features/checklist/usecase/a
 
 export const detectAmbiguity = async (params: {
   checkListSetId: string;
-  userId?: string;
+  userId: string;
 }): Promise<{ status: string; checkListSetId: string }> => {
   await detectChecklistAmbiguity({
     checkListSetId: params.checkListSetId,
