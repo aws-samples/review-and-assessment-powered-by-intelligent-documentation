@@ -9,6 +9,7 @@ import {
   CheckListSetDetailModel,
   CheckListItemDomain,
   AmbiguityDetectionResult,
+  AmbiguityFilter,
 } from "./model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 
@@ -27,7 +28,8 @@ export interface CheckRepository {
   findCheckListItems(
     setId: string,
     parentId?: string,
-    includeAllChildren?: boolean
+    includeAllChildren?: boolean,
+    ambiguityFilter?: AmbiguityFilter
   ): Promise<CheckListItemDetail[]>;
   findCheckListSetDetailById(setId: string): Promise<CheckListSetDetailModel>;
   storeCheckListItem(params: { item: CheckListItemEntity }): Promise<void>;
@@ -301,12 +303,13 @@ export const makePrismaCheckRepository = async (
   const findCheckListItems = async (
     setId: string,
     parentId?: string,
-    includeAllChildren?: boolean
+    includeAllChildren?: boolean,
+    ambiguityFilter?: AmbiguityFilter
   ): Promise<CheckListItemDetail[]> => {
     console.log(
       `[Repository] findCheckListItems - setId: ${setId}, parentId: ${
         parentId || "null"
-      }, includeAllChildren: ${includeAllChildren}`
+      }, includeAllChildren: ${includeAllChildren}, ambiguityFilter: ${ambiguityFilter || "none"}`
     );
 
     // クエリの基本条件を構築
@@ -317,6 +320,13 @@ export const makePrismaCheckRepository = async (
     // includeAllChildrenがfalseの場合のみ、parentIdの条件を適用
     if (!includeAllChildren) {
       whereCondition.parentId = parentId || null;
+    }
+
+    // ambiguityFilterの条件を追加
+    if (ambiguityFilter === AmbiguityFilter.HAS_AMBIGUITY) {
+      whereCondition.ambiguityReview = {
+        not: null,
+      };
     }
 
     console.log(

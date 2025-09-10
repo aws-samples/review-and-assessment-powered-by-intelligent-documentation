@@ -9,6 +9,7 @@ import {
   CheckListSetSummary,
   CheckListSetDetailModel,
   CHECK_LIST_STATUS,
+  AmbiguityFilter,
 } from "../domain/model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 import { ulid } from "ulid";
@@ -220,17 +221,20 @@ export const getChecklistItems = async (params: {
   checkListSetId: string;
   parentId?: string;
   includeAllChildren?: boolean;
+  ambiguityFilter?: AmbiguityFilter;
   deps?: {
     repo?: CheckRepository;
   };
 }): Promise<CheckListItemDetail[]> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
 
-  const { checkListSetId, parentId, includeAllChildren } = params;
+  const { checkListSetId, parentId, includeAllChildren, ambiguityFilter } =
+    params;
   const checkListItems = await repo.findCheckListItems(
     checkListSetId,
     parentId,
-    includeAllChildren
+    includeAllChildren,
+    ambiguityFilter
   );
   return checkListItems;
 };

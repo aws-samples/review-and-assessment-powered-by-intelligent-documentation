@@ -16,7 +16,18 @@ import {
   removeCheckListItem,
 } from "../usecase/checklist-item";
 import { detectChecklistAmbiguity } from "../usecase/ambiguity-detection";
-import { CHECK_LIST_STATUS } from "../domain/model/checklist";
+import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
+
+/**
+ * Parse and validate ambiguity filter parameter
+ */
+const parseAmbiguityFilter = (value?: string): AmbiguityFilter | undefined => {
+  if (!value) return undefined;
+  if (Object.values(AmbiguityFilter).includes(value as AmbiguityFilter)) {
+    return value as AmbiguityFilter;
+  }
+  throw new Error(`Invalid ambiguityFilter: ${value}`);
+};
 
 interface Document {
   documentId: string;
@@ -207,25 +218,40 @@ export const deleteChecklistDocumentHandler = async (
 export async function getChecklistItemsHandler(
   request: FastifyRequest<{
     Params: { setId: string };
-    Querystring: { parentId?: string; includeAllChildren?: string };
+    Querystring: {
+      parentId?: string;
+      includeAllChildren?: string;
+      ambiguityFilter?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const { setId } = request.params;
-  const { parentId, includeAllChildren } = request.query;
+  const { parentId, includeAllChildren, ambiguityFilter } = request.query;
 
-  const items = await getChecklistItems({
-    checkListSetId: setId,
-    parentId: parentId,
-    includeAllChildren: includeAllChildren === "true",
-  });
+  try {
+    const parsedAmbiguityFilter = parseAmbiguityFilter(ambiguityFilter);
 
-  reply.code(200).send({
-    success: true,
-    data: {
-      items,
-    },
-  });
+    const items = await getChecklistItems({
+      checkListSetId: setId,
+      parentId: parentId,
+      includeAllChildren: includeAllChildren === "true",
+      ambiguityFilter: parsedAmbiguityFilter,
+    });
+
+    reply.code(200).send({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error) {
+    reply.code(400).send({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Invalid request parameters",
+    });
+  }
 }
 
 export const getChecklistSetByIdHandler = async (

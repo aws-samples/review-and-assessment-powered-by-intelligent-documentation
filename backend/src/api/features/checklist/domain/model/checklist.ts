@@ -19,6 +19,11 @@ export interface AmbiguityDetectionResult {
   detectedAt: Date;
 }
 
+export enum AmbiguityFilter {
+  ALL = "all",
+  HAS_AMBIGUITY = "hasAmbiguity",
+}
+
 export interface CheckListSetEntity {
   id: string;
   name: string;
