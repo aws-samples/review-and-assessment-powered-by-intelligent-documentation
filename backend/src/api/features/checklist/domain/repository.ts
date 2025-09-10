@@ -438,7 +438,9 @@ export const makePrismaCheckRepository = async (
     }
 
     // Calculate processing status from documents
-    const statuses = checkListSet.documents.map((d) => d.status as CHECK_LIST_STATUS);
+    const statuses = checkListSet.documents.map(
+      (d) => d.status as CHECK_LIST_STATUS
+    );
     let processingStatus: CHECK_LIST_STATUS;
     if (statuses.length === 0) {
       processingStatus = CHECK_LIST_STATUS.PENDING;
@@ -534,7 +536,10 @@ export const makePrismaCheckRepository = async (
         id: true,
         name: true,
         description: true,
+        parentId: true,
         checkListSetId: true,
+        documentId: true,
+        ambiguityReview: true,
       },
     });
 
@@ -542,12 +547,7 @@ export const makePrismaCheckRepository = async (
       throw new NotFoundError("Item not found", itemId);
     }
 
-    return {
-      id: item.id,
-      setId: item.checkListSetId,
-      name: item.name,
-      description: item.description ?? "",
-    };
+    return CheckListItemDomain.fromPrismaCheckListItem(item);
   };
 
   const validateParentItem = async (params: {
