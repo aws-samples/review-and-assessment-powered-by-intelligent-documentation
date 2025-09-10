@@ -1,52 +1,58 @@
 /**
  * チェックリスト項目の階層構造を表示するツリーコンポーネント
  */
-import { useChecklistItems } from '../hooks/useCheckListItemQueries';
-import CheckListItemTreeNode from './CheckListItemTreeNode';
-import { TreeSkeleton } from '../../../components/Skeleton';
+import { useChecklistItems } from "../hooks/useCheckListItemQueries";
+import CheckListItemTreeNode from "./CheckListItemTreeNode";
+import { TreeSkeleton } from "../../../components/Skeleton";
+import { AmbiguityFilter } from "../types";
 
 interface CheckListItemTreeProps {
   setId: string;
   maxDepth?: number;
+  ambiguityFilter: AmbiguityFilter;
 }
 
-export default function CheckListItemTree({ setId, maxDepth = 2 }: CheckListItemTreeProps) {
-  // ルート項目を取得
-  const { 
-    items: rootItems, 
+export default function CheckListItemTree({
+  setId,
+  maxDepth = 2,
+  ambiguityFilter = AmbiguityFilter.ALL,
+}: CheckListItemTreeProps) {
+  const {
+    items: rootItems,
     isLoading: isLoadingRoot,
-    error: errorRoot
-  } = useChecklistItems(setId || null);
-  
+    error: errorRoot,
+  } = useChecklistItems(setId || null, undefined, false, ambiguityFilter);
+
   if (isLoadingRoot) {
     return <TreeSkeleton nodes={3} />;
   }
-  
+
   if (errorRoot) {
     return (
-      <div className="text-center py-10 text-red-500">
+      <div className="text-red-500 py-10 text-center">
         チェックリスト項目の読み込みに失敗しました。
       </div>
     );
   }
-  
+
   if (rootItems.length === 0) {
     return (
-      <div className="text-center py-10 text-gray-500">
+      <div className="text-gray-500 py-10 text-center">
         チェックリスト項目がありません
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
       {rootItems.map((item) => (
-        <CheckListItemTreeNode 
-          key={item.id} 
+        <CheckListItemTreeNode
+          key={item.id}
           setId={setId}
-          item={item} 
-          level={0} 
+          item={item}
+          level={0}
           maxDepth={maxDepth}
+          ambiguityFilter={ambiguityFilter}
         />
       ))}
     </div>

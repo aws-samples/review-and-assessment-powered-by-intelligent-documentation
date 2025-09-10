@@ -558,13 +558,14 @@ export const makePrismaCheckRepository = async (
     newItem: CheckListItemEntity;
   }): Promise<void> => {
     const { newItem } = params;
-    const { id, name, description } = newItem;
+    const prismaData = CheckListItemDomain.toPrismaCheckListItem(newItem);
 
     await client.checkList.update({
-      where: { id },
+      where: { id: newItem.id },
       data: {
-        name,
-        description,
+        name: prismaData.name,
+        description: prismaData.description,
+        ambiguityReview: prismaData.ambiguityReview as any,
       },
     });
   };

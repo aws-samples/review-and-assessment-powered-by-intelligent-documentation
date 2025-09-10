@@ -133,15 +133,17 @@ export const CheckListItemDomain = {
     };
   },
 
-  fromUpdateRequest: (req: UpdateChecklistItemRequest): CheckListItemEntity => {
-    const { Params, Body } = req;
-    const { name, description } = Body;
-
+  createUpdatedItem: (
+    existingItem: CheckListItemEntity,
+    updates: { name: string; description: string; resolveAmbiguity: boolean }
+  ): CheckListItemEntity => {
     return {
-      id: Params.itemId,
-      setId: Params.setId,
-      name,
-      description: description || "",
+      ...existingItem,
+      name: updates.name,
+      description: updates.description || "",
+      ambiguityReview: updates.resolveAmbiguity
+        ? undefined
+        : existingItem.ambiguityReview,
     };
   },
 

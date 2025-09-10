@@ -143,7 +143,14 @@
     "editItemUpdateErrorToast": "チェックリスト項目の更新に失敗しました",
     "editItemUpdating": "更新中...",
     "editItemUpdate": "更新",
-    "deleteItemConfirmation": "「{{name}}」を本当に削除しますか？"
+    "deleteItemConfirmation": "「{{name}}」を本当に削除しますか？",
+    "ambiguityDetection": "曖昧基準を再検知",
+    "ambiguityDetecting": "検知中...",
+    "ambiguityDetectionSuccess": "曖昧基準の検知を開始しました",
+    "ambiguityDetectionError": "曖昧基準の再検知に失敗しました",
+    "improvementSuggestions": "改善提案",
+    "filterAll": "すべて",
+    "filterNeedsReview": "要確認"
   },
   "review": {
     "title": "審査ジョブ一覧",
