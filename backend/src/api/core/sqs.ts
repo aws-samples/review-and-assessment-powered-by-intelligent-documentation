@@ -35,8 +35,6 @@ export async function sendMessage(
   const response = await client.send(command);
 
   if (response.$metadata.httpStatusCode !== 200) {
-    throw new ApplicationError(
-      `Failed to send SQS message: ${response}`
-    );
+    throw new ApplicationError(`Failed to send SQS message: ${response}`);
   }
 }

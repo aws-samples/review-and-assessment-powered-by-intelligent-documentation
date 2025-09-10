@@ -138,13 +138,20 @@ export const CheckListItemDomain = {
     existingItem: CheckListItemEntity,
     updates: { name: string; description: string; resolveAmbiguity: boolean }
   ): CheckListItemEntity => {
+    const newAmbiguityReview = updates.resolveAmbiguity
+      ? undefined
+      : existingItem.ambiguityReview;
+
+    console.log(
+      "[DEBUG] createUpdatedItem - newAmbiguityReview:",
+      newAmbiguityReview
+    );
+
     return {
       ...existingItem,
       name: updates.name,
       description: updates.description || "",
-      ambiguityReview: updates.resolveAmbiguity
-        ? undefined
-        : existingItem.ambiguityReview,
+      ambiguityReview: newAmbiguityReview,
     };
   },
 

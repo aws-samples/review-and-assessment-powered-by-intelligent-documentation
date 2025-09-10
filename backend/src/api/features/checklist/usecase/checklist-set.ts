@@ -261,10 +261,13 @@ export const startAmbiguityDetection = async (params: {
   };
 }): Promise<void> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
-  const queueUrl = params.deps?.sqsQueueUrl || process.env.AMBIGUITY_DETECTION_QUEUE_URL!;
+  const queueUrl =
+    params.deps?.sqsQueueUrl || process.env.AMBIGUITY_DETECTION_QUEUE_URL!;
 
   // Update document status to detecting
-  const checkListSet = await repo.findCheckListSetDetailById(params.checkListSetId);
+  const checkListSet = await repo.findCheckListSetDetailById(
+    params.checkListSetId
+  );
   if (checkListSet.documents.length > 0) {
     await repo.updateDocumentStatus({
       documentId: checkListSet.documents[0].id,

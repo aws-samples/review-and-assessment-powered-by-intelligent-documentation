@@ -63,11 +63,12 @@ export default function CheckListItemEditModal({
     setIsSubmitting(true);
 
     try {
-      await updateCheckListItem(item.id, {
+      const requestData = {
         name: formData.name,
         description: formData.description,
         resolveAmbiguity: resolveAmbiguity,
-      });
+      };
+      await updateCheckListItem(item.id, requestData);
       addToast(t("checklist.editItemUpdateSuccess"), "success");
       onSuccess();
       onClose();
