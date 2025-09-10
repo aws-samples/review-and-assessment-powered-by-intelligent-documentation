@@ -5,6 +5,7 @@ import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import {
   useDeleteChecklistSet,
   useDuplicateChecklistSet,
+  useDetectAmbiguity,
 } from "../hooks/useCheckListSetMutations";
 import { useAlert } from "../../../hooks/useAlert";
 import CheckListItemAddModal from "../components/CheckListItemAddModal";
@@ -12,6 +13,7 @@ import CheckListItemTree from "../components/CheckListItemTree";
 import DuplicateChecklistModal from "../components/DuplicateChecklistModal";
 import { useToast } from "../../../contexts/ToastContext";
 import { DetailSkeleton } from "../../../components/Skeleton";
+import SegmentedControl from "../../../components/SegmentedControl";
 import {
   HiLockClosed,
   HiPlus,
@@ -19,6 +21,7 @@ import {
   HiExclamation,
   HiInformationCircle,
   HiDuplicate,
+  HiSearch,
 } from "react-icons/hi";
 import Button from "../../../components/Button";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -26,6 +29,7 @@ import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
+import { AmbiguityFilter } from "../types";
 
 /**
  * チェックリストセット詳細ページ
@@ -43,11 +47,16 @@ export function CheckListSetDetailPage() {
   } = useDeleteChecklistSet();
   const { duplicateChecklistSet, status: duplicateStatus } =
     useDuplicateChecklistSet();
+  const { detectAmbiguity, status: detectStatus } = useDetectAmbiguity();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [ambiguityFilter, setAmbiguityFilter] = useState<AmbiguityFilter>(
+    AmbiguityFilter.ALL
+  );
   const { refetch: refetchRoot } = useChecklistItems(id || null);
+  const isDetecting = detectStatus === "loading";
 
   const { showConfirm, AlertModal } = useAlert();
 
@@ -93,6 +102,18 @@ export function CheckListSetDetailPage() {
     } catch (error) {
       console.error(t("common.error"), error);
       addToast(t("checklist.duplicateError"), "error");
+    }
+  };
+
+  const handleDetectAmbiguity = async () => {
+    if (!id || !checklistSet?.isEditable) return;
+
+    try {
+      await detectAmbiguity(id);
+      addToast(t("checklist.ambiguityDetectionSuccess"), "success");
+    } catch (error) {
+      console.error(t("common.error"), error);
+      addToast(t("checklist.ambiguityDetectionError"), "error");
     }
   };
 
@@ -150,6 +171,18 @@ export function CheckListSetDetailPage() {
             )}
         </div>
         <div className="flex space-x-3">
+          {checklistSet && checklistSet.isEditable && (
+            <Button
+              variant="secondary"
+              onClick={handleDetectAmbiguity}
+              disabled={isDetecting}
+              icon={<HiSearch className="h-5 w-5" />}>
+              {isDetecting
+                ? t("checklist.ambiguityDetecting")
+                : t("checklist.ambiguityDetection")}
+            </Button>
+          )}
+
           {/* 複製ボタン - 常に表示（編集不可でも複製は可能） */}
           <Button
             variant="secondary"
@@ -202,7 +235,28 @@ export function CheckListSetDetailPage() {
             </div>
           </div>
         ) : (
-          <CheckListItemTree setId={id} />
+          <>
+            <div className="mb-4">
+              <SegmentedControl
+                options={[
+                  {
+                    value: AmbiguityFilter.ALL,
+                    label: t("checklist.filterAll"),
+                  },
+                  {
+                    value: AmbiguityFilter.HAS_AMBIGUITY,
+                    label: t("checklist.filterNeedsReview"),
+                  },
+                ]}
+                value={ambiguityFilter}
+                onChange={(value) =>
+                  setAmbiguityFilter(value as AmbiguityFilter)
+                }
+                name="ambiguity-filter"
+              />
+            </div>
+            <CheckListItemTree setId={id} ambiguityFilter={ambiguityFilter} />
+          </>
         )}
 
         {checklistSet && (

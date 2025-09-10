@@ -1,9 +1,11 @@
 import { useApiClient } from "../../../hooks/useApiClient";
+import { mutate } from "swr";
 import type {
   CreateChecklistSetRequest,
   CreateChecklistSetResponse,
   DuplicateChecklistSetRequest,
   DuplicateChecklistSetResponse,
+  DetectAmbiguityResponse,
 } from "../types";
 
 export function useCreateChecklistSet() {
@@ -58,4 +60,23 @@ export function useDuplicateChecklistSet() {
   }
 
   return { duplicateChecklistSet, status, error };
+}
+
+/**
+ * 曖昧検知実行フック
+ */
+export function useDetectAmbiguity() {
+  const { mutateAsync, status, error } =
+    useApiClient().useMutation<DetectAmbiguityResponse>(
+      "post",
+      "/checklist-sets"
+    );
+
+  const detectAmbiguity = async (setId: string) => {
+    await mutateAsync({}, `/checklist-sets/${setId}/detect-ambiguity`);
+    // 関連データを再取得
+    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+  };
+
+  return { detectAmbiguity, status, error };
 }
