@@ -24,6 +24,7 @@ import DocumentPreview from "../../../components/DocumentPreview";
 import ImagePreview from "../../../components/ImagePreview";
 import ReviewItemCostBadge from "./ReviewItemCostBadge";
 import { useReviewItemCost } from "../hooks/useReviewItemCost";
+import ResultCard, { ResultCardVariant } from "../../../components/ResultCard";
 
 interface ReviewResultItemProps {
   result: ReviewResultDetail;
@@ -174,20 +175,22 @@ export default function ReviewResultItem({
     );
   }
 
+  // Determine card variant based on result status
+  const getCardVariant = (): ResultCardVariant => {
+    if (result.result === REVIEW_RESULT.PASS) return "success";
+    if (result.result === REVIEW_RESULT.FAIL) return "error";
+    return "default";
+  };
+
   return (
     <>
-      <div
-        id={`result-item-${result.id}`}
-        className={`border ${
-          isBelowThreshold ? "border-2 border-yellow" : "border-light-gray"
-        } rounded-md p-4 transition-all duration-200 ${
-          result.result === REVIEW_RESULT.PASS
-            ? "bg-aws-lab bg-opacity-10 hover:bg-aws-lab hover:bg-opacity-30"
-            : result.result === REVIEW_RESULT.FAIL
-              ? "bg-red bg-opacity-10 hover:bg-red hover:bg-opacity-30"
-              : "bg-white hover:bg-aws-paper-light"
-        } ${isBelowThreshold ? "hover:bg-yellow-100 bg-light-yellow" : ""}`}>
-        <div className="grid grid-cols-[auto_1fr_auto] gap-4">
+      <ResultCard
+        variant={getCardVariant()}
+        emphasize={isBelowThreshold}
+      >
+        <div
+          id={`result-item-${result.id}`}
+          className="grid grid-cols-[auto_1fr_auto] gap-4">
           {/* Expand/collapse button - 1st column */}
           <div className="pt-1">
             {hasChildren && (
@@ -442,7 +445,7 @@ export default function ReviewResultItem({
             {/* 信頼度スコアは上段に移動したため、ここでは表示しない */}
           </div>
         </div>
-      </div>
+      </ResultCard>
 
       {/* Override modal */}
       {isModalOpen && (
