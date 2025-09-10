@@ -7,6 +7,7 @@ import {
   getChecklistItems,
   getChecklistSetById,
   duplicateChecklistSet,
+  startAmbiguityDetection,
 } from "../usecase/checklist-set";
 import { deleteS3Object } from "../../../core/s3";
 import {
@@ -15,7 +16,6 @@ import {
   modifyCheckListItem,
   removeCheckListItem,
 } from "../usecase/checklist-item";
-import { detectChecklistAmbiguity } from "../usecase/ambiguity-detection";
 import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
 
 /**
@@ -380,13 +380,13 @@ export const detectAmbiguityHandler = async (
     return;
   }
 
-  await detectChecklistAmbiguity({
+  await startAmbiguityDetection({
     checkListSetId: setId,
     userId,
   });
 
-  reply.code(200).send({
+  reply.code(202).send({
     success: true,
-    data: {},
+    data: { message: "Ambiguity detection started" },
   });
 };

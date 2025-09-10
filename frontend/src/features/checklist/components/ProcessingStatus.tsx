@@ -42,6 +42,13 @@ const getStatusInfo = (status: CHECK_LIST_STATUS) => {
         textColor: "text-blue-800",
         icon: <HiRefresh className="mr-1" />,
       };
+    case CHECK_LIST_STATUS.DETECTING:
+      return {
+        label: "曖昧検知中",
+        bgColor: "bg-purple-100",
+        textColor: "text-purple-800",
+        icon: <HiRefresh className="mr-1 animate-spin" />,
+      };
     case CHECK_LIST_STATUS.COMPLETED:
       return {
         label: "完了",

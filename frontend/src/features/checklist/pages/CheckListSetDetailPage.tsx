@@ -24,6 +24,7 @@ import {
   HiSparkles,
 } from "react-icons/hi";
 import Button from "../../../components/Button";
+import Tooltip from "../../../components/Tooltip";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import { ErrorAlert } from "../../../components/ErrorAlert";
@@ -56,7 +57,7 @@ export function CheckListSetDetailPage() {
     AmbiguityFilter.ALL
   );
   const { refetch: refetchRoot } = useChecklistItems(id || null);
-  const isDetecting = detectStatus === "loading";
+  const isDetecting = checklistSet?.processingStatus === 'detecting';
 
   const { showConfirm, AlertModal } = useAlert();
 
@@ -243,16 +244,24 @@ export function CheckListSetDetailPage() {
                 name="ambiguity-filter"
               />
               {checklistSet && checklistSet.isEditable && (
-                <Button
-                  variant="primary"
-                  outline={true}
-                  onClick={handleDetectAmbiguity}
-                  disabled={isDetecting}
-                  icon={<HiSparkles className="h-5 w-5" />}>
-                  {isDetecting
-                    ? t("checklist.ambiguityDetecting")
-                    : t("checklist.ambiguityDetect")}
-                </Button>
+                <Tooltip content={t("checklist.ambiguityDetectTooltip")}>
+                  <Button
+                    variant="primary"
+                    outline={true}
+                    onClick={handleDetectAmbiguity}
+                    disabled={isDetecting}
+                    icon={
+                      isDetecting ? (
+                        <HiSparkles className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <HiSparkles className="h-5 w-5" />
+                      )
+                    }>
+                    {isDetecting
+                      ? t("checklist.ambiguityDetecting")
+                      : t("checklist.ambiguityDetect")}
+                  </Button>
+                </Tooltip>
               )}
             </div>
             <CheckListItemTree setId={id} ambiguityFilter={ambiguityFilter} />

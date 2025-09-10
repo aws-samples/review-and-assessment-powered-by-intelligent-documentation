@@ -17,6 +17,7 @@ import { getPresignedUrl } from "../../../core/s3";
 import { getChecklistOriginalKey } from "../../../../checklist-workflow/common/storage-paths";
 import { ApplicationError } from "../../../core/errors";
 import { startStateMachineExecution } from "../../../core/sfn";
+import { sendMessage } from "../../../core/sqs";
 
 export const createChecklistSet = async (params: {
   req: CreateChecklistSetRequest;
@@ -249,4 +250,31 @@ export const getChecklistSetById = async (params: {
   const { checkListSetId } = params;
   const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
   return checkListSet;
+};
+
+export const startAmbiguityDetection = async (params: {
+  checkListSetId: string;
+  userId: string;
+  deps?: {
+    repo?: CheckRepository;
+    sqsQueueUrl?: string;
+  };
+}): Promise<void> => {
+  const repo = params.deps?.repo || (await makePrismaCheckRepository());
+  const queueUrl = params.deps?.sqsQueueUrl || process.env.AMBIGUITY_DETECTION_QUEUE_URL!;
+
+  // Update document status to detecting
+  const checkListSet = await repo.findCheckListSetDetailById(params.checkListSetId);
+  if (checkListSet.documents.length > 0) {
+    await repo.updateDocumentStatus({
+      documentId: checkListSet.documents[0].id,
+      status: CHECK_LIST_STATUS.DETECTING,
+    });
+  }
+
+  // Send message to SQS
+  await sendMessage(queueUrl, {
+    checkListSetId: params.checkListSetId,
+    userId: params.userId,
+  });
 };

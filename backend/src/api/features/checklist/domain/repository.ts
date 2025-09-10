@@ -437,6 +437,21 @@ export const makePrismaCheckRepository = async (
       }
     }
 
+    // Calculate processing status from documents
+    const statuses = checkListSet.documents.map((d) => d.status as CHECK_LIST_STATUS);
+    let processingStatus: CHECK_LIST_STATUS;
+    if (statuses.length === 0) {
+      processingStatus = CHECK_LIST_STATUS.PENDING;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
+      processingStatus = CHECK_LIST_STATUS.PROCESSING;
+    } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
+      processingStatus = CHECK_LIST_STATUS.COMPLETED;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
+      processingStatus = CHECK_LIST_STATUS.FAILED;
+    } else {
+      processingStatus = CHECK_LIST_STATUS.PENDING;
+    }
+
     return {
       id: checkListSet.id,
       name: checkListSet.name,
@@ -450,6 +465,7 @@ export const makePrismaCheckRepository = async (
         status: doc.status as CHECK_LIST_STATUS,
         errorDetail: doc.errorDetail || undefined,
       })),
+      processingStatus,
       isEditable,
       errorSummary,
       hasError: failedDocuments.length > 0,

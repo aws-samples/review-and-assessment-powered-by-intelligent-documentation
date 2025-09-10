@@ -146,6 +146,7 @@
     "deleteItemConfirmation": "「{{name}}」を本当に削除しますか？",
     "ambiguityDetection": "曖昧基準を再検知",
     "ambiguityDetect": "曖昧検知",
+    "ambiguityDetectTooltip": "曖昧な基準を再検知します",
     "ambiguityDetecting": "検知中...",
     "ambiguityDetectionSuccess": "曖昧基準の検知を開始しました",
     "ambiguityDetectionError": "曖昧基準の再検知に失敗しました",
@@ -251,6 +252,7 @@
   "status": {
     "pending": "待機中",
     "processing": "処理中",
+    "detecting": "曖昧検知中",
     "completed": "完了",
     "failed": "失敗",
     "unknown": "不明"

@@ -2,7 +2,6 @@ import { ulid } from "ulid";
 import {
   CreateChecklistItemRequest,
   CreateChecklistSetRequest,
-  UpdateChecklistItemRequest,
 } from "../../routes/handlers";
 import { ParsedChecklistItem } from "../../../../../checklist-workflow/common/types";
 import type { CheckList } from "../../../../../../prisma/client";
@@ -10,6 +9,7 @@ import type { CheckList } from "../../../../../../prisma/client";
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
+  DETECTING = "detecting",
   COMPLETED = "completed",
   FAILED = "failed",
 }
@@ -48,6 +48,7 @@ export interface CheckListSetDetailModel {
   name: string;
   description: string;
   documents: ChecklistDocumentEntity[];
+  processingStatus: CHECK_LIST_STATUS;
   isEditable: boolean;
   errorSummary?: string;
   hasError: boolean;

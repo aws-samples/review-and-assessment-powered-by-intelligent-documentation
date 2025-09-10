@@ -2,9 +2,11 @@ import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as path from "path";
 import { Construct } from "constructs";
 import { ChecklistProcessor } from "./constructs/checklist-processor";
 import { ReviewProcessor } from "./constructs/review-processor";
+import { AmbiguityDetectionProcessor } from "./constructs/ambiguity-detection-processor";
 import { Database } from "./constructs/database";
 import { Api } from "./constructs/api";
 import { Auth } from "./constructs/auth";
@@ -159,6 +161,16 @@ export class RapidStack extends cdk.Stack {
       cognitoSelfSignUpEnabled: props.parameters.cognitoSelfSignUpEnabled,
     });
 
+    // Ambiguity Detection Processor
+    const ambiguityProcessor = new AmbiguityDetectionProcessor(
+      this,
+      "AmbiguityProcessor",
+      {
+        vpc,
+        databaseConnection: database.connection,
+      }
+    );
+
     // API Gatewayとそれに紐づくLambda関数の作成
     const api = new Api(this, "Api", {
       vpc,
@@ -170,6 +182,7 @@ export class RapidStack extends cdk.Stack {
         REVIEW_PROCESSING_STATE_MACHINE_ARN:
           reviewProcessor.stateMachine.stateMachineArn,
         CHECKLIST_INLINE_MAP_CONCURRENCY: (props.parameters.checklistInlineMapConcurrency || 1).toString(),
+        AMBIGUITY_DETECTION_QUEUE_URL: ambiguityProcessor.queue.queueUrl,
       },
       auth: auth, // Authインスタンスを渡す
     });
@@ -181,10 +194,15 @@ export class RapidStack extends cdk.Stack {
     database.grantSecretAccess(documentProcessor.documentLambda);
     database.grantConnect(reviewProcessor.securityGroup);
     database.grantSecretAccess(reviewProcessor.reviewLambda);
+    database.grantConnect(ambiguityProcessor.securityGroup);
+    database.grantSecretAccess(ambiguityProcessor.workerLambda);
 
     // StateMachine実行権限付与
     documentProcessor.stateMachine.grantStartExecution(api.apiLambda);
     reviewProcessor.stateMachine.grantStartExecution(api.apiLambda);
+
+    // SQS permissions for API Lambda
+    ambiguityProcessor.queue.grantSendMessages(api.apiLambda);
 
     // S3バケットアクセス権限の付与
     documentBucket.grantReadWrite(api.apiLambda);

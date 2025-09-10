@@ -26,6 +26,7 @@ export enum AmbiguityFilter {
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
+  DETECTING = "detecting",
   COMPLETED = "completed",
   FAILED = "failed",
 }
@@ -233,6 +234,7 @@ export interface CheckListSetDetailModel {
   name: string;
   description: string;
   documents: ChecklistDocumentEntity[];
+  processingStatus: CHECK_LIST_STATUS;
   isEditable: boolean;
   errorSummary?: string;
   hasError: boolean;
