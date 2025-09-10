@@ -135,6 +135,7 @@ export class ChecklistProcessor extends Construct {
           DOCUMENT_BUCKET: props.documentBucket.bucketName,
           BEDROCK_REGION: props.bedrockRegion,
           DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
+          CHECKLIST_INLINE_MAP_CONCURRENCY: inlineMapConcurrency.toString(),
         },
         securityGroups: [this.securityGroup],
         database: props.databaseConnection,

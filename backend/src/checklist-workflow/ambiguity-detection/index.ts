@@ -7,6 +7,7 @@ export const detectAmbiguity = async (params: {
   await detectChecklistAmbiguity({
     checkListSetId: params.checkListSetId,
     userId: params.userId,
+    concurrency: parseInt(process.env.CHECKLIST_INLINE_MAP_CONCURRENCY || "1"),
   });
 
   return {

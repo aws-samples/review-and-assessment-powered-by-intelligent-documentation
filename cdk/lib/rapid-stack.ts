@@ -169,6 +169,7 @@ export class RapidStack extends cdk.Stack {
           documentProcessor.stateMachine.stateMachineArn,
         REVIEW_PROCESSING_STATE_MACHINE_ARN:
           reviewProcessor.stateMachine.stateMachineArn,
+        CHECKLIST_INLINE_MAP_CONCURRENCY: (props.parameters.checklistInlineMapConcurrency || 1).toString(),
       },
       auth: auth, // Authインスタンスを渡す
     });
