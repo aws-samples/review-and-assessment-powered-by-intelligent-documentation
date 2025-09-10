@@ -145,6 +145,7 @@
     "editItemUpdate": "Update",
     "deleteItemConfirmation": "Are you sure you want to delete \"{{name}}\"?",
     "ambiguityDetection": "Re-detect Ambiguity",
+    "ambiguityDetect": "Detect Ambiguity",
     "ambiguityDetecting": "Detecting...",
     "ambiguityDetectionSuccess": "Ambiguity detection started",
     "ambiguityDetectionError": "Failed to re-detect ambiguity",

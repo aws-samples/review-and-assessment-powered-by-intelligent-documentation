@@ -21,7 +21,7 @@ import {
   HiExclamation,
   HiInformationCircle,
   HiDuplicate,
-  HiSearch,
+  HiSparkles,
 } from "react-icons/hi";
 import Button from "../../../components/Button";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -171,18 +171,6 @@ export function CheckListSetDetailPage() {
             )}
         </div>
         <div className="flex space-x-3">
-          {checklistSet && checklistSet.isEditable && (
-            <Button
-              variant="secondary"
-              onClick={handleDetectAmbiguity}
-              disabled={isDetecting}
-              icon={<HiSearch className="h-5 w-5" />}>
-              {isDetecting
-                ? t("checklist.ambiguityDetecting")
-                : t("checklist.ambiguityDetection")}
-            </Button>
-          )}
-
           {/* 複製ボタン - 常に表示（編集不可でも複製は可能） */}
           <Button
             variant="secondary"
@@ -236,7 +224,7 @@ export function CheckListSetDetailPage() {
           </div>
         ) : (
           <>
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <SegmentedControl
                 options={[
                   {
@@ -254,6 +242,18 @@ export function CheckListSetDetailPage() {
                 }
                 name="ambiguity-filter"
               />
+              {checklistSet && checklistSet.isEditable && (
+                <Button
+                  variant="primary"
+                  outline={true}
+                  onClick={handleDetectAmbiguity}
+                  disabled={isDetecting}
+                  icon={<HiSparkles className="h-5 w-5" />}>
+                  {isDetecting
+                    ? t("checklist.ambiguityDetecting")
+                    : t("checklist.ambiguityDetect")}
+                </Button>
+              )}
             </div>
             <CheckListItemTree setId={id} ambiguityFilter={ambiguityFilter} />
           </>
