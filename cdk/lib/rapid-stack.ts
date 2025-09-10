@@ -168,6 +168,7 @@ export class RapidStack extends cdk.Stack {
       {
         vpc,
         databaseConnection: database.connection,
+        bedrockRegion: props.parameters.bedrockRegion,
       }
     );
 
