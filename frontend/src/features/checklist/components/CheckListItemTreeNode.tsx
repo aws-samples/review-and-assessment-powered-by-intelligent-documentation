@@ -128,8 +128,7 @@ export default function CheckListItemTreeNode({
       <div>
         <div style={indentStyle}>
           <ResultCard
-            variant={item.ambiguityReview ? "error" : "default"}
-            borderAccent={!!item.ambiguityReview}>
+            variant={item.ambiguityReview ? "error" : "default"}>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 {item.hasChildren && (
@@ -173,7 +172,16 @@ export default function CheckListItemTreeNode({
                 <Button
                   variant="text"
                   size="sm"
-                  icon={<HiPencil className="h-5 w-5" />}
+                  icon={
+                    <div className="relative">
+                      <HiPencil className="h-5 w-5" />
+                      {item.ambiguityReview && (
+                        <span className="absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-yellow text-xs text-white">
+                          !
+                        </span>
+                      )}
+                    </div>
+                  }
                   onClick={() => isEditable && setIsEditModalOpen(true)}
                   disabled={!isEditable}
                   title="編集"
@@ -181,7 +189,9 @@ export default function CheckListItemTreeNode({
                   className={
                     !isEditable
                       ? "text-gray-300 cursor-not-allowed"
-                      : "text-aws-aqua hover:text-aws-sea-blue-light"
+                      : item.ambiguityReview 
+                        ? "text-yellow border-yellow hover:bg-yellow hover:bg-opacity-10" 
+                        : "text-aws-aqua hover:text-aws-sea-blue-light"
                   }
                 />
 
