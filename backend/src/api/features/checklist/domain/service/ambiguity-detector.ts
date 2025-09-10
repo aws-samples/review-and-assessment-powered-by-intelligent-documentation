@@ -45,9 +45,12 @@ Analyze the review criteria and provide specific improvement suggestions if ambi
 - "cheap" → specify concrete amounts or discount rates
 - "qualified person" → specify exact qualifications or conditions
 
-## Output Format
-If ambiguous expressions are found, output improvement suggestions as bullet points.
-If no ambiguous expressions are found, output "No ambiguous expressions found".
+## CRITICAL: Output Format Rules
+If no ambiguous expressions found: Output ONLY "NO_AMBIGUOUS" with no additional text
+If ambiguous expressions found: Output bullet points using • symbol only
+
+NEVER add explanations before or after NO_AMBIGUOUS.
+Bullet point content must be in ${languageName}, but NO_AMBIGUOUS symbol must always be in English.
 
 ## Example
 Input: "Qualified persons can register at a discount"
@@ -99,14 +102,8 @@ Review criteria: ${description}`;
 
   const llmResponse = response.output?.message?.content?.[0]?.text || "";
 
-  // Check for "no ambiguous expressions" in multiple languages
-  const noAmbiguityPhrases = [
-    "No ambiguous expressions found",
-    "曖昧な表現はありません",
-    "ambiguous expressions found", // partial match for variations
-  ];
-
-  if (noAmbiguityPhrases.some((phrase) => llmResponse.includes(phrase))) {
+  // Check for exact NO_AMBIGUOUS response
+  if (llmResponse.trim() === "NO_AMBIGUOUS") {
     return null;
   }
 
