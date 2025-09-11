@@ -54,8 +54,13 @@ Important: Always output in array format (enclosed in [ ]). Return an array, not
 Each checklist item should include the following fields:
 
 - name: The name of the check item (IN ${languageName})
-- description: Detailed explanation of the check content (IN ${languageName})
+- description: Detailed explanation of the check content (IN ${languageName}) - ONLY for leaf nodes (items without children)
 - parent_id: The number of the parent item (null for top-level items)
+
+## CRITICAL DESCRIPTION RULE
+- Generate descriptions ONLY for leaf nodes (items that do not have children)
+- Parent nodes (items that have children) should have empty string "" for description
+- Leaf nodes (items without children) should have detailed descriptions
 
 ## Extraction Rules
 1. Identify simple check items and flowchart-type items
@@ -63,20 +68,26 @@ Each checklist item should include the following fields:
 3. Extract all check items without omissions
 4. Eliminate and organize duplicates
 5. Express parent_id as a number (starting from 0, null for top-level items)
+6. Generate descriptions ONLY for leaf nodes - parent nodes get empty descriptions
 
 ## Example Output Format (Array)
 Example response (note: the example below is in English, but YOUR RESPONSE MUST BE IN ${languageName}):
 
 [
   {
+    "name": "Contract Information",
+    "description": "",
+    "parent_id": null
+  },
+  {
     "name": "Contract party description",
     "description": "Whether both parties' official names are accurately described in the contract",
     "parent_id": 0
   },
   {
-    "name": "Identified asset exists",
-    "description": "Whether there is an identified asset, considering whether the supplier has the substantive ability to substitute the asset throughout the period of use",
-    "parent_id": null
+    "name": "Contract date recording",
+    "description": "Whether the contract conclusion date is clearly stated and matches the agreement date of both parties",
+    "parent_id": 0
   }
 ]
 
@@ -87,6 +98,7 @@ Example response (note: the example below is in English, but YOUR RESPONSE MUST 
 - ALWAYS OUTPUT IN ${languageName} including all field values
 - Always express parent_id as a number (or null for top-level items)
 - Always output in array format. Return an array, not an object.
+- CRITICAL: Only leaf nodes (items without children) should have descriptions. Parent nodes get empty string descriptions.
 
 REMEMBER: YOUR ENTIRE RESPONSE INCLUDING ALL JSON FIELD VALUES MUST BE IN ${languageName}.
 
