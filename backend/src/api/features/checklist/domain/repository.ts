@@ -262,6 +262,8 @@ export const makePrismaCheckRepository = async (
         processingStatus = CHECK_LIST_STATUS.PENDING;
       } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
         processingStatus = CHECK_LIST_STATUS.PROCESSING;
+      } else if (statuses.some((st) => st === CHECK_LIST_STATUS.DETECTING)) {
+        processingStatus = CHECK_LIST_STATUS.DETECTING;
       } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
         processingStatus = CHECK_LIST_STATUS.COMPLETED;
       } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
@@ -446,6 +448,8 @@ export const makePrismaCheckRepository = async (
       processingStatus = CHECK_LIST_STATUS.PENDING;
     } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
       processingStatus = CHECK_LIST_STATUS.PROCESSING;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.DETECTING)) {
+      processingStatus = CHECK_LIST_STATUS.DETECTING;
     } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
       processingStatus = CHECK_LIST_STATUS.COMPLETED;
     } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
