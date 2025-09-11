@@ -233,23 +233,25 @@ export function CheckListSetDetailPage() {
         ) : (
           <>
             <div className="mb-4 flex items-center justify-between">
-              <SegmentedControl
-                options={[
-                  {
-                    value: AmbiguityFilter.ALL,
-                    label: t("checklist.filterAll"),
-                  },
-                  {
-                    value: AmbiguityFilter.HAS_AMBIGUITY,
-                    label: t("checklist.filterNeedsReview"),
-                  },
-                ]}
-                value={ambiguityFilter}
-                onChange={(value) =>
-                  setAmbiguityFilter(value as AmbiguityFilter)
-                }
-                name="ambiguity-filter"
-              />
+              {checklistSet && checklistSet.isEditable && (
+                <SegmentedControl
+                  options={[
+                    {
+                      value: AmbiguityFilter.ALL,
+                      label: t("checklist.filterAll"),
+                    },
+                    {
+                      value: AmbiguityFilter.HAS_AMBIGUITY,
+                      label: t("checklist.filterNeedsReview"),
+                    },
+                  ]}
+                  value={ambiguityFilter}
+                  onChange={(value) =>
+                    setAmbiguityFilter(value as AmbiguityFilter)
+                  }
+                  name="ambiguity-filter"
+                />
+              )}
               {checklistSet && checklistSet.isEditable && (
                 <Tooltip content={t("checklist.ambiguityDetectTooltip")}>
                   <Button
