@@ -74,6 +74,13 @@ export function useDetectAmbiguity() {
 
   const detectAmbiguity = async (setId: string) => {
     await mutateAsync({}, `/checklist-sets/${setId}/detect-ambiguity`);
+
+    // API完了後に部分的楽観更新
+    mutate(`/checklist-sets/${setId}`, (currentData: any) => ({
+      ...currentData,
+      processingStatus: "detecting",
+    }));
+
     // 関連データを再取得
     mutate(`/checklist-sets/${setId}/items/hierarchy`);
   };
