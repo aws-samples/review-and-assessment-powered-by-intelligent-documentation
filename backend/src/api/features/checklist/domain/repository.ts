@@ -314,29 +314,22 @@ export const makePrismaCheckRepository = async (
       }, includeAllChildren: ${includeAllChildren}, ambiguityFilter: ${ambiguityFilter || "none"}`
     );
 
-    // クエリの基本条件を構築
+    // Basic condition
     const whereCondition: any = {
       checkListSetId: setId,
     };
 
-    // includeAllChildrenがfalseの場合のみ、parentIdの条件を適用
     if (!includeAllChildren) {
       whereCondition.parentId = parentId || null;
     }
 
-    // ambiguityFilterの条件を追加
     if (ambiguityFilter === AmbiguityFilter.HAS_AMBIGUITY) {
-      whereCondition.ambiguityReview = {
-        not: null,
-      };
+      whereCondition.OR = [
+        { children: { some: {} } }, // If has children, always show
+        { ambiguityReview: { not: null } }, // If leaf node, only show ambiguity
+      ];
     }
 
-    console.log(
-      `[Repository] Query condition:`,
-      JSON.stringify(whereCondition, null, 2)
-    );
-
-    // チェックリスト項目を取得
     const items = await client.checkList.findMany({
       where: whereCondition,
       select: {
@@ -362,7 +355,6 @@ export const makePrismaCheckRepository = async (
 
     console.log(`[Repository] Checking for children of itemIds:`, itemIds);
 
-    // すべてのアイテムIDに対する子の存在を一度に確認する
     const childItems = await client.checkList.findMany({
       where: {
         checkListSetId: setId,

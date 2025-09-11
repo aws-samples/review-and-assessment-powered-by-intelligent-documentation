@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import {
@@ -56,10 +56,17 @@ export function CheckListSetDetailPage() {
   const [ambiguityFilter, setAmbiguityFilter] = useState<AmbiguityFilter>(
     AmbiguityFilter.ALL
   );
-  const { refetch: refetchRoot } = useChecklistItems(id || null);
+  const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
   const isDetecting = checklistSet?.processingStatus === 'detecting';
 
   const { showConfirm, AlertModal } = useAlert();
+
+  // タブ切り替え時にrefetch
+  useEffect(() => {
+    if (id) {
+      refetchRoot();
+    }
+  }, [ambiguityFilter, id, refetchRoot]);
 
   const handleDelete = async () => {
     if (!id) return;
