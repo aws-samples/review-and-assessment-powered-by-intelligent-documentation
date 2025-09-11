@@ -143,7 +143,16 @@
     "editItemUpdateErrorToast": "Failed to update checklist item",
     "editItemUpdating": "Updating...",
     "editItemUpdate": "Update",
-    "deleteItemConfirmation": "Are you sure you want to delete \"{{name}}\"?"
+    "deleteItemConfirmation": "Are you sure you want to delete \"{{name}}\"?",
+    "ambiguityDetection": "Re-detect Ambiguity",
+    "ambiguityDetect": "Detect Ambiguity",
+    "ambiguityDetectTooltip": "Re-detect ambiguous criteria",
+    "ambiguityDetecting": "Detecting...",
+    "ambiguityDetectionSuccess": "Ambiguity detection started",
+    "ambiguityDetectionError": "Failed to re-detect ambiguity",
+    "improvementSuggestions": "Improvement Suggestions",
+    "filterAll": "All",
+    "filterNeedsReview": "Needs Review"
   },
   "review": {
     "title": "Review Jobs",
@@ -243,6 +252,7 @@
   "status": {
     "pending": "Pending",
     "processing": "Processing",
+    "detecting": "Detecting",
     "completed": "Completed",
     "failed": "Failed",
     "unknown": "Unknown"

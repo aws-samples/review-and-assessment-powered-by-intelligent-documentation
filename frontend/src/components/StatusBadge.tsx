@@ -38,6 +38,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
       statusLabel = statusLabel || t("status.processing");
       break;
       
+    case CHECK_LIST_STATUS.DETECTING:
+      statusClasses = "text-purple-600";
+      statusLabel = statusLabel || t("status.detecting");
+      break;
+      
     case CHECK_LIST_STATUS.COMPLETED:
     case REVIEW_JOB_STATUS.COMPLETED:
       statusClasses = "text-aws-lab";

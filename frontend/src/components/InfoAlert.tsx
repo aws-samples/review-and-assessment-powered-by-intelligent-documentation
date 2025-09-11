@@ -70,7 +70,7 @@ export function InfoAlert({
         <div className={`mr-3 flex-shrink-0 ${iconColors[variant]}`}>
           {icons[variant]}
         </div>
-        <strong className="font-medium">{displayTitle}: </strong>
+        <strong className="font-medium whitespace-nowrap">{displayTitle}: </strong>
         <span className="ml-2">
           {dangerouslySetInnerHTML ? (
             <div dangerouslySetInnerHTML={{ __html: message as string }} />

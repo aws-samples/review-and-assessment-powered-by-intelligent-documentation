@@ -2,15 +2,26 @@ import { ulid } from "ulid";
 import {
   CreateChecklistItemRequest,
   CreateChecklistSetRequest,
-  UpdateChecklistItemRequest,
 } from "../../routes/handlers";
 import { ParsedChecklistItem } from "../../../../../checklist-workflow/common/types";
+import type { CheckList } from "../../../../../../prisma/client";
 
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
+  DETECTING = "detecting",
   COMPLETED = "completed",
   FAILED = "failed",
+}
+
+export interface AmbiguityDetectionResult {
+  suggestions: string[];
+  detectedAt: Date;
+}
+
+export enum AmbiguityFilter {
+  ALL = "all",
+  HAS_AMBIGUITY = "hasAmbiguity",
 }
 
 export interface CheckListSetEntity {
@@ -37,6 +48,7 @@ export interface CheckListSetDetailModel {
   name: string;
   description: string;
   documents: ChecklistDocumentEntity[];
+  processingStatus: CHECK_LIST_STATUS;
   isEditable: boolean;
   errorSummary?: string;
   hasError: boolean;
@@ -58,6 +70,7 @@ export interface CheckListItemEntity {
   setId: string;
   name: string;
   description?: string;
+  ambiguityReview?: AmbiguityDetectionResult;
 }
 
 export interface CheckListItemDetail extends CheckListItemEntity {
@@ -121,15 +134,24 @@ export const CheckListItemDomain = {
     };
   },
 
-  fromUpdateRequest: (req: UpdateChecklistItemRequest): CheckListItemEntity => {
-    const { Params, Body } = req;
-    const { name, description } = Body;
+  createUpdatedItem: (
+    existingItem: CheckListItemEntity,
+    updates: { name: string; description: string; resolveAmbiguity: boolean }
+  ): CheckListItemEntity => {
+    const newAmbiguityReview = updates.resolveAmbiguity
+      ? undefined
+      : existingItem.ambiguityReview;
+
+    console.log(
+      "[DEBUG] createUpdatedItem - newAmbiguityReview:",
+      newAmbiguityReview
+    );
 
     return {
-      id: Params.itemId,
-      setId: Params.setId,
-      name,
-      description: description || "",
+      ...existingItem,
+      name: updates.name,
+      description: updates.description || "",
+      ambiguityReview: newAmbiguityReview,
     };
   },
 
@@ -144,6 +166,41 @@ export const CheckListItemDomain = {
       name,
       description: description || "",
       parentId: parent_id ? String(parent_id) : undefined,
+    };
+  },
+
+  fromPrismaCheckListItem: (prismaItem: CheckList): CheckListItemEntity => {
+    return {
+      id: prismaItem.id,
+      setId: prismaItem.checkListSetId,
+      name: prismaItem.name,
+      description: prismaItem.description ?? undefined,
+      parentId: prismaItem.parentId ?? undefined,
+      ambiguityReview: prismaItem.ambiguityReview
+        ? {
+            suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
+            detectedAt: new Date(
+              (prismaItem.ambiguityReview as any).detectedAt
+            ),
+          }
+        : undefined,
+    };
+  },
+
+  toPrismaCheckListItem: (item: CheckListItemEntity): CheckList => {
+    return {
+      id: item.id,
+      name: item.name,
+      description: item.description ?? null,
+      checkListSetId: item.setId,
+      parentId: item.parentId ?? null,
+      documentId: null,
+      ambiguityReview: item.ambiguityReview
+        ? {
+            suggestions: item.ambiguityReview.suggestions,
+            detectedAt: item.ambiguityReview.detectedAt.toISOString(),
+          }
+        : null,
     };
   },
 };

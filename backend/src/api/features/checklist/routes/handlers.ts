@@ -7,6 +7,7 @@ import {
   getChecklistItems,
   getChecklistSetById,
   duplicateChecklistSet,
+  startAmbiguityDetection,
 } from "../usecase/checklist-set";
 import { deleteS3Object } from "../../../core/s3";
 import {
@@ -15,7 +16,18 @@ import {
   modifyCheckListItem,
   removeCheckListItem,
 } from "../usecase/checklist-item";
-import { CHECK_LIST_STATUS } from "../domain/model/checklist";
+import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
+
+/**
+ * Parse and validate ambiguity filter parameter
+ */
+const parseAmbiguityFilter = (value?: string): AmbiguityFilter | undefined => {
+  if (!value) return undefined;
+  if (Object.values(AmbiguityFilter).includes(value as AmbiguityFilter)) {
+    return value as AmbiguityFilter;
+  }
+  throw new Error(`Invalid ambiguityFilter: ${value}`);
+};
 
 interface Document {
   documentId: string;
@@ -206,25 +218,40 @@ export const deleteChecklistDocumentHandler = async (
 export async function getChecklistItemsHandler(
   request: FastifyRequest<{
     Params: { setId: string };
-    Querystring: { parentId?: string; includeAllChildren?: string };
+    Querystring: {
+      parentId?: string;
+      includeAllChildren?: string;
+      ambiguityFilter?: string;
+    };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const { setId } = request.params;
-  const { parentId, includeAllChildren } = request.query;
+  const { parentId, includeAllChildren, ambiguityFilter } = request.query;
 
-  const items = await getChecklistItems({
-    checkListSetId: setId,
-    parentId: parentId,
-    includeAllChildren: includeAllChildren === "true",
-  });
+  try {
+    const parsedAmbiguityFilter = parseAmbiguityFilter(ambiguityFilter);
 
-  reply.code(200).send({
-    success: true,
-    data: {
-      items,
-    },
-  });
+    const items = await getChecklistItems({
+      checkListSetId: setId,
+      parentId: parentId,
+      includeAllChildren: includeAllChildren === "true",
+      ambiguityFilter: parsedAmbiguityFilter,
+    });
+
+    reply.code(200).send({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error) {
+    reply.code(400).send({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Invalid request parameters",
+    });
+  }
 }
 
 export const getChecklistSetByIdHandler = async (
@@ -299,6 +326,7 @@ export interface UpdateChecklistItemRequest {
   Body: {
     name: string;
     description: string;
+    resolveAmbiguity: boolean;
   };
 }
 
@@ -307,12 +335,12 @@ export const updateChecklistItemHandler = async (
   reply: FastifyReply
 ): Promise<void> => {
   const { setId, itemId } = request.params;
-  const { name, description } = request.body;
+  const { name, description, resolveAmbiguity } = request.body;
 
   await modifyCheckListItem({
     req: {
       Params: { setId, itemId },
-      Body: { name, description },
+      Body: { name, description, resolveAmbiguity },
     },
   });
 
@@ -334,5 +362,31 @@ export const deleteChecklistItemHandler = async (
   reply.code(200).send({
     success: true,
     data: {},
+  });
+};
+
+export const detectAmbiguityHandler = async (
+  request: FastifyRequest<{ Params: { setId: string } }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { setId } = request.params;
+  const userId = request.user?.sub;
+
+  if (!userId) {
+    reply.code(401).send({
+      success: false,
+      error: "User authentication required",
+    });
+    return;
+  }
+
+  await startAmbiguityDetection({
+    checkListSetId: setId,
+    userId,
+  });
+
+  reply.code(202).send({
+    success: true,
+    data: { message: "Ambiguity detection started" },
   });
 };

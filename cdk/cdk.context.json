@@ -1,6 +1,8 @@
 {
   "acknowledged-issue-numbers": [
-    32775
+    32775,
+    34892,
+    34892
   ],
   "availability-zones:account=151364017355:region=ap-northeast-1": [
     "ap-northeast-1a",

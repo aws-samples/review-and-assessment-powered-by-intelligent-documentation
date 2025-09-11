@@ -13,9 +13,20 @@ export interface Document {
   fileType: string;
 }
 
+export interface AmbiguityDetectionResult {
+  suggestions: string[];
+  detectedAt: string;
+}
+
+export enum AmbiguityFilter {
+  ALL = "all",
+  HAS_AMBIGUITY = "hasAmbiguity",
+}
+
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
+  DETECTING = "detecting",
   COMPLETED = "completed",
   FAILED = "failed",
 }
@@ -68,6 +79,7 @@ export interface CreateChecklistItemRequest {
 export interface UpdateChecklistItemRequest {
   name: string;
   description: string;
+  resolveAmbiguity: boolean;
 }
 
 // Response types
@@ -167,6 +179,9 @@ export type UpdateChecklistItemResponse = ApiResponse<Record<string, never>>;
  */
 export type DeleteChecklistItemResponse = ApiResponse<Record<string, never>>;
 
+export interface DetectAmbiguityRequest {}
+export type DetectAmbiguityResponse = ApiResponse<Record<string, never>>;
+
 // Model types
 
 /**
@@ -178,6 +193,7 @@ export interface CheckListItemEntity {
   setId: string;
   name: string;
   description?: string;
+  ambiguityReview?: AmbiguityDetectionResult;
 }
 
 /**
@@ -218,6 +234,7 @@ export interface CheckListSetDetailModel {
   name: string;
   description: string;
   documents: ChecklistDocumentEntity[];
+  processingStatus: CHECK_LIST_STATUS;
   isEditable: boolean;
   errorSummary?: string;
   hasError: boolean;

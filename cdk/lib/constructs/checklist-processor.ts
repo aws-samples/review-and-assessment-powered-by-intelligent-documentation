@@ -135,6 +135,7 @@ export class ChecklistProcessor extends Construct {
           DOCUMENT_BUCKET: props.documentBucket.bucketName,
           BEDROCK_REGION: props.bedrockRegion,
           DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
+          CHECKLIST_INLINE_MAP_CONCURRENCY: inlineMapConcurrency.toString(),
         },
         securityGroups: [this.securityGroup],
         database: props.databaseConnection,
@@ -310,6 +311,16 @@ export class ChecklistProcessor extends Construct {
       maxAttempts: 5,
     });
 
+    const detectAmbiguityTask = new tasks.LambdaInvoke(this, "DetectAmbiguity", {
+      lambdaFunction: this.documentLambda,
+      payload: sfn.TaskInput.fromObject({
+        action: "detectAmbiguity",
+        checkListSetId: sfn.JsonPath.stringAt("$.checkListSetId"),
+        userId: sfn.JsonPath.stringAt("$.userId"),
+      }),
+      resultPath: "$.ambiguityResult",
+    });
+
     // ページ数に基づく処理方法の選択
     const pageCountChoice = new sfn.Choice(this, "CheckPageCount")
       .when(
@@ -337,11 +348,15 @@ export class ChecklistProcessor extends Construct {
     processLargeDocPass.next(aggregateResultTask);
 
     aggregateResultTask.next(storeToDbTask);
+    // storeToDbTask is not the final step because detectAmbiguityTask reuses existing API implementation
+    // and is designed to be self-contained, allowing it to run independently after data storage
+    storeToDbTask.next(detectAmbiguityTask);
 
     // エラーハンドリングの設定
     documentProcessorTask.addCatch(handleErrorTask);
     aggregateResultTask.addCatch(handleErrorTask);
     storeToDbTask.addCatch(handleErrorTask);
+    detectAmbiguityTask.addCatch(handleErrorTask);
 
     // IAMロールの作成
     const stateMachineRole = new iam.Role(this, "StateMachineRole", {

@@ -78,7 +78,11 @@ export const modifyCheckListItem = async (params: {
   const currentItem = await repo.findCheckListItemById(
     params.req.Params.itemId
   );
-  const newItem = CheckListItemDomain.fromUpdateRequest(params.req);
+  const newItem = CheckListItemDomain.createUpdatedItem(currentItem, {
+    name: params.req.Body.name,
+    description: params.req.Body.description,
+    resolveAmbiguity: params.req.Body.resolveAmbiguity,
+  });
   if (currentItem.setId !== newItem.setId) {
     throw new ValidationError("Invalid setId");
   }

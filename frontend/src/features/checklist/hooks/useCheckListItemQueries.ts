@@ -1,4 +1,5 @@
 import { useApiClient } from "../../../hooks/useApiClient";
+import { AmbiguityFilter } from "../types";
 import type {
   CheckListItemEntity,
   CheckListItemDetail,
@@ -10,13 +11,17 @@ import type {
 export const getChecklistItemsKey = (
   setId: string | null,
   parentId?: string,
-  includeAllChildren?: boolean
+  includeAllChildren?: boolean,
+  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL
 ) => {
   if (!setId) return null;
   const base = `/checklist-sets/${setId}/items`;
   const params = new URLSearchParams();
   if (parentId) params.append("parentId", parentId);
   if (includeAllChildren) params.append("includeAllChildren", "true");
+  if (ambiguityFilter && ambiguityFilter !== AmbiguityFilter.ALL) {
+    params.append("ambiguityFilter", ambiguityFilter);
+  }
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
 };
@@ -33,9 +38,15 @@ export const getChecklistItemKey = (
 export function useChecklistItems(
   setId: string | null,
   parentId?: string,
-  includeAllChildren?: boolean
+  includeAllChildren?: boolean,
+  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL
 ) {
-  const url = getChecklistItemsKey(setId, parentId, includeAllChildren);
+  const url = getChecklistItemsKey(
+    setId,
+    parentId,
+    includeAllChildren,
+    ambiguityFilter
+  );
   const { data, isLoading, error, refetch } =
     useApiClient().useQuery<GetChecklistItemsResponse>(url);
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Modal from "../../../components/Modal";
 import Button from "../../../components/Button";
+import InfoAlert from "../../../components/InfoAlert";
 import { CheckListItemEntity } from "../types";
 import { useUpdateCheckListItem } from "../hooks/useCheckListItemMutations";
 import { useToast } from "../../../contexts/ToastContext";
@@ -29,6 +30,7 @@ export default function CheckListItemEditModal({
     name: item.name,
     description: item.description || "",
   });
+  const [resolveAmbiguity, setResolveAmbiguity] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const { addToast } = useToast();
@@ -61,10 +63,12 @@ export default function CheckListItemEditModal({
     setIsSubmitting(true);
 
     try {
-      await updateCheckListItem(item.id, {
+      const requestData = {
         name: formData.name,
         description: formData.description,
-      });
+        resolveAmbiguity: resolveAmbiguity,
+      };
+      await updateCheckListItem(item.id, requestData);
       addToast(t("checklist.editItemUpdateSuccess"), "success");
       onSuccess();
       onClose();
@@ -82,11 +86,33 @@ export default function CheckListItemEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={t("checklist.editItemTitle")}
-      size="md">
+      size="2xl">
       <form onSubmit={handleSubmit}>
         {error && (
           <div className="mb-4 rounded-md border border-red bg-red/10 p-3 text-red">
             {error}
+          </div>
+        )}
+
+        {/* 指摘事項表示 */}
+        {item.ambiguityReview && (
+          <div className="mb-4">
+            <InfoAlert
+              title={t("checklist.improvementSuggestions")}
+              message={
+                <ul className="space-y-3">
+                  {item.ambiguityReview.suggestions.map((suggestion, index) => (
+                    <li key={index} className="flex">
+                      <span className="mr-2 mt-1 flex-shrink-0">•</span>
+                      <span className="whitespace-normal break-words">
+                        {suggestion}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              }
+              variant="warning"
+            />
           </div>
         )}
 
@@ -109,7 +135,9 @@ export default function CheckListItemEditModal({
             required
           />
           {!formData.name.trim() && (
-            <p className="mt-1 text-sm text-red">{t("checklist.editItemNameRequired")}</p>
+            <p className="mt-1 text-sm text-red">
+              {t("checklist.editItemNameRequired")}
+            </p>
           )}
         </div>
 
@@ -130,12 +158,31 @@ export default function CheckListItemEditModal({
           />
         </div>
 
+        {/* 指摘解消チェックボックス */}
+        {item.ambiguityReview && (
+          <div className="mb-4 flex justify-end">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={resolveAmbiguity}
+                onChange={(e) => setResolveAmbiguity(e.target.checked)}
+                className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
+              />
+              <span className="ml-2 text-sm text-aws-squid-ink-light">
+                更新後に指摘を解消
+              </span>
+            </label>
+          </div>
+        )}
+
         <div className="mt-6 flex justify-end space-x-3">
           <Button outline onClick={onClose} type="button">
             {t("common.cancel")}
           </Button>
           <Button variant="primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? t("checklist.editItemUpdating") : t("checklist.editItemUpdate")}
+            {isSubmitting
+              ? t("checklist.editItemUpdating")
+              : t("checklist.editItemUpdate")}
           </Button>
         </div>
       </form>

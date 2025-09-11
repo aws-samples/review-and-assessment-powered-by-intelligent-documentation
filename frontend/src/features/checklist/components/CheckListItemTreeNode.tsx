@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAlert } from "../../../hooks/useAlert";
-import { CheckListItemDetail } from "../types";
+import { CheckListItemDetail, AmbiguityFilter } from "../types";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import {
   HiChevronDown,
@@ -20,6 +20,7 @@ import { useDeleteCheckListItem } from "../hooks/useCheckListItemMutations";
 import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import Button from "../../../components/Button";
+import ResultCard from "../../../components/ResultCard";
 
 interface CheckListItemTreeNodeProps {
   setId: string;
@@ -27,6 +28,7 @@ interface CheckListItemTreeNodeProps {
   level: number;
   maxDepth?: number;
   autoExpand?: boolean;
+  ambiguityFilter: AmbiguityFilter;
 }
 
 export default function CheckListItemTreeNode({
@@ -35,6 +37,7 @@ export default function CheckListItemTreeNode({
   level,
   maxDepth = 2,
   autoExpand = false,
+  ambiguityFilter,
 }: CheckListItemTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < maxDepth || autoExpand);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -62,16 +65,25 @@ export default function CheckListItemTreeNode({
     refetch: refetchChildren,
   } = useChecklistItems(
     setId || null,
-    shouldLoadChildren ? item.id : undefined
+    shouldLoadChildren ? item.id : undefined,
+    false,
+    ambiguityFilter
   );
 
   // ルートレベルのアイテムを取得するためのフック
-  const { refetch: refetchRoot } = useChecklistItems(setId || null);
+  const { refetch: refetchRoot } = useChecklistItems(
+    setId || null,
+    undefined,
+    false,
+    ambiguityFilter
+  );
 
   // 親レベルのアイテムを取得するためのフック（親IDがある場合のみ）
   const { refetch: refetchParent } = useChecklistItems(
     setId || null,
-    item.parentId
+    item.parentId,
+    false,
+    ambiguityFilter
   );
 
   // 展開/折りたたみの切り替え
@@ -115,78 +127,92 @@ export default function CheckListItemTreeNode({
     <>
       <div>
         <div style={indentStyle}>
-          <div className="flex items-center justify-between rounded-md border border-light-gray bg-white p-4 transition-colors hover:bg-aws-paper-light">
-            <div className="flex items-center">
-              {item.hasChildren && (
-                <button
-                  onClick={toggleExpand}
-                  className="mr-2 text-aws-font-color-gray transition-colors hover:text-aws-squid-ink-light">
-                  {isExpanded ? (
-                    <HiChevronDown className="h-5 w-5" />
-                  ) : (
-                    <HiChevronRight className="h-5 w-5" />
-                  )}
-                </button>
-              )}
-              <div>
-                <div className="flex items-center font-medium text-aws-squid-ink-light">
-                  {item.name}
-                </div>
-                {item.description && (
-                  <p className="mt-1 text-sm text-aws-font-color-gray">
-                    {item.description}
-                  </p>
+          <ResultCard
+            variant={item.ambiguityReview && isEditable ? "error" : "default"}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {item.hasChildren && (
+                  <button
+                    onClick={toggleExpand}
+                    className="mr-2 text-aws-font-color-gray transition-colors hover:text-aws-squid-ink-light">
+                    {isExpanded ? (
+                      <HiChevronDown className="h-5 w-5" />
+                    ) : (
+                      <HiChevronRight className="h-5 w-5" />
+                    )}
+                  </button>
                 )}
+                <div>
+                  <div className="flex items-center font-medium text-aws-squid-ink-light">
+                    {item.name}
+                  </div>
+                  {item.description && (
+                    <p className="mt-1 text-sm text-aws-font-color-gray">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                {/* 子項目追加ボタン - Button コンポーネントを使用 */}
+                <Button
+                  variant="text"
+                  size="sm"
+                  icon={<HiPlus className="h-5 w-5" />}
+                  onClick={() => isEditable && setIsAddChildModalOpen(true)}
+                  disabled={!isEditable}
+                  title="子項目を追加"
+                  aria-label="子項目を追加"
+                  className={
+                    !isEditable ? "text-gray-300 cursor-not-allowed" : ""
+                  }
+                />
+
+                {/* 既存の編集ボタン - Button コンポーネントを使用 */}
+                <Button
+                  variant="text"
+                  size="sm"
+                  icon={
+                    <div className="relative">
+                      <HiPencil className="h-5 w-5" />
+                      {item.ambiguityReview && isEditable && (
+                        <span className="absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-yellow text-xs text-white">
+                          !
+                        </span>
+                      )}
+                    </div>
+                  }
+                  onClick={() => isEditable && setIsEditModalOpen(true)}
+                  disabled={!isEditable}
+                  title="編集"
+                  aria-label="編集"
+                  className={
+                    !isEditable
+                      ? "text-gray-300 cursor-not-allowed"
+                      : item.ambiguityReview && isEditable
+                        ? "text-yellow border-yellow hover:bg-yellow hover:bg-opacity-10" 
+                        : "text-aws-aqua hover:text-aws-sea-blue-light"
+                  }
+                />
+
+                {/* 既存の削除ボタン - Button コンポーネントを使用 */}
+                <Button
+                  variant="text"
+                  size="sm"
+                  icon={<HiTrash className="h-5 w-5" />}
+                  onClick={handleDelete}
+                  disabled={!isEditable}
+                  title="削除"
+                  aria-label="削除"
+                  className={
+                    !isEditable
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "rounded p-1 text-red hover:bg-light-red hover:text-light-red"
+                  }
+                />
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {/* 子項目追加ボタン - Button コンポーネントを使用 */}
-              <Button
-                variant="text"
-                size="sm"
-                icon={<HiPlus className="h-5 w-5" />}
-                onClick={() => isEditable && setIsAddChildModalOpen(true)}
-                disabled={!isEditable}
-                title="子項目を追加"
-                aria-label="子項目を追加"
-                className={
-                  !isEditable ? "text-gray-300 cursor-not-allowed" : ""
-                }
-              />
-
-              {/* 既存の編集ボタン - Button コンポーネントを使用 */}
-              <Button
-                variant="text"
-                size="sm"
-                icon={<HiPencil className="h-5 w-5" />}
-                onClick={() => isEditable && setIsEditModalOpen(true)}
-                disabled={!isEditable}
-                title="編集"
-                aria-label="編集"
-                className={
-                  !isEditable
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "text-aws-aqua hover:text-aws-sea-blue-light"
-                }
-              />
-
-              {/* 既存の削除ボタン - Button コンポーネントを使用 */}
-              <Button
-                variant="text"
-                size="sm"
-                icon={<HiTrash className="h-5 w-5" />}
-                onClick={handleDelete}
-                disabled={!isEditable}
-                title="削除"
-                aria-label="削除"
-                className={
-                  !isEditable
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "rounded p-1 text-red hover:bg-light-red hover:text-light-red"
-                }
-              />
-            </div>
-          </div>
+          </ResultCard>
         </div>
 
         {isEditModalOpen && (
@@ -256,6 +282,7 @@ export default function CheckListItemTreeNode({
                   item={childItem}
                   level={level + 1}
                   maxDepth={maxDepth}
+                  ambiguityFilter={ambiguityFilter}
                 />
               ))
             )}

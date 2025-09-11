@@ -7,6 +7,9 @@ import {
   CheckListSetEntity,
   CHECK_LIST_STATUS,
   CheckListSetDetailModel,
+  CheckListItemDomain,
+  AmbiguityDetectionResult,
+  AmbiguityFilter,
 } from "./model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 
@@ -25,7 +28,8 @@ export interface CheckRepository {
   findCheckListItems(
     setId: string,
     parentId?: string,
-    includeAllChildren?: boolean
+    includeAllChildren?: boolean,
+    ambiguityFilter?: AmbiguityFilter
   ): Promise<CheckListItemDetail[]>;
   findCheckListSetDetailById(setId: string): Promise<CheckListSetDetailModel>;
   storeCheckListItem(params: { item: CheckListItemEntity }): Promise<void>;
@@ -45,6 +49,10 @@ export interface CheckRepository {
   updateCheckListItem(params: { newItem: CheckListItemEntity }): Promise<void>;
   deleteCheckListItemById(params: { itemId: string }): Promise<void>;
   checkSetEditable(params: { setId: string }): Promise<boolean>;
+  updateAmbiguityReview(params: {
+    itemId: string;
+    ambiguityReview: AmbiguityDetectionResult;
+  }): Promise<void>;
 }
 
 export const makePrismaCheckRepository = async (
@@ -254,6 +262,8 @@ export const makePrismaCheckRepository = async (
         processingStatus = CHECK_LIST_STATUS.PENDING;
       } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
         processingStatus = CHECK_LIST_STATUS.PROCESSING;
+      } else if (statuses.some((st) => st === CHECK_LIST_STATUS.DETECTING)) {
+        processingStatus = CHECK_LIST_STATUS.DETECTING;
       } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
         processingStatus = CHECK_LIST_STATUS.COMPLETED;
       } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
@@ -295,30 +305,31 @@ export const makePrismaCheckRepository = async (
   const findCheckListItems = async (
     setId: string,
     parentId?: string,
-    includeAllChildren?: boolean
+    includeAllChildren?: boolean,
+    ambiguityFilter?: AmbiguityFilter
   ): Promise<CheckListItemDetail[]> => {
     console.log(
       `[Repository] findCheckListItems - setId: ${setId}, parentId: ${
         parentId || "null"
-      }, includeAllChildren: ${includeAllChildren}`
+      }, includeAllChildren: ${includeAllChildren}, ambiguityFilter: ${ambiguityFilter || "none"}`
     );
 
-    // クエリの基本条件を構築
+    // Basic condition
     const whereCondition: any = {
       checkListSetId: setId,
     };
 
-    // includeAllChildrenがfalseの場合のみ、parentIdの条件を適用
     if (!includeAllChildren) {
       whereCondition.parentId = parentId || null;
     }
 
-    console.log(
-      `[Repository] Query condition:`,
-      JSON.stringify(whereCondition, null, 2)
-    );
+    if (ambiguityFilter === AmbiguityFilter.HAS_AMBIGUITY) {
+      whereCondition.OR = [
+        { children: { some: {} } }, // If has children, always show
+        { ambiguityReview: { not: null } }, // If leaf node, only show ambiguity
+      ];
+    }
 
-    // チェックリスト項目を取得
     const items = await client.checkList.findMany({
       where: whereCondition,
       select: {
@@ -327,6 +338,8 @@ export const makePrismaCheckRepository = async (
         description: true,
         parentId: true,
         checkListSetId: true,
+        documentId: true,
+        ambiguityReview: true,
       },
       orderBy: { id: "asc" },
     });
@@ -342,7 +355,6 @@ export const makePrismaCheckRepository = async (
 
     console.log(`[Repository] Checking for children of itemIds:`, itemIds);
 
-    // すべてのアイテムIDに対する子の存在を一度に確認する
     const childItems = await client.checkList.findMany({
       where: {
         checkListSetId: setId,
@@ -368,14 +380,13 @@ export const makePrismaCheckRepository = async (
     );
 
     // 結果を新しいモデル形式に変換して返す
-    const mappedItems = items.map((item) => ({
-      id: item.id,
-      setId: item.checkListSetId,
-      name: item.name,
-      description: item.description ?? "",
-      parentId: item.parentId ?? undefined,
-      hasChildren: parentsWithChildren.has(item.id),
-    }));
+    const mappedItems = items.map((item) => {
+      const entity = CheckListItemDomain.fromPrismaCheckListItem(item);
+      return {
+        ...entity,
+        hasChildren: parentsWithChildren.has(item.id),
+      };
+    });
 
     console.log(
       `[Repository] Final items with hasChildren:`,
@@ -420,6 +431,25 @@ export const makePrismaCheckRepository = async (
       }
     }
 
+    // Calculate processing status from documents
+    const statuses = checkListSet.documents.map(
+      (d) => d.status as CHECK_LIST_STATUS
+    );
+    let processingStatus: CHECK_LIST_STATUS;
+    if (statuses.length === 0) {
+      processingStatus = CHECK_LIST_STATUS.PENDING;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
+      processingStatus = CHECK_LIST_STATUS.PROCESSING;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.DETECTING)) {
+      processingStatus = CHECK_LIST_STATUS.DETECTING;
+    } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
+      processingStatus = CHECK_LIST_STATUS.COMPLETED;
+    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
+      processingStatus = CHECK_LIST_STATUS.FAILED;
+    } else {
+      processingStatus = CHECK_LIST_STATUS.PENDING;
+    }
+
     return {
       id: checkListSet.id,
       name: checkListSet.name,
@@ -433,6 +463,7 @@ export const makePrismaCheckRepository = async (
         status: doc.status as CHECK_LIST_STATUS,
         errorDetail: doc.errorDetail || undefined,
       })),
+      processingStatus,
       isEditable,
       errorSummary,
       hasError: failedDocuments.length > 0,
@@ -501,7 +532,10 @@ export const makePrismaCheckRepository = async (
         id: true,
         name: true,
         description: true,
+        parentId: true,
         checkListSetId: true,
+        documentId: true,
+        ambiguityReview: true,
       },
     });
 
@@ -509,12 +543,7 @@ export const makePrismaCheckRepository = async (
       throw new NotFoundError("Item not found", itemId);
     }
 
-    return {
-      id: item.id,
-      setId: item.checkListSetId,
-      name: item.name,
-      description: item.description ?? "",
-    };
+    return CheckListItemDomain.fromPrismaCheckListItem(item);
   };
 
   const validateParentItem = async (params: {
@@ -541,13 +570,14 @@ export const makePrismaCheckRepository = async (
     newItem: CheckListItemEntity;
   }): Promise<void> => {
     const { newItem } = params;
-    const { id, name, description } = newItem;
+    const prismaData = CheckListItemDomain.toPrismaCheckListItem(newItem);
 
     await client.checkList.update({
-      where: { id },
+      where: { id: newItem.id },
       data: {
-        name,
-        description,
+        name: prismaData.name,
+        description: prismaData.description,
+        ambiguityReview: prismaData.ambiguityReview as any,
       },
     });
   };
@@ -583,6 +613,23 @@ export const makePrismaCheckRepository = async (
     return count === 0;
   };
 
+  const updateAmbiguityReview = async (params: {
+    itemId: string;
+    ambiguityReview: AmbiguityDetectionResult;
+  }): Promise<void> => {
+    const prismaData = CheckListItemDomain.toPrismaCheckListItem({
+      id: params.itemId,
+      ambiguityReview: params.ambiguityReview,
+    } as CheckListItemEntity);
+
+    await client.checkList.update({
+      where: { id: params.itemId },
+      data: {
+        ambiguityReview: prismaData.ambiguityReview as any,
+      },
+    });
+  };
+
   return {
     storeCheckListSet,
     deleteCheckListSetById,
@@ -597,5 +644,6 @@ export const makePrismaCheckRepository = async (
     updateCheckListItem,
     deleteCheckListItemById,
     checkSetEditable,
+    updateAmbiguityReview,
   };
 };

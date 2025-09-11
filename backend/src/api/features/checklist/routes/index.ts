@@ -15,6 +15,7 @@ import {
   updateChecklistItemHandler,
   getAllChecklistSetsHandler,
   duplicateChecklistSetHandler,
+  detectAmbiguityHandler,
 } from "./handlers";
 
 /**
@@ -77,5 +78,10 @@ export function registerChecklistRoutes(fastify: FastifyInstance): void {
   // チェックリスト項目削除エンドポイント
   fastify.delete("/checklist-sets/:setId/items/:itemId", {
     handler: deleteChecklistItemHandler,
+  });
+
+  // 曖昧さ検知エンドポイント
+  fastify.post("/checklist-sets/:setId/detect-ambiguity", {
+    handler: detectAmbiguityHandler,
   });
 }

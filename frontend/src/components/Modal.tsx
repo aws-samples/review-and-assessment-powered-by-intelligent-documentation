@@ -10,7 +10,7 @@ interface ModalProps {
   onClose: () => void;
   title: React.ReactNode;
   children: React.ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
 export default function Modal({
@@ -57,6 +57,8 @@ export default function Modal({
         return "max-w-2xl";
       case "xl":
         return "max-w-4xl";
+      case "2xl":
+        return "max-w-6xl";
       default:
         return "max-w-lg";
     }
