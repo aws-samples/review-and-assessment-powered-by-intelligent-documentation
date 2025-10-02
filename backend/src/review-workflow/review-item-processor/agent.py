@@ -41,6 +41,22 @@ class ReviewMetaTracker:
                 "input_per_1k": 0.0025,
                 "output_per_1k": 0.0125,
             },
+            "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "jp.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+                "input_per_1k": 0.0033,
+                "output_per_1k": 0.0165,
+            },
         }
         return pricing_table.get(model_id, {"input_per_1k": 0, "output_per_1k": 0})
 
@@ -91,9 +107,9 @@ PDF_FILE_EXTENSIONS = [".pdf"]
 
 # Default model IDs
 DEFAULT_DOCUMENT_MODEL_ID = (
-    "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # For all processing
+    "global.anthropic.claude-sonnet-4-5-20250929-v1:0"  # For all processing
 )
-DEFAULT_IMAGE_MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # For image processing (same as document by default)
+DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"  # For image processing (same as document by default)
 
 # Get model IDs from environment variables with fallback to defaults
 DOCUMENT_MODEL_ID = os.environ.get(
@@ -133,6 +149,7 @@ CACHE_SUPPORTED_BASE_MODELS = {
     "anthropic.claude-3-sonnet-20240229-v1:0",
     "anthropic.claude-3-haiku-20240307-v1:0",
     "anthropic.claude-sonnet-4-20250514-v1:0",
+    "anthropic.claude-sonnet-4-5-20250929-v1:0",
     "anthropic.claude-opus-4-20250514-v1:0",
     "anthropic.claude-3-7-sonnet-20250219-v1:0",
     # # Amazon Nova models
@@ -178,6 +195,7 @@ def supports_caching(model_id: str) -> bool:
 
 CITATION_SUPPORTED_MODELS = {
     "anthropic.claude-sonnet-4-20250514-v1:0",
+    "anthropic.claude-sonnet-4-5-20250929-v1:0",
     "anthropic.claude-opus-4-20250514-v1:0",
     "anthropic.claude-3-7-sonnet-20250219-v1:0",
     "anthropic.claude-3-5-sonnet-20241022-v2:0",

@@ -30,8 +30,24 @@ export const parameters = {
   // 注意: モデルIDのプレフィックス（us., eu., apac.など）はbedrockRegionに対応している必要があります
   // 詳細: https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html
   // ---------------------------------------------------
+  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (Global)
+  // documentProcessingModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
+  // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
+  // documentProcessingModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
+  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
+  // documentProcessingModelId: "us.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (US)
+  // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
+  // documentProcessingModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
   // documentProcessingModelId: "apac.anthropic.claude-3-7-sonnet-20250219-v1:0",  // 日本リージョンでClaude利用する場合
   // documentProcessingModelId: "mistral.mistral-large-2407-v1:0", // Mistral利用する場合
+  // imageReviewModelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (Global)
+  // imageReviewModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
+  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
+  // imageReviewModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
+  // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
+  // imageReviewModelId: "us.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (US)
+  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
+  // imageReviewModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
   // imageReviewModelId: "apac.amazon.nova-premier-v1:0", // 画像レビュー用モデル（例：Nova Premier）
   // Cognito認証関連の設定
   // 既存のCognitoリソースをインポートして使用する場合に設定します

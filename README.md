@@ -80,8 +80,8 @@ This method allows you to deploy directly from your browser using AWS CloudShell
    - `--cognito-domain-prefix`: Prefix for the Cognito domain (auto-generated if not specified)
    - `--mcp-admin`: Whether to grant admin privileges to the MCP runtime Lambda function (true/false)
    - `--bedrock-region`: Region to use for Amazon Bedrock (default: us-west-2)
-   - `--document-model`: AI model ID for document processing (default: us.anthropic.claude-3-7-sonnet-20250219-v1:0)
-   - `--image-model`: AI model ID for image review processing (default: us.anthropic.claude-3-7-sonnet-20250219-v1:0)
+   - `--document-model`: AI model ID for document processing (default: global.anthropic.claude-sonnet-4-5-20250929-v1:0)
+   - `--image-model`: AI model ID for image review processing (default: global.anthropic.claude-sonnet-4-5-20250929-v1:0)
    - `--repo-url`: URL of the repository to deploy
    - `--branch`: Branch name to deploy
    - `--tag`: Deploy a specific Git tag
@@ -168,6 +168,14 @@ This application uses Strands agents with tools such as file reading, so you mus
 
 **Examples of tool use supported models**:
 
+- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet Global)
+- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet EU)
+- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet JP)
+- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet Global)
+- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
+- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
 - `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
@@ -183,7 +191,7 @@ This application uses Strands agents with tools such as file reading, so you mus
 ```typescript
 // cdk/lib/parameter.ts
 export const parameters = {
-  documentProcessingModelId: "mistral.mistral-large-2407-v1:0", // Mistral Large 2
+  documentProcessingModelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet Global
   bedrockRegion: "ap-northeast-1", // Tokyo region
   // ...
 };
