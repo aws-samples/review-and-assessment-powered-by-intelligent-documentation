@@ -188,6 +188,8 @@ Resources:
             Value: !Ref CognitoDomainPrefix
           - Name: MCP_ADMIN
             Value: !Ref McpAdmin
+          - Name: BEDROCK_REGION
+            Value: !Ref BedrockRegion
           - Name: DOCUMENT_PROCESSING_MODEL_ID
             Value: !Ref DocumentProcessingModelId
           - Name: IMAGE_REVIEW_MODEL_ID
