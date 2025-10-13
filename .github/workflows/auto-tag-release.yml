@@ -56,7 +56,7 @@ jobs:
           fi
           PR_SUMMARY=$(echo "$PR_LIST" | jq -r '.[] | "PR #\(.number): \(.title)\nAuthor: @\(.author.login)\nMerged At: \(.mergedAt)\nURL: \(.url)\nDescription: \(.body)\n---\n"')
 
-                    # This block safely writes the PR_SUMMARY variable to $GITHUB_ENV without risk of injection.
+          # This block safely writes the PR_SUMMARY variable to $GITHUB_ENV without risk of injection.
           # Background:
           #   A fixed delimiter ("EOF") was used when appending multi-line content.
           #   If a pull request body contained the same delimiter, it could prematurely terminate the block,
@@ -93,10 +93,10 @@ jobs:
           done
 
           {
-            echo "PR_SUMMARY<<$DELIM"
-            printf '%s' "$PR_SUMMARY"
-            echo "$DELIM"
-          } >> "$GITHUB_ENV"
+            echo "PR_SUMMARY<<\$DELIM"
+            printf '%s\n' "\$PR_SUMMARY"
+            echo "\$DELIM"
+          } >> "\$GITHUB_ENV"
 
       - name: Analyze changes with Claude
         id: claude-analysis
