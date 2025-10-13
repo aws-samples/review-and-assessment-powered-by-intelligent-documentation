@@ -93,10 +93,10 @@ jobs:
           done
 
           {
-            echo "PR_SUMMARY<<\$DELIM"
-            printf '%s\n' "\$PR_SUMMARY"
-            echo "\$DELIM"
-          } >> "\$GITHUB_ENV"
+            echo "PR_SUMMARY<<$DELIM"
+            printf '%s\n' "$PR_SUMMARY"
+            echo "$DELIM"
+          } >> "$GITHUB_ENV"
 
       - name: Analyze changes with Claude
         id: claude-analysis
