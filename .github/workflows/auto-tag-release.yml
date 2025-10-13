@@ -131,7 +131,7 @@ jobs:
           echo "$REQ" > "$TMPDIR/request.json"
 
           aws bedrock-runtime invoke-model \
-            --model-id us.anthropic.claude-3-7-sonnet-20250219-v1:0 \
+            --model-id global.anthropic.claude-sonnet-4-20250514-v1:0 \
             --content-type application/json \
             --accept application/json \
             --body fileb://"$TMPDIR/request.json" \
@@ -205,7 +205,7 @@ jobs:
           echo "$REQ" > "$TMPDIR/request.json"
 
           aws bedrock-runtime invoke-model \
-            --model-id us.anthropic.claude-3-7-sonnet-20250219-v1:0 \
+            --model-id global.anthropic.claude-sonnet-4-20250514-v1:0 \
             --content-type application/json \
             --accept application/json \
             --body fileb://"$TMPDIR/request.json" \
