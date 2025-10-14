@@ -168,6 +168,9 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 
 **ツール使用対応モデルの例**:
 
+- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
+- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
 - `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet Global)
 - `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet US)
 - `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet EU)

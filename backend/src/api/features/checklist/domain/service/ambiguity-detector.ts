@@ -11,7 +11,7 @@ import { makePrismaUserPreferenceRepository } from "../../../user-preference/dom
 const BEDROCK_REGION = process.env.BEDROCK_REGION || "us-west-2";
 const MODEL_ID =
   process.env.DOCUMENT_PROCESSING_MODEL_ID ||
-  "global.anthropic.claude-sonnet-4-5-20250929-v1:0";
+  "us.anthropic.claude-sonnet-4-20250514-v1:0";
 
 const getAmbiguityDetectionPrompt = (
   languageName: string,
