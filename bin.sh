@@ -17,23 +17,6 @@ echo "     For production environments, consider using --auto-migrate=false"
 echo "==========================================================================="
 echo ""
 
-# Prepare working directory (ensure idempotency)
-WORK_DIR="rapid-deploy-$(date +%s)"
-if [ -d "$WORK_DIR" ]; then
-    echo "Removing existing working directory: $WORK_DIR"
-    rm -rf "$WORK_DIR"
-fi
-
-echo "Cloning repository..."
-git clone https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git "$WORK_DIR"
-if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to clone repository"
-    exit 1
-fi
-
-cd "$WORK_DIR"
-echo "Moved to working directory: $(pwd)"
-
 # Default parameters
 ALLOWED_IPV4_RANGES='["0.0.0.0/1","128.0.0.0/1"]'
 ALLOWED_IPV6_RANGES='["0000:0000:0000:0000:0000:0000:0000:0000/1","8000:0000:0000:0000:0000:0000:0000:0000/1"]'
@@ -73,6 +56,32 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+
+# Prepare working directory (ensure idempotency)
+WORK_DIR="rapid-deploy-$(date +%s)"
+if [ -d "$WORK_DIR" ]; then
+    echo "Removing existing working directory: $WORK_DIR"
+    rm -rf "$WORK_DIR"
+fi
+
+echo "Cloning repository..."
+if [ ! -z "$GIT_TAG" ]; then
+    git clone $REPO_URL "$WORK_DIR"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to clone repository"
+        exit 1
+    fi
+    cd "$WORK_DIR"
+    git checkout $GIT_TAG
+else
+    git clone --branch $BRANCH $REPO_URL "$WORK_DIR"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to clone repository"
+        exit 1
+    fi
+    cd "$WORK_DIR"
+fi
+echo "Moved to working directory: $(pwd)"
 
 # Validate CloudFormation template
 aws cloudformation validate-template --template-body file://deploy.yml > /dev/null 2>&1

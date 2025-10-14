@@ -38,13 +38,11 @@
     "jose": "^5.10.0",
     "mysql2": "^3.6.1",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^5.1.91",
     "ulid": "^2.4.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.148",
     "@types/node": "^20.8.6",
-    "@types/pdfjs-dist": "^2.10.378",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",

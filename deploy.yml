@@ -188,6 +188,8 @@ Resources:
             Value: !Ref CognitoDomainPrefix
           - Name: MCP_ADMIN
             Value: !Ref McpAdmin
+          - Name: BEDROCK_REGION
+            Value: !Ref BedrockRegion
           - Name: DOCUMENT_PROCESSING_MODEL_ID
             Value: !Ref DocumentProcessingModelId
           - Name: IMAGE_REVIEW_MODEL_ID
@@ -245,6 +247,8 @@ Resources:
                   "echo '' >> cdk/lib/parameter.ts",
                   "echo '  // Bedrock設定' >> cdk/lib/parameter.ts",
                   "echo '  bedrockRegion: \"'$BEDROCK_REGION'\",' >> cdk/lib/parameter.ts",
+                  "if [ ! -z \"$DOCUMENT_PROCESSING_MODEL_ID\" ]; then echo '  documentProcessingModelId: \"'$DOCUMENT_PROCESSING_MODEL_ID'\",' >> cdk/lib/parameter.ts; fi",
+                  "if [ ! -z \"$IMAGE_REVIEW_MODEL_ID\" ]; then echo '  imageReviewModelId: \"'$IMAGE_REVIEW_MODEL_ID'\",' >> cdk/lib/parameter.ts; fi",
                   "echo '' >> cdk/lib/parameter.ts",
                   "echo '  // MCP設定' >> cdk/lib/parameter.ts",
                   "if [ \"$MCP_ADMIN\" = \"true\" ]; then echo '  mcpAdmin: true,' >> cdk/lib/parameter.ts; else echo '  mcpAdmin: false,' >> cdk/lib/parameter.ts; fi",
