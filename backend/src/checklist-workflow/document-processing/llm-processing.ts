@@ -20,7 +20,7 @@ import { getLanguageName, DEFAULT_LANGUAGE } from "../../utils/language";
 import { ulid } from "ulid";
 
 // Define model ID with environment variable override
-const DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-20250514-v1:0"; // Sonnet 4
+const DEFAULT_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0"; // Sonnet 4
 const MODEL_ID = process.env.DOCUMENT_PROCESSING_MODEL_ID || DEFAULT_MODEL_ID;
 
 // Log model configuration

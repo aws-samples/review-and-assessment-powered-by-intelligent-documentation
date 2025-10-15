@@ -123,9 +123,9 @@ PDF_FILE_EXTENSIONS = [".pdf"]
 
 # Default model IDs
 DEFAULT_DOCUMENT_MODEL_ID = (
-    "us.anthropic.claude-sonnet-4-20250514-v1:0"  # For all processing
+    "global.anthropic.claude-sonnet-4-20250514-v1:0"  # For all processing
 )
-DEFAULT_IMAGE_MODEL_ID = "us.anthropic.claude-sonnet-4-20250514-v1:0"  # For image processing (same as document by default)
+DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0"  # For image processing (same as document by default)
 
 # Get model IDs from environment variables with fallback to defaults
 DOCUMENT_MODEL_ID = os.environ.get(

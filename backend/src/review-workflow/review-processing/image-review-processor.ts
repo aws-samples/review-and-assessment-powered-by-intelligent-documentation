@@ -17,7 +17,7 @@ import { makePrismaCheckRepository } from "../../api/features/checklist/domain/r
 import { getLanguageName, DEFAULT_LANGUAGE } from "../../utils/language";
 
 // Define model ID with environment variable override
-const DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-20250514-v1:0"; // 現在の実装に合わせてSonnet 4をデフォルトに
+const DEFAULT_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0"; // 現在の実装に合わせてSonnet 4をデフォルトに
 const MODEL_ID = process.env.IMAGE_REVIEW_MODEL_ID || DEFAULT_MODEL_ID;
 
 // Log model configuration
