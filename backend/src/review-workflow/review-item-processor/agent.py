@@ -37,25 +37,41 @@ class ReviewMetaTracker:
                 "input_per_1k": 0.003,
                 "output_per_1k": 0.015,
             },
-            "us.amazon.nova-premier-v1:0": {
-                "input_per_1k": 0.0025,
-                "output_per_1k": 0.0125,
+            "global.anthropic.claude-sonnet-4-20250514-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "us.anthropic.claude-sonnet-4-20250514-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "eu.anthropic.claude-sonnet-4-20250514-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
+            },
+            "apac.anthropic.claude-sonnet-4-20250514-v1:0": {
+                "input_per_1k": 0.003,
+                "output_per_1k": 0.015,
             },
             "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
                 "input_per_1k": 0.003,
                 "output_per_1k": 0.015,
             },
             "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
+                "input_per_1k": 0.0033,
+                "output_per_1k": 0.0165,
             },
             "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
+                "input_per_1k": 0.0033,
+                "output_per_1k": 0.0165,
             },
             "jp.anthropic.claude-sonnet-4-5-20250929-v1:0": {
                 "input_per_1k": 0.0033,
                 "output_per_1k": 0.0165,
+            },
+            "us.amazon.nova-premier-v1:0": {
+                "input_per_1k": 0.0025,
+                "output_per_1k": 0.0125,
             },
         }
         return pricing_table.get(model_id, {"input_per_1k": 0, "output_per_1k": 0})
