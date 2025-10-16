@@ -168,6 +168,17 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 
 **ツール使用対応モデルの例**:
 
+- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
+- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
+- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet Global)
+- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet EU)
+- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet JP)
+- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet Global)
+- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
+- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
+- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
 - `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
