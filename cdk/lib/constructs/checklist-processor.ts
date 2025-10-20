@@ -249,30 +249,6 @@ export class ChecklistProcessor extends Construct {
     });
     inlineMapState.itemProcessor(processPageFlow);
 
-    const processMediumDocPass = new sfn.Pass(this, "ProcessMediumDocPass", {
-      parameters: {
-        status: "Processing medium document with distributed map (simplified)",
-        documentId: sfn.JsonPath.stringAt(
-          "$.processingResult.Payload.documentId"
-        ),
-        processedPages: [],
-        checkListSetId: sfn.JsonPath.stringAt("$.checkListSetId"), // 追加
-      },
-      resultPath: "$.processedPages",
-    });
-
-    const processLargeDocPass = new sfn.Pass(this, "ProcessLargeDocPass", {
-      parameters: {
-        status: "Processing large document with Bedrock Batch (simplified)",
-        documentId: sfn.JsonPath.stringAt(
-          "$.processingResult.Payload.documentId"
-        ),
-        processedPages: [],
-        checkListSetId: sfn.JsonPath.stringAt("$.checkListSetId"), // 追加
-      },
-      resultPath: "$.processedPages",
-    });
-
     // 結果統合Lambda
     const aggregateResultTask = new tasks.LambdaInvoke(
       this,
@@ -321,31 +297,11 @@ export class ChecklistProcessor extends Construct {
       resultPath: "$.ambiguityResult",
     });
 
-    // ページ数に基づく処理方法の選択
-    const pageCountChoice = new sfn.Choice(this, "CheckPageCount")
-      .when(
-        sfn.Condition.numberGreaterThanEquals(
-          "$.processingResult.Payload.pageCount",
-          largeDocThreshold
-        ),
-        processLargeDocPass
-      )
-      .when(
-        sfn.Condition.numberGreaterThanEquals(
-          "$.processingResult.Payload.pageCount",
-          mediumDocThreshold
-        ),
-        processMediumDocPass
-      )
-      .otherwise(inlineMapState);
-
     // ワークフロー定義
-    const definition = documentProcessorTask.next(pageCountChoice);
+    const definition = documentProcessorTask.next(inlineMapState);
 
     // 各処理パスから結合タスクへの接続
     inlineMapState.next(aggregateResultTask);
-    processMediumDocPass.next(aggregateResultTask);
-    processLargeDocPass.next(aggregateResultTask);
 
     aggregateResultTask.next(storeToDbTask);
     // storeToDbTask is not the final step because detectAmbiguityTask reuses existing API implementation
