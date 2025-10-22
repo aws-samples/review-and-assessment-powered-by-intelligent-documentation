@@ -11,7 +11,7 @@ import McpServerSelector from "../components/McpServerSelector";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
 import { useDocumentUpload } from "../../../hooks/useDocumentUpload";
 import { useChecklistSets } from "../../checklist/hooks/useCheckListSetQueries";
-import { CheckListSet } from "../../checklist/types";
+import { CheckListSetSummary, CHECK_LIST_STATUS } from "../../checklist/types";
 import {
   HiExclamationCircle,
   HiDocumentText,
@@ -19,13 +19,14 @@ import {
 } from "react-icons/hi";
 import SegmentedControl from "../../../components/SegmentedControl";
 import { REVIEW_FILE_TYPE } from "../types";
+import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
 
 export const CreateReviewPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedChecklist, setSelectedChecklist] =
-    useState<CheckListSet | null>(null);
+    useState<CheckListSetSummary | null>(null);
   const [jobName, setJobName] = useState("");
   const [fileType, setFileType] = useState<REVIEW_FILE_TYPE>(
     REVIEW_FILE_TYPE.PDF
@@ -33,6 +34,7 @@ export const CreateReviewPage: React.FC = () => {
   const [mcpServerName, setMcpServerName] = useState("");
   const [checklistPage, setChecklistPage] = useState(1);
   const [checklistLimit] = useState(5);
+  const maxFileSize = 4.5 * 1024 * 1024; // 4.5MB (Bedrock Converse API制限)
   const [errors, setErrors] = useState({
     name: "",
     files: "",
@@ -50,7 +52,7 @@ export const CreateReviewPage: React.FC = () => {
     checklistLimit,
     "id",
     "desc",
-    "completed"
+    CHECK_LIST_STATUS.COMPLETED
   );
 
   // 審査ジョブ作成フック
@@ -109,6 +111,19 @@ export const CreateReviewPage: React.FC = () => {
 
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
+    // ファイルサイズ検証
+    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, maxFileSize));
+    if (oversizedFiles.length > 0) {
+      const oversizedFileNames = oversizedFiles.map(file => 
+        `${file.name} (${formatFileSize(file.size)})`
+      ).join(', ');
+      setErrors((prev) => ({
+        ...prev,
+        files: `${t("review.fileSizeError")}: ${oversizedFileNames}`,
+      }));
+      return;
+    }
+
     // ファイルタイプに基づいて検証
     if (fileType === REVIEW_FILE_TYPE.PDF && newFiles.length > 1) {
       setErrors((prev) => ({
@@ -204,7 +219,7 @@ export const CreateReviewPage: React.FC = () => {
   };
 
   // チェックリスト選択ハンドラ
-  const handleChecklistSelect = (checklist: CheckListSet) => {
+  const handleChecklistSelect = (checklist: CheckListSetSummary) => {
     setSelectedChecklist(checklist);
   };
 

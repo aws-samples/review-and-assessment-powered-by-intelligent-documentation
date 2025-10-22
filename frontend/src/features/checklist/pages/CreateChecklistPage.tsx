@@ -17,6 +17,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { usePromptTemplates } from "../../prompt-template/hooks/usePromptTemplateQueries";
 import { PromptTemplateSelector } from "../../prompt-template/components/PromptTemplateSelector";
 import { PromptTemplateType } from "../../prompt-template/types";
+import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
 
 /**
  * チェックリスト作成ページ
@@ -82,6 +83,19 @@ export function CreateChecklistPage() {
 
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
+    // ファイルサイズ検証
+    const oversizedFiles = newFiles.filter(file => !validateFileSize(file));
+    if (oversizedFiles.length > 0) {
+      const oversizedFileNames = oversizedFiles.map(file => 
+        `${file.name} (${formatFileSize(file.size)})`
+      ).join(', ');
+      setErrors((prev) => ({
+        ...prev,
+        files: `${t("review.fileSizeError")}: ${oversizedFileNames}`,
+      }));
+      return;
+    }
+
     setSelectedFiles(newFiles);
 
     // 新しく追加されたファイルのみをアップロード
@@ -247,6 +261,9 @@ export function CreateChecklistPage() {
               'application/pdf': ['.pdf']
             }}
           />
+          <p className="mt-2 text-sm text-gray-500">
+            File size limit: 4.5MB or less
+          </p>
 
           {/* プロンプトテンプレート選択セクション */}
           <div className="mt-6 border-t border-light-gray pt-4">
