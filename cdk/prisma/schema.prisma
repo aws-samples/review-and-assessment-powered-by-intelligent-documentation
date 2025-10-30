@@ -1,0 +1,161 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UserPreference {
+  id         String   @id @map("preference_id") @db.VarChar(26)
+  userId     String   @map("user_id") @db.VarChar(50)
+  language   String   @default("en") @db.VarChar(10)
+  mcpServers Json?    @map("mcp_servers")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@unique([userId])
+  @@map("user_preferences")
+}
+
+model PromptTemplate {
+  id          String   @id @map("template_id") @db.VarChar(26)
+  userId      String   @map("user_id") @db.VarChar(50)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  prompt      String   @db.Text
+  type        String   @db.VarChar(50) // "checklist", "review" など
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@unique([userId, name, type])
+  @@index([userId, type])
+  @@map("prompt_templates")
+}
+
+model CheckListSet {
+  id          String              @id @map("check_list_set_id") @db.VarChar(26)
+  name        String              @db.VarChar(255)
+  description String?             @db.Text
+  checkLists  CheckList[]
+  documents   CheckListDocument[]
+  reviewJobs  ReviewJob[]
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("check_list_sets")
+}
+
+model CheckList {
+  id              String             @id @map("check_id") @db.VarChar(26)
+  name            String             @db.VarChar(255)
+  description     String?            @db.Text
+  parentId        String?            @map("parent_id") @db.VarChar(26)
+  checkListSetId  String             @map("check_list_set_id") @db.VarChar(26)
+  documentId      String?            @map("document_id") @db.VarChar(26)
+  ambiguityReview Json?              @map("ambiguity_review")
+  checkListSet    CheckListSet       @relation(fields: [checkListSetId], references: [id])
+  document        CheckListDocument? @relation(fields: [documentId], references: [id])
+  parent          CheckList?         @relation("CheckListToCheckList", fields: [parentId], references: [id])
+  children        CheckList[]        @relation("CheckListToCheckList")
+  reviewResults   ReviewResult[]
+
+  /// `parentId` だけで検索するケース（直下の子チェック項目を取得）を高速化
+  @@index([parentId], map: "idx_check_list_parent")
+  /// `checkListSetId` だけで検索するケース（あるセット配下の全チェック項目を取得）を高速化
+  @@index([checkListSetId], map: "check_lists_check_list_set_id_fkey")
+  /// `checkListSetId` と `parentId` を**同時に等価条件**で絞り込むクエリが最も多いため複合キーを追加
+  /// 例: `findCheckListItems(setId, parentId)`
+  @@index([checkListSetId, parentId], map: "idx_check_list_set_parent")
+  @@map("check_lists")
+}
+
+model CheckListDocument {
+  id             String       @id @map("document_id") @db.VarChar(26)
+  filename       String       @db.VarChar(255)
+  s3Path         String       @map("s3_path") @db.VarChar(512)
+  fileType       String       @map("file_type") @db.VarChar(50)
+  uploadDate     DateTime     @map("upload_date") @db.Timestamp(0)
+  checkListSetId String       @map("check_list_set_id") @db.VarChar(26)
+  userId         String?      @map("user_id") @db.VarChar(50)
+  status         String       @default("pending") @db.VarChar(20)
+  errorDetail    String?      @map("error_detail") @db.Text
+  checkLists     CheckList[]
+  checkListSet   CheckListSet @relation(fields: [checkListSetId], references: [id])
+
+  @@index([checkListSetId], map: "checklist_documents_check_list_set_id_fkey")
+  @@map("checklist_documents")
+}
+
+model ReviewDocument {
+  id          String    @id @map("review_document_id") @db.VarChar(26)
+  filename    String    @db.VarChar(255)
+  s3Path      String    @map("s3_path") @db.VarChar(512)
+  fileType    String    @map("file_type") @db.VarChar(50)
+  uploadDate  DateTime  @map("upload_date") @db.Timestamp(0)
+  userId      String?   @map("user_id") @db.VarChar(50)
+  status      String    @default("pending") @db.VarChar(20)
+  reviewJobId String    @map("review_job_id") @db.VarChar(26)
+  reviewJob   ReviewJob @relation(fields: [reviewJobId], references: [id])
+
+  @@index([reviewJobId], map: "review_documents_review_job_id_fkey")
+  @@map("review_documents")
+}
+
+model ReviewJob {
+  id                String           @id @map("review_job_id") @db.VarChar(26)
+  name              String           @db.VarChar(255)
+  status            String           @default("pending") @db.VarChar(20)
+  errorDetail       String?          @map("error_detail") @db.Text
+  checkListSetId    String           @map("check_list_set_id") @db.VarChar(26)
+  createdAt         DateTime         @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime         @map("updated_at") @db.Timestamp(0)
+  completedAt       DateTime?        @map("completed_at") @db.Timestamp(0)
+  userId            String?          @map("user_id") @db.VarChar(50)
+  mcpServerName     String?          @map("mcp_server_name") @db.VarChar(100)
+  totalInputTokens  Int?             @map("total_input_tokens")
+  totalOutputTokens Int?             @map("total_output_tokens")
+  totalCost         Decimal?         @map("total_cost") @db.Decimal(10, 4)
+  documents         ReviewDocument[]
+  checkListSet      CheckListSet     @relation(fields: [checkListSetId], references: [id])
+  reviewResults     ReviewResult[]
+
+  @@index([checkListSetId], map: "review_jobs_check_list_set_id_fkey")
+  @@map("review_jobs")
+}
+
+model ReviewResult {
+  id               String    @id @map("review_result_id") @db.VarChar(26)
+  reviewJobId      String    @map("review_job_id") @db.VarChar(26)
+  checkId          String    @map("check_id") @db.VarChar(26)
+  status           String    @default("pending") @db.VarChar(20)
+  result           String?   @db.VarChar(20)
+  confidenceScore  Float?    @map("confidence_score")
+  explanation      String?   @db.Text
+  shortExplanation String?   @map("short_explanation") @db.VarChar(80)
+  extractedText    String?   @map("extracted_text") @db.Text
+  userOverride     Boolean   @default(false) @map("user_override")
+  userComment      String?   @map("user_comment") @db.Text
+  reviewMeta       Json?     @map("review_meta")
+  inputTokens      Int?      @map("input_tokens")
+  outputTokens     Int?      @map("output_tokens")
+  totalCost        Decimal?  @map("total_cost") @db.Decimal(10, 4)
+  createdAt        DateTime  @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime  @map("updated_at") @db.Timestamp(0)
+  sourceReferences Json?     @map("source_references")
+  checkList        CheckList @relation(fields: [checkId], references: [id])
+  reviewJob        ReviewJob @relation(fields: [reviewJobId], references: [id])
+
+  /// `checkId` 単体で詳細取得する際に使用（`findDetailedReviewResultById` で JOIN される）
+  @@index([checkId], map: "review_results_check_id_fkey")
+  /// `reviewJobId` 単体でジョブの全結果を集める際に使用。
+  @@index([reviewJobId], map: "review_results_review_job_id_fkey")
+  /// `reviewJobId` + `status` + `result` を同時に  
+  /// フィルタリングするクエリ（`findReviewResultsById`）を高速化。先頭列が `reviewJobId` なので単体検索もカバー。
+  @@index([reviewJobId, status, result], map: "idx_review_results_job_status_result")
+  /// 子結果の有無チェックで `WHERE reviewJobId = ? AND checkId IN (…)` が発生するため追加
+  @@index([reviewJobId, checkId], map: "idx_review_results_job_check")
+  @@map("review_results")
+}

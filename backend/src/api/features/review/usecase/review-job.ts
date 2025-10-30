@@ -9,7 +9,7 @@ import {
   makePrismaReviewJobRepository,
 } from "../domain/repository";
 import { ulid } from "ulid";
-import { getPresignedUrl } from "../../../core/s3";
+import { getPresignedUrl, getS3ObjectSize } from "../../../core/s3";
 import {
   getReviewDocumentKey,
   getReviewImageKey,
@@ -20,8 +20,13 @@ import {
   CheckRepository,
   makePrismaCheckRepository,
 } from "../../checklist/domain/repository";
-import { ApplicationError } from "../../../core/errors";
+import {
+  ApplicationError,
+  FileSizeExceededError,
+} from "../../../core/errors/application-errors";
 import { startStateMachineExecution } from "../../../core/sfn";
+import { validateFileSize } from "../../../core/file-validation";
+import { MAX_FILE_SIZE } from "../../../constants/index";
 
 export const getAllReviewJobs = async (params: {
   page?: number;
@@ -118,6 +123,27 @@ export const createReviewJob = async (params: {
 
   if (params.requestBody.documents.length > 20) {
     throw new ApplicationError("Maximum 20 documents allowed");
+  }
+
+  // Validate file sizes from S3
+  const bucketName = process.env.DOCUMENT_BUCKET;
+  if (!bucketName) {
+    throw new ApplicationError("DOCUMENT_BUCKET is not defined");
+  }
+
+  for (const doc of params.requestBody.documents) {
+    try {
+      const fileSize = await getS3ObjectSize(bucketName, doc.s3Key);
+      if (!validateFileSize(fileSize, MAX_FILE_SIZE)) {
+        throw new FileSizeExceededError(doc.filename, fileSize, MAX_FILE_SIZE);
+      }
+    } catch (error) {
+      if (error instanceof FileSizeExceededError) {
+        throw error;
+      }
+      // If file doesn't exist or other S3 error, let it proceed (will fail later in processing)
+      console.warn(`Could not validate file size for ${doc.s3Key}:`, error);
+    }
   }
 
   const reviewJob = await createInitialReviewJobModel({

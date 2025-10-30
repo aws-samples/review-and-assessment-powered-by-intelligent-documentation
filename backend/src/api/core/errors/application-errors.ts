@@ -32,6 +32,31 @@ export class ValidationError extends ApplicationError {
 }
 
 /**
+ * ファイルサイズ超過エラー
+ */
+export class FileSizeExceededError extends ValidationError {
+  public readonly filename: string;
+  public readonly actualSize: number;
+  public readonly maxSize: number;
+
+  constructor(filename: string, actualSize: number, maxSize: number) {
+    const formatFileSize = (bytes: number): string => {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    };
+
+    const message = `File "${filename}" (${formatFileSize(actualSize)}) exceeds maximum size limit of ${formatFileSize(maxSize)}`;
+    super(message);
+    this.filename = filename;
+    this.actualSize = actualSize;
+    this.maxSize = maxSize;
+  }
+}
+
+/**
  * 権限エラー
  */
 export class ForbiddenError extends ApplicationError {

@@ -18,6 +18,7 @@ import { usePromptTemplates } from "../../prompt-template/hooks/usePromptTemplat
 import { PromptTemplateSelector } from "../../prompt-template/components/PromptTemplateSelector";
 import { PromptTemplateType } from "../../prompt-template/types";
 import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
+import { MAX_FILE_SIZE } from "../../../constants/index";
 
 /**
  * チェックリスト作成ページ
@@ -84,7 +85,7 @@ export function CreateChecklistPage() {
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
     // ファイルサイズ検証
-    const oversizedFiles = newFiles.filter(file => !validateFileSize(file));
+    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, MAX_FILE_SIZE));
     if (oversizedFiles.length > 0) {
       const oversizedFileNames = oversizedFiles.map(file => 
         `${file.name} (${formatFileSize(file.size)})`
@@ -261,9 +262,6 @@ export function CreateChecklistPage() {
               'application/pdf': ['.pdf']
             }}
           />
-          <p className="mt-2 text-sm text-gray-500">
-            File size limit: 4.5MB or less
-          </p>
 
           {/* プロンプトテンプレート選択セクション */}
           <div className="mt-6 border-t border-light-gray pt-4">

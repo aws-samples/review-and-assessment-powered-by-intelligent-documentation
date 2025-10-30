@@ -20,6 +20,7 @@ import {
 import SegmentedControl from "../../../components/SegmentedControl";
 import { REVIEW_FILE_TYPE } from "../types";
 import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
+import { MAX_FILE_SIZE } from "../../../constants/index";
 
 export const CreateReviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +35,6 @@ export const CreateReviewPage: React.FC = () => {
   const [mcpServerName, setMcpServerName] = useState("");
   const [checklistPage, setChecklistPage] = useState(1);
   const [checklistLimit] = useState(5);
-  const maxFileSize = 4.5 * 1024 * 1024; // 4.5MB (Bedrock Converse API制限)
   const [errors, setErrors] = useState({
     name: "",
     files: "",
@@ -112,7 +112,7 @@ export const CreateReviewPage: React.FC = () => {
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
     // ファイルサイズ検証
-    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, maxFileSize));
+    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, MAX_FILE_SIZE));
     if (oversizedFiles.length > 0) {
       const oversizedFileNames = oversizedFiles.map(file => 
         `${file.name} (${formatFileSize(file.size)})`
