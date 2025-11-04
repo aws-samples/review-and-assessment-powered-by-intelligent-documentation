@@ -6,6 +6,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -87,4 +88,24 @@ export async function deleteS3Object(
   });
 
   await client.send(command);
+}
+
+/**
+ * S3オブジェクトのサイズを取得する
+ * @param bucket バケット名
+ * @param key オブジェクトキー
+ * @returns ファイルサイズ（バイト）
+ */
+export async function getS3ObjectSize(
+  bucket: string,
+  key: string
+): Promise<number> {
+  const client = getS3Client();
+  const command = new HeadObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
+
+  const response = await client.send(command);
+  return response.ContentLength || 0;
 }

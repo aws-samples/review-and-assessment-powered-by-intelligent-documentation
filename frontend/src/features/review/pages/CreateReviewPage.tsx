@@ -19,6 +19,8 @@ import {
 } from "react-icons/hi";
 import SegmentedControl from "../../../components/SegmentedControl";
 import { REVIEW_FILE_TYPE } from "../types";
+import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
+import { MAX_FILE_SIZE } from "../../../constants/index";
 
 export const CreateReviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ export const CreateReviewPage: React.FC = () => {
     checklistLimit,
     "id",
     "desc",
-    "completed"
+    completed
   );
 
   // 審査ジョブ作成フック
@@ -109,6 +111,19 @@ export const CreateReviewPage: React.FC = () => {
 
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
+    // ファイルサイズ検証
+    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, MAX_FILE_SIZE));
+    if (oversizedFiles.length > 0) {
+      const oversizedFileNames = oversizedFiles.map(file => 
+        `${file.name} (${formatFileSize(file.size)})`
+      ).join(', ');
+      setErrors((prev) => ({
+        ...prev,
+        files: `${t("review.fileSizeError")}: ${oversizedFileNames}`,
+      }));
+      return;
+    }
+
     // ファイルタイプに基づいて検証
     if (fileType === REVIEW_FILE_TYPE.PDF && newFiles.length > 1) {
       setErrors((prev) => ({

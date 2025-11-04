@@ -178,6 +178,7 @@
     "targetFiles": "審査対象ファイル",
     "pdfLimitError": "PDF モードでは1つのファイルのみアップロードできます",
     "imageLimitError": "画像モードでは最大20枚までアップロードできます",
+    "fileSizeError": "ファイルサイズが4.5MBの制限を超えています",
     "fileUploadError": "ファイルアップロードエラー",
     "fileRequired": "少なくとも1つのファイルを選択してください",
     "nameRequired": "ジョブ名は必須です",
@@ -245,7 +246,7 @@
     "dropFiles": "ファイルをドロップしてください",
     "uploading": "ファイルをアップロード中...",
     "dragAndDrop": "ファイルをドラッグ＆ドロップするか、クリックして選択してください",
-    "supportedFormats": "対応形式: {{formats}}",
+    "supportedFormats": "対応形式: {{formats}}（最大4.5MB）",
     "files": "ファイル ({{count}})",
     "fileSize": "{{size}} KB"
   },

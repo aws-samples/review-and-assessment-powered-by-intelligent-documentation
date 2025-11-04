@@ -1,7 +1,26 @@
 {
+  "RapidFrontendWafStack": {
+    "WebAclId": "arn:aws:wafv2:us-east-1:278714196783:global/webacl/RapidFrontendWebAcl/a3e2e6f3-3042-41db-944e-764644c7cd89"
+  },
   "RapidStack": {
-    "DocumentBucketName": "rapidstack-documentbucketae41e5a9-ojiaoslknwdj",
-    "BackendLambdaArn": "arn:aws:lambda:ap-northeast-1:151364017355:function:RapidStack-DocumentProcessorBackendFunctionDA2F24-d1TSntMKTJFt",
-    "StateMachineArn": "arn:aws:states:ap-northeast-1:151364017355:stateMachine:DocumentProcessorDocumentProcessingWorkflow35E87741-iSeMpMArNETR"
+    "ApiExecutionLogGroupName6A41535B": "/aws/apigateway/RapidStack-api-execution-logs",
+    "DocumentBucketName": "rapidstack-documentbucketae41e5a9-e0psivcrsqgf",
+    "DocumentProcessingStateMachineArn": "arn:aws:states:ap-northeast-1:278714196783:stateMachine:DocumentProcessorDocumentProcessingWorkflow35E87741-sLLSci4vKVGg",
+    "LatestGitTag": "v1.12.2",
+    "ApiAccessLogGroupName2664DA86": "/aws/apigateway/RapidStack-api-access-logs",
+    "FrontendURL": "https://d11uahn4msmibf.cloudfront.net",
+    "PrismaMigrationResetMigrationCommand28C741EF": "aws lambda invoke --function-name RapidStack-PrismaMigrationMigrationFunction6051F8E-qNX09C7sjhbl --payload '{\"command\":\"reset\"}' --region ap-northeast-1 output.json",
+    "AuthUserPoolIdC0605E59": "ap-northeast-1_jzYPVDXmh",
+    "ReviewProcessorLambdaArn": "arn:aws:lambda:ap-northeast-1:278714196783:function:RapidStack-ReviewProcessorDocumentProcessorFunctio-iYMFetDWGFVo",
+    "ApiUrl": "https://6rycug8upg.execute-api.ap-northeast-1.amazonaws.com/api/",
+    "S3TempStorageTempBucketNameD02D6007": "rapidstack-s3tempstoragetempbucket11ba9f00-s4hlgv5wncgv",
+    "ApiRapidApiEndpointF9648273": "https://6rycug8upg.execute-api.ap-northeast-1.amazonaws.com/api/",
+    "ReviewProcessingStateMachineArn": "arn:aws:states:ap-northeast-1:278714196783:stateMachine:ReviewProcessorReviewProcessingWorkflowED301F52-dOI60UrDNBJT",
+    "PrismaMigrationLambdaArn": "arn:aws:lambda:ap-northeast-1:278714196783:function:RapidStack-PrismaMigrationMigrationFunction6051F8E-qNX09C7sjhbl",
+    "DatabaseSecretArn": "arn:aws:secretsmanager:ap-northeast-1:278714196783:secret:DatabaseSecret2DFA08D3-ESuLmM8t7koy-warxw9",
+    "DocumentProcessorLambdaArn": "arn:aws:lambda:ap-northeast-1:278714196783:function:RapidStack-DocumentProcessorDocumentProcessorFunct-c8JIgugCpbAc",
+    "PrismaMigrationDeployMigrationCommand40F1F006": "aws lambda invoke --function-name RapidStack-PrismaMigrationMigrationFunction6051F8E-qNX09C7sjhbl --payload '{\"command\":\"deploy\"}' --region ap-northeast-1 output.json",
+    "AuthUserPoolClientId8216BF9A": "189ebe4ha5pthut9792e2fh30b",
+    "DatabaseEndpoint": "rapidstack-databasee85e1d09-sj9w1qh7otnh.cluster-c5wugo68itm3.ap-northeast-1.rds.amazonaws.com"
   }
 }

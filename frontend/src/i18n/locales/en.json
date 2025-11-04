@@ -178,6 +178,7 @@
     "targetFiles": "Target Files for Review",
     "pdfLimitError": "Only one file can be uploaded in PDF mode",
     "imageLimitError": "Up to 20 images can be uploaded in Image mode",
+    "fileSizeError": "File size exceeds 4.5MB limit",
     "fileUploadError": "File upload error",
     "fileRequired": "At least one file must be selected",
     "nameRequired": "Job name is required",
@@ -245,7 +246,7 @@
     "dropFiles": "Drop files here",
     "uploading": "Uploading files...",
     "dragAndDrop": "Drag and drop files here or click to select",
-    "supportedFormats": "Supported formats: {{formats}}",
+    "supportedFormats": "Supported formats: {{formats}} (max 4.5MB)",
     "files": "Files ({{count}})",
     "fileSize": "{{size}} KB"
   },
