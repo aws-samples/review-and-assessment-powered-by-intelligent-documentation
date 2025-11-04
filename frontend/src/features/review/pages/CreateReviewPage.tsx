@@ -11,7 +11,7 @@ import McpServerSelector from "../components/McpServerSelector";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
 import { useDocumentUpload } from "../../../hooks/useDocumentUpload";
 import { useChecklistSets } from "../../checklist/hooks/useCheckListSetQueries";
-import { CheckListSet } from "../../checklist/types";
+import { CHECK_LIST_STATUS, CheckListSet } from "../../checklist/types";
 import {
   HiExclamationCircle,
   HiDocumentText,
@@ -19,7 +19,10 @@ import {
 } from "react-icons/hi";
 import SegmentedControl from "../../../components/SegmentedControl";
 import { REVIEW_FILE_TYPE } from "../types";
-import { validateFileSize, formatFileSize } from "../../../utils/fileValidation";
+import {
+  validateFileSize,
+  formatFileSize,
+} from "../../../utils/fileValidation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
 
 export const CreateReviewPage: React.FC = () => {
@@ -52,7 +55,7 @@ export const CreateReviewPage: React.FC = () => {
     checklistLimit,
     "id",
     "desc",
-    completed
+    CHECK_LIST_STATUS.COMPLETED
   );
 
   // 審査ジョブ作成フック
@@ -112,11 +115,13 @@ export const CreateReviewPage: React.FC = () => {
   // ファイル変更ハンドラ
   const handleFilesChange = async (newFiles: File[]) => {
     // ファイルサイズ検証
-    const oversizedFiles = newFiles.filter(file => !validateFileSize(file, MAX_FILE_SIZE));
+    const oversizedFiles = newFiles.filter(
+      (file) => !validateFileSize(file, MAX_FILE_SIZE)
+    );
     if (oversizedFiles.length > 0) {
-      const oversizedFileNames = oversizedFiles.map(file => 
-        `${file.name} (${formatFileSize(file.size)})`
-      ).join(', ');
+      const oversizedFileNames = oversizedFiles
+        .map((file) => `${file.name} (${formatFileSize(file.size)})`)
+        .join(", ");
       setErrors((prev) => ({
         ...prev,
         files: `${t("review.fileSizeError")}: ${oversizedFileNames}`,
@@ -350,9 +355,10 @@ export const CreateReviewPage: React.FC = () => {
                 multiple={fileType === REVIEW_FILE_TYPE.IMAGE}
                 uploadedDocuments={uploadedDocuments}
                 onDeleteFile={handleFileRemove}
-                acceptedFileTypes={fileType === REVIEW_FILE_TYPE.PDF ? 
-                  { 'application/pdf': ['.pdf'] } : 
-                  { 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }
+                acceptedFileTypes={
+                  fileType === REVIEW_FILE_TYPE.PDF
+                    ? { "application/pdf": [".pdf"] }
+                    : { "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] }
                 }
               />
             </div>
