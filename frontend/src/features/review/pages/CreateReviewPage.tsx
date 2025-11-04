@@ -11,7 +11,7 @@ import McpServerSelector from "../components/McpServerSelector";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
 import { useDocumentUpload } from "../../../hooks/useDocumentUpload";
 import { useChecklistSets } from "../../checklist/hooks/useCheckListSetQueries";
-import { CheckListSetSummary, CHECK_LIST_STATUS } from "../../checklist/types";
+import { CheckListSet } from "../../checklist/types";
 import {
   HiExclamationCircle,
   HiDocumentText,
@@ -27,7 +27,7 @@ export const CreateReviewPage: React.FC = () => {
   const { t } = useTranslation();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedChecklist, setSelectedChecklist] =
-    useState<CheckListSetSummary | null>(null);
+    useState<CheckListSet | null>(null);
   const [jobName, setJobName] = useState("");
   const [fileType, setFileType] = useState<REVIEW_FILE_TYPE>(
     REVIEW_FILE_TYPE.PDF
@@ -52,7 +52,7 @@ export const CreateReviewPage: React.FC = () => {
     checklistLimit,
     "id",
     "desc",
-    CHECK_LIST_STATUS.COMPLETED
+    completed
   );
 
   // 審査ジョブ作成フック
@@ -219,7 +219,7 @@ export const CreateReviewPage: React.FC = () => {
   };
 
   // チェックリスト選択ハンドラ
-  const handleChecklistSelect = (checklist: CheckListSetSummary) => {
+  const handleChecklistSelect = (checklist: CheckListSet) => {
     setSelectedChecklist(checklist);
   };
 

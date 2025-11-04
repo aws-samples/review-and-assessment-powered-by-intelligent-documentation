@@ -2,7 +2,7 @@
  * エラーハンドラーミドルウェア
  */
 import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
-import { ApplicationError } from "./application-errors";
+import { ApplicationError, ValidationError } from "./application-errors";
 
 /**
  * エラーレスポンスの型
@@ -27,6 +27,15 @@ export function errorHandler(
 ): void {
   // エラーをログに記録
   request.log.error(error);
+
+  // ValidationErrorの場合
+  if (error instanceof ValidationError) {
+    reply.code(422).send({
+      success: false,
+      error: error.message,
+    });
+    return;
+  }
 
   // ApplicationErrorの場合
   if (error instanceof ApplicationError) {
