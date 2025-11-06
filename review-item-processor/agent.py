@@ -15,6 +15,7 @@ from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from strands_tools import file_read, image_reader
+from strands_tools.code_interpreter import AgentCoreCodeInterpreter
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -151,6 +152,9 @@ NOVA_PREMIER_MODEL_ID = IMAGE_MODEL_ID
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
+ENABLE_CODE_INTERPRETER = (
+    os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
+)
 # Models that support prompt and tool caching
 # Base model IDs that support prompt and tool caching (without region prefixes)
 CACHE_SUPPORTED_BASE_MODELS = {
@@ -236,6 +240,27 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     # TODO
     # return MCPClient(...)
     raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
+
+
+def create_code_interpreter_tool() -> Optional[Any]:
+    """
+    Create AgentCore Code Interpreter tool if enabled.
+
+    Returns:
+        AgentCoreCodeInterpreter tool instance or None if disabled
+    """
+    if not ENABLE_CODE_INTERPRETER:
+        logger.debug("Code Interpreter disabled, skipping tool creation")
+        return None
+
+    try:
+        logger.info(f"Creating AgentCore Code Interpreter tool")
+        code_interpreter_tool = AgentCoreCodeInterpreter(region=AWS_REGION)
+        logger.debug("AgentCore Code Interpreter tool created successfully")
+        return code_interpreter_tool.code_interpreter
+    except Exception as e:
+        logger.error(f"Failed to create AgentCore Code Interpreter tool: {e}")
+        return None
 
 
 def sanitize_file_name(filename: str) -> str:
@@ -344,6 +369,13 @@ def _run_strands_agent_legacy(
 
         # Use provided base tools or default to file_read
         tools_to_use = base_tools if base_tools else [file_read]
+
+        # Add code interpreter tool if enabled
+        code_interpreter_tool = create_code_interpreter_tool()
+        if code_interpreter_tool:
+            tools_to_use.append(code_interpreter_tool)
+            logger.debug("Added AgentCore Code Interpreter tool")
+
         # Combine with MCP tools
         tools = tools_to_use + mcp_tools
         logger.debug(f"Total tools available: {len(tools)}")

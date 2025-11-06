@@ -22,6 +22,7 @@ export interface AgentProps {
   documentProcessingModelId: string;
   imageReviewModelId: string;
   enableCitations: boolean;
+  enableCodeInterpreter: boolean;
 }
 
 export class Agent extends Construct {
@@ -36,6 +37,7 @@ export class Agent extends Construct {
       documentProcessingModelId,
       imageReviewModelId,
       enableCitations,
+      enableCodeInterpreter,
     } = props;
 
     const image = new DockerImageAsset(this, "Image", {
@@ -219,6 +221,25 @@ export class Agent extends Construct {
       })
     );
 
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "AgentCoreCodeInterpreterPermissions",
+        effect: Effect.ALLOW,
+        actions: [
+          "bedrock-agentcore:CreateCodeInterpreter",
+          "bedrock-agentcore:StartCodeInterpreterSession",
+          "bedrock-agentcore:InvokeCodeInterpreter",
+          "bedrock-agentcore:StopCodeInterpreterSession",
+          "bedrock-agentcore:DeleteCodeInterpreter",
+          "bedrock-agentcore:ListCodeInterpreters",
+          "bedrock-agentcore:GetCodeInterpreter",
+          "bedrock-agentcore:GetCodeInterpreterSession",
+          "bedrock-agentcore:ListCodeInterpreterSessions",
+        ],
+        resources: [`arn:aws:bedrock-agentcore:${region}:${accountId}:code-interpreter/*`],
+      })
+    );
+
     const runtime = new CfnRuntime(this, "Runtime", {
       agentRuntimeName: Names.uniqueResourceName(this, { maxLength: 40 }),
       agentRuntimeArtifact: {
@@ -238,8 +259,9 @@ export class Agent extends Construct {
         DOCUMENT_PROCESSING_MODEL_ID: documentProcessingModelId,
         IMAGE_REVIEW_MODEL_ID: imageReviewModelId,
         ENABLE_CITATIONS: enableCitations.toString(),
+        ENABLE_CODE_INTERPRETER: enableCodeInterpreter.toString(),
         MEMORY_ID: memory.attrMemoryId,
-        AGENT_REGION: region,
+        AWS_REGION: region,
       },
     });
     this.runtimeArn = runtime.attrAgentRuntimeArn;

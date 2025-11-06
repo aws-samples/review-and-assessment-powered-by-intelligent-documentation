@@ -44,6 +44,12 @@ export interface ReviewProcessorProps {
    * @default true
    */
   enableCitations: boolean;
+
+  /**
+   * AgentCore Code Interpreterを有効にするかどうか
+   * @default true
+   */
+  enableCodeInterpreter: boolean;
 }
 
 export class ReviewProcessor extends Construct {
@@ -110,6 +116,7 @@ export class ReviewProcessor extends Construct {
       documentProcessingModelId: props.documentProcessingModelId,
       imageReviewModelId: props.imageReviewModelId,
       enableCitations: props.enableCitations,
+      enableCodeInterpreter: props.enableCodeInterpreter,
     });
 
     // Lambda function for invoking AgentCore

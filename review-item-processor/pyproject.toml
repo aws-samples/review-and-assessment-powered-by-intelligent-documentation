@@ -4,14 +4,14 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "strands-agents>=1.15.0",
-    "strands-agents-tools>=0.2.14",
-    "bedrock-agentcore>=1.0.5",
+    "strands-agents-tools[agent_core_code_interpreter]>=0.2.14",
+    "bedrock-agentcore==0.1.0",
     "pillow>=11.2.1",
     "boto3>=1.40.22",
     "anyio>=4.0.0",
     "mcp>=1.0.0",
     "pydantic>=2.0.0",
-    "aws-opentelemetry-distro>=0.12.2"
+    "aws-opentelemetry-distro>=0.12.2",
 ]
 
 [project.optional-dependencies]

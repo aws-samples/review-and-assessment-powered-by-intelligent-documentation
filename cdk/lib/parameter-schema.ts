@@ -79,6 +79,12 @@ const parameterSchema = z.object({
     .describe(
       "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
     ),
+
+  // AgentCore Code Interpreter設定
+  enableCodeInterpreter: z
+    .boolean()
+    .default(true)
+    .describe("AgentCore Code Interpreterを有効にするかどうか"),
 });
 
 // パラメータの型定義（型安全性のため）
