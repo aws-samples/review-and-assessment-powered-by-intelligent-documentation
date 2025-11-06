@@ -5,6 +5,13 @@ import {
 } from "@aws-sdk/client-bedrock-agentcore";
 import { StepFunctionsInput, AgentPayload } from "./types";
 
+class RetryException extends Error {
+  constructor(message: string, public readonly originalError?: Error) {
+    super(message);
+    this.name = "RetryException";
+  }
+}
+
 const client = new BedrockAgentCoreClient({
   region: process.env.AWS_REGION,
 });
@@ -35,9 +42,6 @@ export const handler: Handler = async (event: StepFunctionsInput) => {
       agentRuntimeArn: process.env.AGENT_RUNTIME_ARN!,
       runtimeSessionId: runtimeSessionId,
       payload: JSON.stringify(agentPayload),
-      // payload: Buffer.from(JSON.stringify(agentPayload)),
-      // contentType: 'application/json',
-      // accept: 'application/json'
     });
 
     const response = await client.send(command);
@@ -47,19 +51,46 @@ export const handler: Handler = async (event: StepFunctionsInput) => {
     const responseBody = await streamToString(response.response);
     console.log("AgentCore response body:", responseBody);
 
-    // Parse and return the response in the format expected by Step Functions
-    const parsedResponse = JSON.parse(responseBody);
+    // Check status code and throw error if not 200
+    if (response.statusCode !== 200) {
+      throw new Error(
+        `AgentCore returned non-200 status: ${response.statusCode}`
+      );
+    }
 
-    return {
-      runtimeSessionId: response.runtimeSessionId,
-      response: parsedResponse,
-      statusCode: response.statusCode,
-    };
+    // Parse and return the response data directly
+    const parsedResponse = JSON.parse(responseBody);
+    return parsedResponse;
   } catch (error) {
     console.error("Error invoking AgentCore:", error);
+
+    // Check if error is retryable based on AWS SDK error codes
+    if (isRetryableError(error)) {
+      throw new RetryException(
+        `Retryable error occurred: ${(error as Error).message}`,
+        error as Error
+      );
+    }
+
     throw error;
   }
 };
+
+// Helper function to detect retryable errors
+function isRetryableError(error: any): boolean {
+  const retryableErrorCodes = [
+    "ThrottlingException",
+    "ThrottledException",
+    "ServiceQuotaExceededException",
+    "InternalServerException",
+  ];
+
+  return (
+    retryableErrorCodes.includes(error.name) ||
+    retryableErrorCodes.includes(error.code) ||
+    (error.statusCode >= 500 && error.statusCode < 600)
+  );
+}
 
 // Helper function to convert streaming response to string
 async function streamToString(stream: any): Promise<string> {

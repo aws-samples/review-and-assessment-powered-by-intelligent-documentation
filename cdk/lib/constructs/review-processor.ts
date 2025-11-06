@@ -214,7 +214,7 @@ export class ReviewProcessor extends Construct {
           documentIds: sfn.JsonPath.stringAt(
             "$.preItemResult.Payload.documentIds"
           ),
-          reviewData: sfn.JsonPath.stringAt("$.mcpResult.response"),
+          reviewData: sfn.JsonPath.stringAt("$.mcpResult.Payload"),
         }),
         resultPath: "$.itemResult",
         resultSelector: {
@@ -226,6 +226,7 @@ export class ReviewProcessor extends Construct {
     // リトライ設定を追加
     mcpTask.addRetry({
       errors: [
+        "RetryException",
         "ThrottlingException",
         "ServiceQuotaExceededException",
         "TooManyRequestsException",
