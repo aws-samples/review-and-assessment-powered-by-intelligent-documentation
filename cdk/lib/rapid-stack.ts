@@ -270,6 +270,23 @@ export class RapidStack extends cdk.Stack {
       description: "デプロイされたコードの最新Gitタグ",
     });
 
+    // AgentCore Runtime test用のOutput
+    new cdk.CfnOutput(this, "TempBucketName", {
+      value: s3TempStorage.bucket.bucketName,
+    });
+    
+    new cdk.CfnOutput(this, "BedrockRegion", {
+      value: props.parameters.bedrockRegion,
+    });
+    
+    new cdk.CfnOutput(this, "DocumentProcessingModelId", {
+      value: props.parameters.documentProcessingModelId,
+    });
+    
+    new cdk.CfnOutput(this, "ImageReviewModelId", {
+      value: props.parameters.imageReviewModelId,
+    });
+
     // Fix migrationLambda.functionArn
     if (
       prismaMigration.migrationLambda &&

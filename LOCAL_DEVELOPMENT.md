@@ -149,7 +149,7 @@ npm run build
 本サンプルは TypeScript を基本的に利用していますが、一部（以下）の Lambda 関数で Python を利用しています：
 
 1. **MCP Runtime** (`cdk/lib/constructs/mcp-runtime/python/`)
-2. **Review Item Processor** (`backend/src/review-workflow/review-item-processor/`)
+2. **Review Item Processor** (`review-item-processor/`)
 
 各プロジェクトでは依存関係ロックのため Poetry を利用しています。
 

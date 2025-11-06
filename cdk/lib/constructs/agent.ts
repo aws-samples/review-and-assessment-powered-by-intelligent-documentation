@@ -41,7 +41,7 @@ export class Agent extends Construct {
     const image = new DockerImageAsset(this, "Image", {
       directory: join(
         __dirname,
-        "../../../backend/src/review-workflow/review-item-processor"
+        "../../../review-item-processor"
       ),
       platform: Platform.LINUX_ARM64,
       file: "Dockerfile",

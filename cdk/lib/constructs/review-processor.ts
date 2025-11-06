@@ -112,6 +112,22 @@ export class ReviewProcessor extends Construct {
       enableCitations: props.enableCitations,
     });
 
+    // Lambda function for invoking AgentCore
+    const invokeAgentLambda = new lambda.Function(this, "InvokeAgentFunction", {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent")),
+      timeout: cdk.Duration.minutes(5),
+      environment: {
+        AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
+        BEDROCK_REGION: props.bedrockRegion,
+      },
+      architecture: lambda.Architecture.ARM_64,
+    });
+
+    // Grant permissions to invoke AgentCore
+    this.reviewAgent.grantInvoke(invokeAgentLambda);
+
     // Lambda関数にS3バケットへのアクセス権限を付与
     props.documentBucket.grantReadWrite(this.reviewLambda);
     props.tempBucket.grantReadWrite(this.reviewLambda);
@@ -173,15 +189,14 @@ export class ReviewProcessor extends Construct {
     );
 
     // Step 2: AgentCore processing - Strandsエージェントによる処理
-    const mcpTask = new tasks.CallAwsService(this, "ProcessReviewWithAgent", {
-      service: "bedrock-agentcore",
-      action: "invokeAgentRuntime",
-      parameters: {
-        "AgentRuntimeArn": this.reviewAgent.runtimeArn,
-        "RuntimeSessionId.$": "$.reviewJobId",
-        "Payload.$": "$",
-      },
-      iamResources: [this.reviewAgent.runtimeArn],
+    const mcpTask = new tasks.LambdaInvoke(this, "ProcessReviewWithAgent", {
+      lambdaFunction: invokeAgentLambda,
+      payload: sfn.TaskInput.fromObject({
+        "reviewJobId.$": "$.reviewJobId",
+        "checkId.$": "$.checkId",
+        "reviewResultId.$": "$.reviewResultId",
+        "preItemResult.$": "$.preItemResult"
+      }),
       resultPath: "$.mcpResult",
     });
 

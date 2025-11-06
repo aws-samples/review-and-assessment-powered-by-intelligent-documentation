@@ -1,0 +1,73 @@
+import { Handler } from "aws-lambda";
+import {
+  BedrockAgentCoreClient,
+  InvokeAgentRuntimeCommand,
+} from "@aws-sdk/client-bedrock-agentcore";
+import { StepFunctionsInput, AgentPayload } from "./types";
+
+const client = new BedrockAgentCoreClient({
+  region: process.env.AWS_REGION,
+});
+
+export const handler: Handler = async (event: StepFunctionsInput) => {
+  console.log("Received event:", JSON.stringify(event, null, 2));
+
+  try {
+    // Transform Step Functions payload to Agent payload format
+    const agentPayload: AgentPayload = {
+      reviewJobId: event.reviewJobId,
+      checkId: event.checkId,
+      reviewResultId: event.reviewResultId,
+      documentPaths: event.preItemResult.Payload.documentPaths,
+      checkName: event.preItemResult.Payload.checkName,
+      checkDescription: event.preItemResult.Payload.checkDescription,
+      languageName: event.preItemResult.Payload.languageName,
+      mcpServers: event.preItemResult.Payload.mcpServers,
+    };
+
+    console.log("Transformed payload:", JSON.stringify(agentPayload, null, 2));
+
+    // Transform reviewJobId to meet 33+ character requirement
+    const runtimeSessionId = event.reviewJobId.padEnd(33, "0");
+
+    // Call bedrock-agentcore:InvokeAgentRuntime
+    const command = new InvokeAgentRuntimeCommand({
+      agentRuntimeArn: process.env.AGENT_RUNTIME_ARN!,
+      runtimeSessionId: runtimeSessionId,
+      payload: JSON.stringify(agentPayload),
+      // payload: Buffer.from(JSON.stringify(agentPayload)),
+      // contentType: 'application/json',
+      // accept: 'application/json'
+    });
+
+    const response = await client.send(command);
+    console.log("AgentCore response status:", response.statusCode);
+
+    // Read the streaming response
+    const responseBody = await streamToString(response.response);
+    console.log("AgentCore response body:", responseBody);
+
+    // Parse and return the response in the format expected by Step Functions
+    const parsedResponse = JSON.parse(responseBody);
+
+    return {
+      runtimeSessionId: response.runtimeSessionId,
+      response: parsedResponse,
+      statusCode: response.statusCode,
+    };
+  } catch (error) {
+    console.error("Error invoking AgentCore:", error);
+    throw error;
+  }
+};
+
+// Helper function to convert streaming response to string
+async function streamToString(stream: any): Promise<string> {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks).toString("utf-8");
+}

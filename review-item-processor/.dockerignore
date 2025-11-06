@@ -1,5 +1,8 @@
-# Tests directory
+# Test files
+test_*.py
+*_test.py
 tests/
+sample.pdf
 
 # Development files
 *.pyc
