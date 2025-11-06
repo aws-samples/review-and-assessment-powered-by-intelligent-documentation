@@ -12,7 +12,7 @@ import { Construct } from "constructs";
 import { DockerPrismaFunction } from "./docker-prisma-function";
 import { Platform } from "aws-cdk-lib/aws-ecr-assets";
 import { DatabaseConnectionProps } from "./database";
-import { McpRuntime } from "./mcp-runtime/mcp-runtime";
+import { Agent } from "./agent";
 export interface ReviewProcessorProps {
   documentBucket: s3.IBucket;
   tempBucket: s3.IBucket; // S3 Temp Storage bucket
@@ -20,7 +20,6 @@ export interface ReviewProcessorProps {
   databaseConnection: DatabaseConnectionProps;
   logLevel?: sfn.LogLevel;
   maxConcurrency?: number; // Add parameter for controlling parallel executions
-  McpRuntime: McpRuntime; // MCP runner for enhanced review capabilities
 
   /**
    * ドキュメント処理に使用するAIモデルID
@@ -50,7 +49,7 @@ export interface ReviewProcessorProps {
 export class ReviewProcessor extends Construct {
   public readonly stateMachine: sfn.StateMachine;
   public readonly reviewLambda: lambda.Function;
-  public readonly reviewMcpLambda: lambda.DockerImageFunction;
+  public readonly reviewAgent: Agent;
   public readonly securityGroup: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: ReviewProcessorProps) {
@@ -103,61 +102,15 @@ export class ReviewProcessor extends Construct {
       }
     );
 
-    // Pythonベースの審査Lambda関数を作成（Docker）
-    this.reviewMcpLambda = new lambda.DockerImageFunction(
-      this,
-      "ReviewItemProcessorMcpFunction",
-      {
-        code: lambda.DockerImageCode.fromImageAsset(
-          path.join(
-            __dirname,
-            "../../../backend/src/review-workflow/review-item-processor"
-          ),
-          {
-            file: "Dockerfile",
-            platform: Platform.LINUX_ARM64,
-          }
-        ),
-        memorySize: 1024,
-        timeout: cdk.Duration.minutes(15),
-        // vpc: props.vpc,
-        // vpcSubnets: {
-        //   subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-        // },
-        // securityGroups: [this.securityGroup],
-        environment: {
-          DOCUMENT_BUCKET: props.documentBucket.bucketName,
-          TEMP_BUCKET: props.tempBucket.bucketName,
-          BEDROCK_REGION: props.bedrockRegion,
-          DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
-          IMAGE_REVIEW_MODEL_ID: props.imageReviewModelId,
-          // MCPサーバーLambdaのARNを設定
-          PY_MCP_LAMBDA_ARN: props.McpRuntime.pythonMcpServer.functionArn,
-          NODE_MCP_LAMBDA_ARN: props.McpRuntime.typescriptMcpServer.functionArn,
-          ENABLE_CITATIONS: props.enableCitations.toString(),
-        },
-        architecture: lambda.Architecture.ARM_64,
-      }
-    );
-
-    // Lambda関数にS3バケットへのアクセス権限を付与
-    props.documentBucket.grantReadWrite(this.reviewMcpLambda);
-    props.tempBucket.grantReadWrite(this.reviewMcpLambda);
-
-    // Lambda関数にBedrockへのアクセス権限を付与
-    this.reviewMcpLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream",
-        ],
-        resources: ["*"],
-      })
-    );
-
-    // MCP Lambdaへの呼び出し権限を付与
-    props.McpRuntime.pythonMcpServer.grantInvoke(this.reviewMcpLambda);
-    props.McpRuntime.typescriptMcpServer.grantInvoke(this.reviewMcpLambda);
+    // AgentCore Runtime を作成
+    this.reviewAgent = new Agent(this, "ReviewAgent", {
+      bedrockRegion: props.bedrockRegion,
+      documentBucket: props.documentBucket,
+      tempBucket: props.tempBucket,
+      documentProcessingModelId: props.documentProcessingModelId,
+      imageReviewModelId: props.imageReviewModelId,
+      enableCitations: props.enableCitations,
+    });
 
     // Lambda関数にS3バケットへのアクセス権限を付与
     props.documentBucket.grantReadWrite(this.reviewLambda);
@@ -219,29 +172,17 @@ export class ReviewProcessor extends Construct {
       }
     );
 
-    // Step 2: MCP processing - Strandsエージェントによる処理
-    const mcpTask = new tasks.LambdaInvoke(this, "ProcessReviewWithMcp", {
-      lambdaFunction: this.reviewMcpLambda,
-      payload: sfn.TaskInput.fromObject({
-        reviewJobId: sfn.JsonPath.stringAt("$.reviewJobId"),
-        checkId: sfn.JsonPath.stringAt("$.checkId"),
-        reviewResultId: sfn.JsonPath.stringAt("$.reviewResultId"),
-        documentPaths: sfn.JsonPath.stringAt(
-          "$.preItemResult.Payload.documentPaths"
-        ),
-        checkName: sfn.JsonPath.stringAt("$.preItemResult.Payload.checkName"),
-        checkDescription: sfn.JsonPath.stringAt(
-          "$.preItemResult.Payload.checkDescription"
-        ),
-        languageName: sfn.JsonPath.stringAt(
-          "$.preItemResult.Payload.languageName"
-        ),
-        mcpServers: sfn.JsonPath.stringAt("$.preItemResult.Payload.mcpServers"),
-      }),
-      resultPath: "$.mcpResult",
-      resultSelector: {
-        "Payload.$": "$.Payload",
+    // Step 2: AgentCore processing - Strandsエージェントによる処理
+    const mcpTask = new tasks.CallAwsService(this, "ProcessReviewWithAgent", {
+      service: "bedrock-agentcore",
+      action: "invokeAgentRuntime",
+      parameters: {
+        "AgentRuntimeArn": this.reviewAgent.runtimeArn,
+        "RuntimeSessionId.$": "$.reviewJobId",
+        "Payload.$": "$",
       },
+      iamResources: [this.reviewAgent.runtimeArn],
+      resultPath: "$.mcpResult",
     });
 
     // Step 3: Post-processing - 結果の保存
@@ -258,7 +199,7 @@ export class ReviewProcessor extends Construct {
           documentIds: sfn.JsonPath.stringAt(
             "$.preItemResult.Payload.documentIds"
           ),
-          reviewData: sfn.JsonPath.stringAt("$.mcpResult.Payload"),
+          reviewData: sfn.JsonPath.stringAt("$.mcpResult.response"),
         }),
         resultPath: "$.itemResult",
         resultSelector: {

@@ -3,9 +3,13 @@ import os
 from typing import Any, Dict, List, Optional
 
 import boto3
+from bedrock_agentcore import BedrockAgentCoreApp
 from agent import DOCUMENT_MODEL_ID, process_review
 from utils import check_environment_variables, get_language_name
 from s3_temp_utils import S3TempStorage
+
+# AgentCore App initialization
+app = BedrockAgentCoreApp()
 
 # Environment variables
 DOCUMENT_BUCKET = os.environ.get("DOCUMENT_BUCKET", "")
@@ -13,6 +17,7 @@ TEMP_BUCKET = os.environ.get("TEMP_BUCKET", "")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 
 
+@app.entrypoint
 def handler(event, context):
     """
     Lambda handler for the review item processor using Strands and MCP.

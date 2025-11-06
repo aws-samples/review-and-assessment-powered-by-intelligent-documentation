@@ -1,20 +1,12 @@
-FROM public.ecr.aws/lambda/python:3.13-arm64
+FROM --platform=linux/arm64 ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-# Install poetry
-RUN pip install poetry==2.1.4
+WORKDIR /app
 
-# Set working directory
-WORKDIR "${LAMBDA_TASK_ROOT}"
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache
 
-# Copy poetry files
-COPY pyproject.toml poetry.lock ./
-
-# Configure poetry and install dependencies
-RUN poetry config virtualenvs.create false && \
-    poetry install --only=main --no-root
-
-# Copy function code
 COPY . ./
 
-# Set the CMD to your handler
-CMD ["index.handler"]
+EXPOSE 8080
+
+CMD ["uv", "run", "opentelemetry-instrument", "python", "index.py"]

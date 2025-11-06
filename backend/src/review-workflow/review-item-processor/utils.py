@@ -163,8 +163,6 @@ def check_environment_variables() -> List[str]:
         List of missing environment variables
     """
     required_vars = [
-        "PY_MCP_LAMBDA_ARN",
-        "NODE_MCP_LAMBDA_ARN",
         "DOCUMENT_BUCKET",
         "BEDROCK_REGION",
     ]

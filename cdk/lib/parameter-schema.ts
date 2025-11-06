@@ -55,12 +55,6 @@ const parameterSchema = z.object({
   // Prismaマイグレーション設定
   autoMigrate: z.boolean().default(true), // デフォルトはtrue（自動マイグレーションを実行する）
 
-  // MCP Runtime設定
-  mcpAdmin: z
-    .boolean()
-    .default(false)
-    .describe("MCPランタイムLambda関数に管理者権限を付与するかどうか"),
-
   // Citation機能設定
   // Amazon Bedrock Citations API for PDF documents with Claude models
   // Ref: https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/
@@ -201,12 +195,6 @@ export function extractContextParameters(app: any): Record<string, any> {
   const autoMigrate = app.node.tryGetContext("rapid.autoMigrate");
   if (autoMigrate !== undefined) {
     params.autoMigrate = autoMigrate === "true" || autoMigrate === true;
-  }
-
-  // MCP Runtime管理者権限設定の取得
-  const mcpAdmin = app.node.tryGetContext("rapid.mcpAdmin");
-  if (mcpAdmin !== undefined) {
-    params.mcpAdmin = mcpAdmin === "true" || mcpAdmin === true;
   }
 
   // Map State並行処理設定の取得

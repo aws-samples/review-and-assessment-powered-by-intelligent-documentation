@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
-from lambda_function_client import LambdaFunctionParameters, lambda_function_client
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
@@ -149,8 +148,6 @@ SONNET_MODEL_ID = DOCUMENT_MODEL_ID
 NOVA_PREMIER_MODEL_ID = IMAGE_MODEL_ID
 
 # Get environment variables
-PY_MCP_LAMBDA_ARN = os.environ.get("PY_MCP_LAMBDA_ARN", "")
-NODE_MCP_LAMBDA_ARN = os.environ.get("NODE_MCP_LAMBDA_ARN", "")
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
@@ -236,26 +233,9 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
         MCPClient: Initialized MCP client
     """
     logger.info(f"Creating MCP client with config: {mcp_server_cfg}")
-    cmd = mcp_server_cfg.get("command")
-
-    if cmd == "uvx":
-        fn_arn = PY_MCP_LAMBDA_ARN
-        logger.info(f"Using Python MCP Lambda ARN: {fn_arn}")
-    elif cmd == "npx":
-        fn_arn = NODE_MCP_LAMBDA_ARN
-        logger.info(f"Using Node MCP Lambda ARN: {fn_arn}")
-    else:
-        raise ValueError(f"Unsupported command: {cmd}")
-
-    lambda_params = LambdaFunctionParameters(
-        function_name=fn_arn, region_name=AWS_REGION, mcp_server=mcp_server_cfg
-    )
-
-    logger.info(
-        f"Lambda parameters: function_name={fn_arn}, region={AWS_REGION}, mcp_server={mcp_server_cfg}"
-    )
-
-    return MCPClient(lambda: lambda_function_client(lambda_params))
+    # TODO
+    # return MCPClient(...)
+    raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
 
 
 def sanitize_file_name(filename: str) -> str:
@@ -339,22 +319,28 @@ def _run_strands_agent_legacy(
     with ExitStack() as stack:
         # Create MCP clients
         logger.debug("Creating MCP clients")
-        clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
 
-        logger.debug("Gathering tools from all MCP clients")
+        # clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
 
-        mcp_tools = list(
-            itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
-        )
+        # logger.debug("Gathering tools from all MCP clients")
+
+        # mcp_tools = list(
+        #     itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
+        # )
+
+        # logger.debug(f"Found total of {len(mcp_tools)} MCP tools")
+        # for t in mcp_tools:
+        #     tool_name = (
+        #         getattr(t, "tool_name", None)
+        #         or (t.get("name") if isinstance(t, dict) else None)
+        #         or getattr(t, "name", repr(t))
+        #     )
+        #     logger.debug("* MCP tool: %s", tool_name)
+
+        # TODO
+        mcp_tools = []
 
         logger.debug(f"Found total of {len(mcp_tools)} MCP tools")
-        for t in mcp_tools:
-            tool_name = (
-                getattr(t, "tool_name", None)
-                or (t.get("name") if isinstance(t, dict) else None)
-                or getattr(t, "name", repr(t))
-            )
-            logger.debug("* MCP tool: %s", tool_name)
 
         # Use provided base tools or default to file_read
         tools_to_use = base_tools if base_tools else [file_read]
@@ -438,11 +424,14 @@ def _run_strands_agent_with_citations(
     mcp_servers = mcpServers if mcpServers and isinstance(mcpServers, list) else []
 
     with ExitStack() as stack:
-        # Create MCP clients
-        clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
-        mcp_tools = list(
-            itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
-        )
+        # # Create MCP clients
+        # clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
+        # mcp_tools = list(
+        #     itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
+        # )
+
+        # TODO
+        mcp_tools = []
 
         # Citation mode: document-based, file_read not required
         tools = mcp_tools  # MCP tools only
@@ -506,9 +495,6 @@ def _run_strands_agent_with_citations(
         result["totalCost"] = review_meta["total_cost"]
 
         return result
-
-
-
 
 
 # Message parsing functions
@@ -726,9 +712,6 @@ def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
         }
 
 
-
-
-
 # Prompt generation functions
 def _get_document_review_prompt_legacy(
     language_name: str,
@@ -736,7 +719,7 @@ def _get_document_review_prompt_legacy(
     check_description: str,
 ) -> str:
     """PDF document review prompt for legacy file_read approach"""
-    
+
     document_access_section = """## DOCUMENT ACCESS
 The actual files are attached. Use the provided *file_read* tool to open and inspect each file."""
 
@@ -839,7 +822,7 @@ def _get_document_review_prompt_with_citations(
     check_description: str,
 ) -> str:
     """PDF document review prompt with citation support"""
-    
+
     document_access_section = """## DOCUMENT ACCESS
 The actual files are attached as documents with citation support enabled."""
 
@@ -909,9 +892,13 @@ def get_document_review_prompt(
 ) -> str:
     """PDF document review prompt with optional citation support"""
     if use_citations:
-        return _get_document_review_prompt_with_citations(language_name, check_name, check_description)
+        return _get_document_review_prompt_with_citations(
+            language_name, check_name, check_description
+        )
     else:
-        return _get_document_review_prompt_legacy(language_name, check_name, check_description)
+        return _get_document_review_prompt_legacy(
+            language_name, check_name, check_description
+        )
 
 
 def get_image_review_prompt(
@@ -1024,7 +1011,7 @@ def _should_use_citations(document_paths: list, model_id: str, has_images: bool)
     # No citations for images
     if has_images:
         return False
-    
+
     # Check global citation flag and model support
     return ENABLE_CITATIONS and supports_citations(model_id)
 
@@ -1041,13 +1028,13 @@ def _process_review_with_citations(
 ) -> Dict[str, Any]:
     """Citation-enabled processing path"""
     logger.debug("Using citation-enabled processing")
-    
+
     prompt = _get_document_review_prompt_with_citations(
         language_name, check_name, check_description
     )
-    
+
     system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-    
+
     result = _run_strands_agent_with_citations(
         prompt=prompt,
         file_paths=local_file_paths,
@@ -1055,7 +1042,7 @@ def _process_review_with_citations(
         system_prompt=system_prompt,
         mcpServers=mcpServers,
     )
-    
+
     result["reviewType"] = "PDF"
     return result
 
@@ -1073,7 +1060,7 @@ def _process_review_legacy(
 ) -> Dict[str, Any]:
     """Traditional file_read processing path"""
     logger.debug("Using legacy file_read processing")
-    
+
     if has_images:
         prompt = get_image_review_prompt(
             language_name, check_name, check_description, model_id
@@ -1086,9 +1073,9 @@ def _process_review_legacy(
         )
         tools = [file_read]
         review_type = "PDF"
-    
+
     system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-    
+
     result = _run_strands_agent_legacy(
         prompt=prompt,
         file_paths=local_file_paths,
@@ -1097,9 +1084,11 @@ def _process_review_legacy(
         base_tools=tools,
         mcpServers=mcpServers,
     )
-    
+
     result["reviewType"] = review_type
     return result
+
+
 def process_review(
     document_bucket: str,
     document_paths: list,
@@ -1172,20 +1161,35 @@ def process_review(
             logger.debug(f"Using document processing model: {selected_model_id}")
 
         # Citation decision logic
-        use_citations = _should_use_citations(document_paths, selected_model_id, has_images)
+        use_citations = _should_use_citations(
+            document_paths, selected_model_id, has_images
+        )
         logger.debug(f"Citation usage decision: {use_citations}")
 
         # Dispatch to appropriate processing method
         if use_citations:
             result = _process_review_with_citations(
-                document_bucket, document_paths, check_name, check_description,
-                language_name, selected_model_id, mcpServers, local_file_paths
+                document_bucket,
+                document_paths,
+                check_name,
+                check_description,
+                language_name,
+                selected_model_id,
+                mcpServers,
+                local_file_paths,
             )
             logger.debug("Used citation-enabled processing")
         else:
             result = _process_review_legacy(
-                document_bucket, document_paths, check_name, check_description,
-                language_name, selected_model_id, mcpServers, local_file_paths, has_images
+                document_bucket,
+                document_paths,
+                check_name,
+                check_description,
+                language_name,
+                selected_model_id,
+                mcpServers,
+                local_file_paths,
+                has_images,
             )
             logger.debug("Used legacy processing")
 
