@@ -144,57 +144,26 @@ cd frontend
 npm run build
 ```
 
-### Python Lambda 関数の依存関係更新
+### Python Lambda 関数の依存関係管理
 
-本サンプルは TypeScript を基本的に利用していますが、一部（以下）の Lambda 関数で Python を利用しています：
+本サンプルは TypeScript を基本的に利用していますが、Review Item Processor (`review-item-processor/`) で Python を利用しています。
 
-1. **MCP Runtime** (`cdk/lib/constructs/mcp-runtime/python/`)
-2. **Review Item Processor** (`review-item-processor/`)
+依存関係管理には `uv` を使用しています。
 
-各プロジェクトでは依存関係ロックのため Poetry を利用しています。
-
-#### 依存関係の更新（スクリプト）
-
-各 Python Lambda 関数ディレクトリで以下を実行：
+#### 依存関係の更新
 
 ```bash
-# MCP Runtime の場合
-./scripts/update-python-requirements.sh cdk/lib/constructs/mcp-runtime/python
-
-# Review Item Processor の場合
-./scripts/update-python-requirements.sh backend/src/review-workflow/review-item-processor
-
-# 全てのPython Lambda関数を一括更新（推奨）
-./scripts/update-all-python-requirements.sh
-
-# または個別に更新
-./scripts/update-python-requirements.sh cdk/lib/constructs/mcp-runtime/python
-./scripts/update-python-requirements.sh backend/src/review-workflow/review-item-processor
-```
-
-#### 依存関係の更新（手動）
-
-統一スクリプトを使わない場合は、以下を手動実行：
-
-```bash
-# 1. Poetry lockファイルの更新
-poetry lock
-
-# 2. requirements-locked.txtの生成
-poetry export -f requirements.txt --output requirements-locked.txt --without-hashes
+cd review-item-processor
+uv sync  # 依存関係のインストール・同期
+uv lock  # ロックファイルの更新
 ```
 
 #### 新しい依存関係の追加
 
 ```bash
-# 依存関係の追加
-poetry add package-name
-
-# 開発用依存関係の追加
-poetry add --group dev package-name
-
-# 依存関係更新後は必ずrequirements-locked.txtを更新
-./scripts/update-python-requirements.sh <python-lambda-directory>
+cd review-item-processor
+uv add package-name          # 依存関係の追加
+uv add --dev package-name    # 開発用依存関係の追加
 ```
 
 ## トラブルシューティング
