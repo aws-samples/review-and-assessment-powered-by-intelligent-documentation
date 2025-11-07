@@ -14,8 +14,9 @@ import boto3
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
+from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
-from strands_tools.code_interpreter import AgentCoreCodeInterpreter
+from tools.code_interpreter import code_interpreter
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -242,24 +243,24 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
 
 
-def create_code_interpreter_tool() -> Optional[Any]:
+def create_code_interpreter_tool() -> Optional[AgentTool]:
     """
-    Create AgentCore Code Interpreter tool if enabled.
+    Create custom code interpreter tool if enabled.
 
     Returns:
-        AgentCoreCodeInterpreter tool instance or None if disabled
+        Code interpreter tool function or None if disabled
     """
     if not ENABLE_CODE_INTERPRETER:
         logger.debug("Code Interpreter disabled, skipping tool creation")
         return None
 
     try:
-        logger.info(f"Creating AgentCore Code Interpreter tool")
-        code_interpreter_tool = AgentCoreCodeInterpreter(region=AWS_REGION)
-        logger.debug("AgentCore Code Interpreter tool created successfully")
-        return code_interpreter_tool.code_interpreter
+        logger.info("Creating custom code interpreter tool")
+
+        return code_interpreter
+
     except Exception as e:
-        logger.error(f"Failed to create AgentCore Code Interpreter tool: {e}")
+        logger.error(f"Failed to create code interpreter tool: {e}")
         return None
 
 
@@ -467,7 +468,7 @@ def _run_strands_agent_with_citations(
 
         # Citation mode: document-based, file_read not required
         tools = mcp_tools  # MCP tools only
-        
+
         # Add code interpreter tool if enabled
         code_interpreter_tool = create_code_interpreter_tool()
         if code_interpreter_tool:
@@ -538,48 +539,56 @@ def _run_strands_agent_with_citations(
 def _extract_tool_usage_from_response(agent_response) -> List[Dict[str, Any]]:
     """
     Strandsエージェントのレスポンスからツール使用履歴を抽出
-    
+
     Args:
         agent_response: Strandsエージェントのレスポンス (AgentResult)
-        
+
     Returns:
         List[Dict]: sourcesDetails形式のツール使用履歴
     """
     tool_usage = []
-    
-    if hasattr(agent_response, 'metrics') and hasattr(agent_response.metrics, 'tool_metrics'):
+
+    if hasattr(agent_response, "metrics") and hasattr(
+        agent_response.metrics, "tool_metrics"
+    ):
         # tracesからツール結果を抽出
         tool_results = {}
         tool_errors = {}
-        if hasattr(agent_response.metrics, 'traces'):
+        if hasattr(agent_response.metrics, "traces"):
             for trace in agent_response.metrics.traces:
-                if hasattr(trace, 'children'):
+                if hasattr(trace, "children"):
                     for child in trace.children:
-                        if hasattr(child, 'metadata') and 'tool_name' in child.metadata:
-                            tool_name = child.metadata['tool_name']
+                        if hasattr(child, "metadata") and "tool_name" in child.metadata:
+                            tool_name = child.metadata["tool_name"]
                             if tool_name not in tool_results:
                                 tool_results[tool_name] = []
                                 tool_errors[tool_name] = []
-                            
+
                             # ツール結果を取得
-                            if hasattr(child, 'message') and child.message:
-                                content = child.message.get('content', [])
+                            if hasattr(child, "message") and child.message:
+                                content = child.message.get("content", [])
                                 for item in content:
-                                    if 'toolResult' in item:
-                                        tool_result = item['toolResult']
-                                        status = tool_result.get('status', 'unknown')
+                                    if "toolResult" in item:
+                                        tool_result = item["toolResult"]
+                                        status = tool_result.get("status", "unknown")
                                         result_text = ""
-                                        if 'content' in tool_result:
-                                            for c in tool_result['content']:
-                                                if 'text' in c:
-                                                    result_text = c['text']
+                                        if "content" in tool_result:
+                                            for c in tool_result["content"]:
+                                                if "text" in c:
+                                                    result_text = c["text"]
                                                     break
-                                        
-                                        if status == 'error':
-                                            tool_errors[tool_name].append(result_text[:200] if result_text else "Unknown error")
+
+                                        if status == "error":
+                                            tool_errors[tool_name].append(
+                                                result_text[:200]
+                                                if result_text
+                                                else "Unknown error"
+                                            )
                                         else:
-                                            tool_results[tool_name].append(result_text[:200] if result_text else None)
-        
+                                            tool_results[tool_name].append(
+                                                result_text[:200] if result_text else None
+                                            )
+
         for tool_name, tool_metrics_obj in agent_response.metrics.tool_metrics.items():
             if tool_metrics_obj.call_count > 0:
                 # ツールの基本情報を取得
@@ -589,34 +598,36 @@ def _extract_tool_usage_from_response(agent_response) -> List[Dict[str, Any]]:
                     "successCount": tool_metrics_obj.success_count,
                     "errorCount": tool_metrics_obj.error_count,
                 }
-                
+
                 # ツールの入力パラメータを取得（存在する場合）
-                if hasattr(tool_metrics_obj, 'tool') and hasattr(tool_metrics_obj.tool, 'get'):
+                if hasattr(tool_metrics_obj, "tool") and hasattr(
+                    tool_metrics_obj.tool, "get"
+                ):
                     tool_use = tool_metrics_obj.tool
-                    if 'input' in tool_use:
-                        tool_info["input"] = tool_use['input']
-                
+                    if "input" in tool_use:
+                        tool_info["input"] = tool_use["input"]
+
                 # ツール結果を追加（最後の成功結果のみ）
                 if tool_name in tool_results and tool_results[tool_name]:
                     last_result = tool_results[tool_name][-1]
                     if last_result:
                         tool_info["lastResult"] = last_result
-                
+
                 # エラー詳細を追加
                 if tool_name in tool_errors and tool_errors[tool_name]:
                     tool_info["errors"] = tool_errors[tool_name]
-                
+
                 # descriptionを生成
                 desc_parts = [f"Used {tool_name}"]
                 if tool_metrics_obj.call_count > 1:
                     desc_parts.append(f"({tool_metrics_obj.call_count} times)")
                 if tool_metrics_obj.error_count > 0:
                     desc_parts.append(f"with {tool_metrics_obj.error_count} errors")
-                
+
                 tool_info["description"] = " ".join(desc_parts)
-                
+
                 tool_usage.append(tool_info)
-    
+
     return tool_usage
 
 
@@ -657,18 +668,20 @@ def _agent_message_to_dict_legacy(message: Any, agent_response=None) -> Dict[str
         "explanation": combined,
         "shortExplanation": "Failed to analyze JSON parse",
     }
-    
+
     # ツール使用履歴からverificationDetailsを自動生成
     if agent_response:
         tool_usage = _extract_tool_usage_from_response(agent_response)
         fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
     else:
         fallback["verificationDetails"] = {"sourcesDetails": []}
-    
+
     return fallback
 
 
-def _agent_message_to_dict_with_citations(message: Any, agent_response=None) -> Dict[str, Any]:
+def _agent_message_to_dict_with_citations(
+    message: Any, agent_response=None
+) -> Dict[str, Any]:
     """Convert AgentResult.message to result dict with citation support"""
     logger.debug("=== CITATION PROCESSING DEBUG ===")
     logger.debug(f"Message type: {type(message)}")
@@ -869,14 +882,14 @@ def _agent_message_to_dict_with_citations(message: Any, agent_response=None) -> 
             "shortExplanation": "Failed to analyze",
             "extractedText": "No specific text citations were found in the document.",
         }
-        
+
         # ツール使用履歴からverificationDetailsを自動生成
         if agent_response:
             tool_usage = _extract_tool_usage_from_response(agent_response)
             fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
         else:
             fallback["verificationDetails"] = {"sourcesDetails": []}
-        
+
         return fallback
 
 
