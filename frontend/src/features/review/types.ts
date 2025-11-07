@@ -265,6 +265,17 @@ export interface ReviewJobDetail {
 export interface SourceReference {
   documentId: string;
   pageNumber?: number;
+  boundingBox?: {
+    label: string;
+    coordinates: [number, number, number, number]; // [x1, y1, x2, y2]
+  };
+  externalSources?: Array<{
+    toolUseId: string;
+    toolName: string;
+    input?: any;
+    output?: string;
+    status?: "success" | "error" | "unknown";
+  }>;
 }
 
 export interface ReviewResultEntity {

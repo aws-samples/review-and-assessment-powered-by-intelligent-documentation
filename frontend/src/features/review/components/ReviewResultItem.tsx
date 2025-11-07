@@ -370,22 +370,47 @@ export default function ReviewResultItem({
                                     <div className="mt-2 border-t border-light-gray pt-2">
                                       <p className="text-xs font-medium text-aws-squid-ink-light">
                                         {t(
-                                          "review.referenceSources",
-                                          "Reference Sources"
+                                          "review.externalSources",
+                                          "External Sources"
                                         )}
                                         :
                                       </p>
                                       {reference.externalSources.map(
-                                        (source: any, idx: number) => (
+                                        (source, idx: number) => (
                                           <div
                                             key={idx}
-                                            className="mt-1 text-xs text-aws-font-color-gray">
-                                            {source.mcpName && (
-                                              <span className="font-medium">
-                                                {source.mcpName}:{" "}
-                                              </span>
+                                            className="mt-1 rounded bg-aws-paper-light p-2 text-xs">
+                                            <div className="font-medium text-aws-squid-ink-light">
+                                              {source.toolName}
+                                            </div>
+                                            {source.input && (
+                                              <div className="mt-1 text-aws-font-color-gray">
+                                                <span className="font-medium">
+                                                  Input:
+                                                </span>{" "}
+                                                {JSON.stringify(source.input)}
+                                              </div>
                                             )}
-                                            <span>{source.description}</span>
+                                            {source.output && (
+                                              <div className="mt-1 text-aws-font-color-gray">
+                                                <span className="font-medium">
+                                                  Output:
+                                                </span>{" "}
+                                                {source.output}
+                                              </div>
+                                            )}
+                                            <div className="mt-1">
+                                              <span
+                                                className={`rounded px-1 py-0.5 text-xs ${
+                                                  source.status === "success"
+                                                    ? "bg-green-100 text-green-800"
+                                                    : source.status === "error"
+                                                    ? "bg-red-100 text-red-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                                }`}>
+                                                {source.status || "unknown"}
+                                              </span>
+                                            </div>
                                           </div>
                                         )
                                       )}
