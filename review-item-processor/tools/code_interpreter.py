@@ -5,6 +5,7 @@ from typing import Literal
 
 from bedrock_agentcore.tools.code_interpreter_client import code_session
 from strands.tools import tool
+from strands.types.tools import ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ SUPPORTED_LANGUAGE = Literal["python", "typescript", "javascript"]
 
 
 @tool
-def code_interpreter(code: str, language: SUPPORTED_LANGUAGE) -> str:
+def code_interpreter(code: str, language: SUPPORTED_LANGUAGE) -> dict | None:
     """
     Execute Python code.
     This tool provides a secure execution environment for data analysis,
@@ -29,11 +30,21 @@ def code_interpreter(code: str, language: SUPPORTED_LANGUAGE) -> str:
 
             # Extract result from response stream
             for event in response["stream"]:
-                result = json.dumps(event["result"])
-                logger.debug("Code execution completed successfully")
-                return result
+                result_data = event["result"]
+                structured = result_data.get("structuredContent", {})
+                is_error = result_data.get("isError", False)
+
+                status = "error" if is_error else "success"
+                logger.debug(f"Code execution completed with status: {status}")
+
+                # Return as ToolResult
+                # see: https://github.com/strands-agents/sdk-python/blob/1df45be924226985008814a508fab5d952a06201/src/strands/types/tools.py#L90
+                return {"status": status, "content": [{"json": structured}]}
 
     except Exception as e:
         error_msg = f"Code execution failed: {str(e)}"
         logger.error(error_msg)
-        return error_msg
+        return {
+            "status": "error",
+            "content": [{"text": f"An error occurred during knowledge search: {str(e)}"}],
+        }
