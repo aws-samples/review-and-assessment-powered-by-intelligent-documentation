@@ -17,6 +17,7 @@ from strands.tools.mcp import MCPClient
 from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
 from tools.code_interpreter import code_interpreter
+from tool_history_collector import ToolHistoryCollector
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -329,6 +330,7 @@ def _run_strands_agent_legacy(
     logger.debug(f"Using model: {model_id}, system prompt: {system_prompt}")
 
     meta_tracker = ReviewMetaTracker(model_id)
+    history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
     # MCP servers configuration
     mcp_servers = []
@@ -409,6 +411,7 @@ def _run_strands_agent_legacy(
             model=BedrockModel(**bedrock_config),
             tools=tools,
             system_prompt=system_prompt,
+            hooks=[history_collector],
         )
 
         # Add file references to the prompt
@@ -426,6 +429,9 @@ def _run_strands_agent_legacy(
         result = _agent_message_to_dict_legacy(response.message, response)
         logger.debug("type(response.message)=%s", type(response.message))
         logger.debug("message.content (trunc)=%s", str(response.message)[:300])
+
+        # Set tool usage history from hook
+        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
 
         logger.debug("Extracting usage metrics from agent result")
         review_meta = meta_tracker.get_review_meta(response)
@@ -454,6 +460,7 @@ def _run_strands_agent_with_citations(
     logger.debug(f"Running Strands agent with citations for {len(file_paths)} files")
 
     meta_tracker = ReviewMetaTracker(model_id)
+    history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
     # MCP servers setup
     mcp_servers = mcpServers if mcpServers and isinstance(mcpServers, list) else []
@@ -520,6 +527,7 @@ def _run_strands_agent_with_citations(
             model=BedrockModel(**bedrock_config),
             tools=tools,
             system_prompt=system_prompt,
+            hooks=[history_collector],
         )
 
         # Execute agent
@@ -527,6 +535,9 @@ def _run_strands_agent_with_citations(
 
         # Process citation-enabled response
         result = _agent_message_to_dict_with_citations(response.message, response)
+
+        # Set tool usage history from hook
+        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
 
         # Add metadata
         review_meta = meta_tracker.get_review_meta(response)
@@ -536,82 +547,6 @@ def _run_strands_agent_with_citations(
         result["totalCost"] = review_meta["total_cost"]
 
         return result
-
-
-def _extract_tool_usage_from_response(agent_response) -> List[Dict[str, Any]]:
-    """
-    Strandsエージェントのレスポンスからツール使用履歴を抽出
-    各toolUseIdごとにinput/output/statusをペアで記録
-    """
-    tool_usage = []
-
-    if not hasattr(agent_response, "metrics"):
-        return tool_usage
-
-    metrics = agent_response.metrics
-
-    if not hasattr(metrics, "traces"):
-        return tool_usage
-
-    # tracesから直接抽出（集約なし）
-    for trace in metrics.traces:
-        if not hasattr(trace, "children"):
-            continue
-            
-        for child in trace.children:
-            if not hasattr(child, "metadata") or "toolUseId" not in child.metadata:
-                continue
-            
-            tool_use_id = child.metadata["toolUseId"]
-            tool_name = child.metadata.get("tool_name", "unknown")
-            
-            # 1つのexecutionを構築
-            execution = {
-                "toolUseId": tool_use_id,
-                "toolName": tool_name,
-                "input": None,
-                "output": None,
-                "status": "unknown"
-            }
-            
-            # messageからinput/output抽出
-            if hasattr(child, "message") and child.message:
-                content = child.message.get("content", [])
-                
-                # デバッグ: contentの構造を確認
-                logger.debug(f"Tool {tool_use_id}: content has {len(content)} items")
-                for idx, item in enumerate(content):
-                    logger.debug(f"  Item {idx} keys: {list(item.keys())}")
-                
-                for item in content:
-                    # toolUseからinput取得
-                    if "toolUse" in item:
-                        tool_use = item["toolUse"]
-                        logger.debug(f"Found toolUse for {tool_use_id}: {list(tool_use.keys())}")
-                        if "input" in tool_use:
-                            execution["input"] = tool_use["input"]
-                    
-                    # toolResultからoutput取得
-                    if "toolResult" in item:
-                        tool_result = item["toolResult"]
-                        execution["status"] = tool_result.get("status", "unknown")
-                        
-                        result_text = ""
-                        if "content" in tool_result:
-                            for c in tool_result["content"]:
-                                if "text" in c:
-                                    result_text = c["text"]
-                                    break
-                        
-                        # truncate適用
-                        if result_text:
-                            execution["output"] = result_text[:TOOL_TEXT_TRUNCATE_LENGTH]
-                        else:
-                            execution["output"] = "" if execution["status"] != "error" else "Unknown error"
-            
-            tool_usage.append(execution)
-
-    return tool_usage
 
 
 # Message parsing functions
@@ -694,7 +629,7 @@ def _agent_message_to_dict(
     
     Args:
         message: AgentResult.message
-        agent_response: AgentResult（ツール使用履歴抽出用）
+        agent_response: AgentResult（未使用、後方互換性のため保持）
         use_citations: Citation機能を使用するか
     
     Returns:
@@ -702,11 +637,6 @@ def _agent_message_to_dict(
     """
     # JSON抽出
     parsed_json, combined_text = _extract_json_from_message(message)
-    
-    # ツール使用履歴を抽出
-    tool_usage = []
-    if agent_response:
-        tool_usage = _extract_tool_usage_from_response(agent_response)
     
     # JSONが抽出できた場合
     if parsed_json:
@@ -716,9 +646,6 @@ def _agent_message_to_dict(
         if use_citations:
             result["extractedText"] = _extract_citations_text(message)
         
-        # verificationDetailsを追加
-        result["verificationDetails"] = {"sourcesDetails": tool_usage}
-        
         return result
     
     # フォールバック
@@ -727,7 +654,6 @@ def _agent_message_to_dict(
         "confidence": 0.5,
         "explanation": combined_text,
         "shortExplanation": "Failed to analyze JSON parse",
-        "verificationDetails": {"sourcesDetails": tool_usage}
     }
     
     if use_citations:
