@@ -420,7 +420,7 @@ def _run_strands_agent_legacy(
         response = agent(full_prompt)
         logger.debug("Agent response received")
 
-        result = _agent_message_to_dict_legacy(response.message)
+        result = _agent_message_to_dict_legacy(response.message, response)
         logger.debug("type(response.message)=%s", type(response.message))
         logger.debug("message.content (trunc)=%s", str(response.message)[:300])
 
@@ -467,6 +467,12 @@ def _run_strands_agent_with_citations(
 
         # Citation mode: document-based, file_read not required
         tools = mcp_tools  # MCP tools only
+        
+        # Add code interpreter tool if enabled
+        code_interpreter_tool = create_code_interpreter_tool()
+        if code_interpreter_tool:
+            tools.append(code_interpreter_tool)
+            logger.debug("Added AgentCore Code Interpreter tool to citation mode")
 
         # Prepare files in document format
         content = []
@@ -517,7 +523,7 @@ def _run_strands_agent_with_citations(
         response = agent(content)
 
         # Process citation-enabled response
-        result = _agent_message_to_dict_with_citations(response.message)
+        result = _agent_message_to_dict_with_citations(response.message, response)
 
         # Add metadata
         review_meta = meta_tracker.get_review_meta(response)
@@ -529,8 +535,93 @@ def _run_strands_agent_with_citations(
         return result
 
 
+def _extract_tool_usage_from_response(agent_response) -> List[Dict[str, Any]]:
+    """
+    Strandsエージェントのレスポンスからツール使用履歴を抽出
+    
+    Args:
+        agent_response: Strandsエージェントのレスポンス (AgentResult)
+        
+    Returns:
+        List[Dict]: sourcesDetails形式のツール使用履歴
+    """
+    tool_usage = []
+    
+    if hasattr(agent_response, 'metrics') and hasattr(agent_response.metrics, 'tool_metrics'):
+        # tracesからツール結果を抽出
+        tool_results = {}
+        tool_errors = {}
+        if hasattr(agent_response.metrics, 'traces'):
+            for trace in agent_response.metrics.traces:
+                if hasattr(trace, 'children'):
+                    for child in trace.children:
+                        if hasattr(child, 'metadata') and 'tool_name' in child.metadata:
+                            tool_name = child.metadata['tool_name']
+                            if tool_name not in tool_results:
+                                tool_results[tool_name] = []
+                                tool_errors[tool_name] = []
+                            
+                            # ツール結果を取得
+                            if hasattr(child, 'message') and child.message:
+                                content = child.message.get('content', [])
+                                for item in content:
+                                    if 'toolResult' in item:
+                                        tool_result = item['toolResult']
+                                        status = tool_result.get('status', 'unknown')
+                                        result_text = ""
+                                        if 'content' in tool_result:
+                                            for c in tool_result['content']:
+                                                if 'text' in c:
+                                                    result_text = c['text']
+                                                    break
+                                        
+                                        if status == 'error':
+                                            tool_errors[tool_name].append(result_text[:200] if result_text else "Unknown error")
+                                        else:
+                                            tool_results[tool_name].append(result_text[:200] if result_text else None)
+        
+        for tool_name, tool_metrics_obj in agent_response.metrics.tool_metrics.items():
+            if tool_metrics_obj.call_count > 0:
+                # ツールの基本情報を取得
+                tool_info = {
+                    "mcpName": tool_name,
+                    "callCount": tool_metrics_obj.call_count,
+                    "successCount": tool_metrics_obj.success_count,
+                    "errorCount": tool_metrics_obj.error_count,
+                }
+                
+                # ツールの入力パラメータを取得（存在する場合）
+                if hasattr(tool_metrics_obj, 'tool') and hasattr(tool_metrics_obj.tool, 'get'):
+                    tool_use = tool_metrics_obj.tool
+                    if 'input' in tool_use:
+                        tool_info["input"] = tool_use['input']
+                
+                # ツール結果を追加（最後の成功結果のみ）
+                if tool_name in tool_results and tool_results[tool_name]:
+                    last_result = tool_results[tool_name][-1]
+                    if last_result:
+                        tool_info["lastResult"] = last_result
+                
+                # エラー詳細を追加
+                if tool_name in tool_errors and tool_errors[tool_name]:
+                    tool_info["errors"] = tool_errors[tool_name]
+                
+                # descriptionを生成
+                desc_parts = [f"Used {tool_name}"]
+                if tool_metrics_obj.call_count > 1:
+                    desc_parts.append(f"({tool_metrics_obj.call_count} times)")
+                if tool_metrics_obj.error_count > 0:
+                    desc_parts.append(f"with {tool_metrics_obj.error_count} errors")
+                
+                tool_info["description"] = " ".join(desc_parts)
+                
+                tool_usage.append(tool_info)
+    
+    return tool_usage
+
+
 # Message parsing functions
-def _agent_message_to_dict_legacy(message: Any) -> Dict[str, Any]:
+def _agent_message_to_dict_legacy(message: Any, agent_response=None) -> Dict[str, Any]:
     """Convert AgentResult.message (dict or list) to a result dict."""
     if isinstance(message, dict) and "content" in message:
         texts = [
@@ -549,7 +640,14 @@ def _agent_message_to_dict_legacy(message: Any) -> Dict[str, Any]:
     if m:
         json_str = m.group(0)
         try:
-            return json.loads(json_str)
+            result = json.loads(json_str)
+            # ツール使用履歴からverificationDetailsを自動生成
+            if agent_response:
+                tool_usage = _extract_tool_usage_from_response(agent_response)
+                result["verificationDetails"] = {"sourcesDetails": tool_usage}
+            else:
+                result["verificationDetails"] = {"sourcesDetails": []}
+            return result
         except Exception as e:
             logger.warning("json.loads failed: %s", e)
 
@@ -559,10 +657,18 @@ def _agent_message_to_dict_legacy(message: Any) -> Dict[str, Any]:
         "explanation": combined,
         "shortExplanation": "Failed to analyze JSON parse",
     }
+    
+    # ツール使用履歴からverificationDetailsを自動生成
+    if agent_response:
+        tool_usage = _extract_tool_usage_from_response(agent_response)
+        fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
+    else:
+        fallback["verificationDetails"] = {"sourcesDetails": []}
+    
     return fallback
 
 
-def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
+def _agent_message_to_dict_with_citations(message: Any, agent_response=None) -> Dict[str, Any]:
     """Convert AgentResult.message to result dict with citation support"""
     logger.debug("=== CITATION PROCESSING DEBUG ===")
     logger.debug(f"Message type: {type(message)}")
@@ -650,6 +756,13 @@ def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
                     )
                     logger.debug("No citation blocks found")
 
+                # ツール使用履歴からverificationDetailsを自動生成
+                if agent_response:
+                    tool_usage = _extract_tool_usage_from_response(agent_response)
+                    result["verificationDetails"] = {"sourcesDetails": tool_usage}
+                else:
+                    result["verificationDetails"] = {"sourcesDetails": []}
+
                 return result
             except Exception as e:
                 logger.error(f"Marker JSON parsing failed: {e}")
@@ -689,6 +802,13 @@ def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
                         result["extractedText"] = (
                             "No specific text citations were found in the document."
                         )
+
+                    # ツール使用履歴からverificationDetailsを自動生成
+                    if agent_response:
+                        tool_usage = _extract_tool_usage_from_response(agent_response)
+                        result["verificationDetails"] = {"sourcesDetails": tool_usage}
+                    else:
+                        result["verificationDetails"] = {"sourcesDetails": []}
 
                     return result
                 except Exception as e:
@@ -731,17 +851,33 @@ def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
             )
             logger.debug("Final fallback: No citation blocks")
 
+        # ツール使用履歴からverificationDetailsを自動生成
+        if agent_response:
+            tool_usage = _extract_tool_usage_from_response(agent_response)
+            fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
+        else:
+            fallback["verificationDetails"] = {"sourcesDetails": []}
+
         return fallback
     else:
         logger.error(f"Unexpected message format: {type(message)}")
         combined = str(message).strip()
-        return {
+        fallback = {
             "result": "fail",
             "confidence": 0.5,
             "explanation": combined,
             "shortExplanation": "Failed to analyze",
             "extractedText": "No specific text citations were found in the document.",
         }
+        
+        # ツール使用履歴からverificationDetailsを自動生成
+        if agent_response:
+            tool_usage = _extract_tool_usage_from_response(agent_response)
+            fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
+        else:
+            fallback["verificationDetails"] = {"sourcesDetails": []}
+        
+        return fallback
 
 
 # Prompt generation functions
@@ -761,15 +897,7 @@ The actual files are attached. Use the provided *file_read* tool to open and ins
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
   "extractedText": "<relevant excerpt> (IN {language_name})",
-  "pageNumber": <integer starting from 1>,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "pageNumber": <integer starting from 1>
 }}"""
 
     return f"""
@@ -822,26 +950,17 @@ Do **not** output anything outside the JSON. Do **not** use markdown code fences
   "explanation": "The contractor's name, address, and contact information are clearly stated in Article 3.",
   "shortExplanation": "Pass: contractor info present in Article 3",
   "extractedText": "Article 3 (Contractor Information)…",
-  "pageNumber": 2,
-  "verificationDetails": {{ "sourcesDetails": [] }}
+  "pageNumber": 2
 }}
 
-**Medium-confidence fail with MCP verification**
+**Medium-confidence fail**
 {{
   "result": "fail",
   "confidence": 0.80,
-  "explanation": "Property area is not mentioned; firecrawl_search confirmed no area information exists.",
+  "explanation": "Property area is not mentioned in the document.",
   "shortExplanation": "Fail: property area missing",
   "extractedText": "Property location: …",
-  "pageNumber": 1,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "firecrawl_search returned no area info for the given address.",
-        "mcpName": "firecrawl_search"
-      }}
-    ]
-  }}
+  "pageNumber": 1
 }}
 
 REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON, MUST BE IN {language_name}.
@@ -863,15 +982,7 @@ The actual files are attached as documents with citation support enabled."""
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "pageNumber": <integer starting from 1>,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "pageNumber": <integer starting from 1>
 }}"""
 
     return f"""
@@ -1021,15 +1132,7 @@ Respond **only** in the following JSON format (no Markdown code fences):
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "usedImageIndexes": [<indexes actually referenced>]{bbox_field},
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "usedImageIndexes": [<indexes actually referenced>]{bbox_field}
 }}
 
 REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON,
