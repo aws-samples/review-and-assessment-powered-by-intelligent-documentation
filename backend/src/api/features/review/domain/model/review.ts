@@ -131,8 +131,11 @@ export interface SourceReference {
   };
   // 外部情報源の情報
   externalSources?: Array<{
-    mcpName?: string; // 使用したMCPツール名
-    description: string; // 情報源の詳細説明
+    toolUseId: string;
+    toolName: string;
+    input?: any;
+    output?: string;
+    status?: "success" | "error" | "unknown";
   }>;
 }
 
@@ -214,8 +217,11 @@ export const ReviewResultDomain = (() => {
       reviewType: "PDF" | "IMAGE";
       verificationDetails?: {
         sourcesDetails: Array<{
-          description: string;
-          mcpName?: string;
+          toolUseId: string;
+          toolName: string;
+          input?: any;
+          output?: string;
+          status?: "success" | "error" | "unknown";
         }>;
       };
       reviewMeta?: any;

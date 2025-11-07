@@ -156,6 +156,8 @@ ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
 ENABLE_CODE_INTERPRETER = (
     os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
 )
+# Tool text truncate length
+TOOL_TEXT_TRUNCATE_LENGTH = 100
 # Models that support prompt and tool caching
 # Base model IDs that support prompt and tool caching (without region prefixes)
 CACHE_SUPPORTED_BASE_MODELS = {
@@ -539,358 +541,211 @@ def _run_strands_agent_with_citations(
 def _extract_tool_usage_from_response(agent_response) -> List[Dict[str, Any]]:
     """
     Strandsエージェントのレスポンスからツール使用履歴を抽出
-
-    Args:
-        agent_response: Strandsエージェントのレスポンス (AgentResult)
-
-    Returns:
-        List[Dict]: sourcesDetails形式のツール使用履歴
+    各toolUseIdごとにinput/output/statusをペアで記録
     """
     tool_usage = []
 
-    if hasattr(agent_response, "metrics") and hasattr(
-        agent_response.metrics, "tool_metrics"
-    ):
-        # tracesからツール結果を抽出
-        tool_results = {}
-        tool_errors = {}
-        if hasattr(agent_response.metrics, "traces"):
-            for trace in agent_response.metrics.traces:
-                if hasattr(trace, "children"):
-                    for child in trace.children:
-                        if hasattr(child, "metadata") and "tool_name" in child.metadata:
-                            tool_name = child.metadata["tool_name"]
-                            if tool_name not in tool_results:
-                                tool_results[tool_name] = []
-                                tool_errors[tool_name] = []
+    if not hasattr(agent_response, "metrics"):
+        return tool_usage
 
-                            # ツール結果を取得
-                            if hasattr(child, "message") and child.message:
-                                content = child.message.get("content", [])
-                                for item in content:
-                                    if "toolResult" in item:
-                                        tool_result = item["toolResult"]
-                                        status = tool_result.get("status", "unknown")
-                                        result_text = ""
-                                        if "content" in tool_result:
-                                            for c in tool_result["content"]:
-                                                if "text" in c:
-                                                    result_text = c["text"]
-                                                    break
+    metrics = agent_response.metrics
 
-                                        if status == "error":
-                                            tool_errors[tool_name].append(
-                                                result_text[:200]
-                                                if result_text
-                                                else "Unknown error"
-                                            )
-                                        else:
-                                            tool_results[tool_name].append(
-                                                result_text[:200] if result_text else None
-                                            )
+    if not hasattr(metrics, "traces"):
+        return tool_usage
 
-        for tool_name, tool_metrics_obj in agent_response.metrics.tool_metrics.items():
-            if tool_metrics_obj.call_count > 0:
-                # ツールの基本情報を取得
-                tool_info = {
-                    "mcpName": tool_name,
-                    "callCount": tool_metrics_obj.call_count,
-                    "successCount": tool_metrics_obj.success_count,
-                    "errorCount": tool_metrics_obj.error_count,
-                }
-
-                # ツールの入力パラメータを取得（存在する場合）
-                if hasattr(tool_metrics_obj, "tool") and hasattr(
-                    tool_metrics_obj.tool, "get"
-                ):
-                    tool_use = tool_metrics_obj.tool
-                    if "input" in tool_use:
-                        tool_info["input"] = tool_use["input"]
-
-                # ツール結果を追加（最後の成功結果のみ）
-                if tool_name in tool_results and tool_results[tool_name]:
-                    last_result = tool_results[tool_name][-1]
-                    if last_result:
-                        tool_info["lastResult"] = last_result
-
-                # エラー詳細を追加
-                if tool_name in tool_errors and tool_errors[tool_name]:
-                    tool_info["errors"] = tool_errors[tool_name]
-
-                # descriptionを生成
-                desc_parts = [f"Used {tool_name}"]
-                if tool_metrics_obj.call_count > 1:
-                    desc_parts.append(f"({tool_metrics_obj.call_count} times)")
-                if tool_metrics_obj.error_count > 0:
-                    desc_parts.append(f"with {tool_metrics_obj.error_count} errors")
-
-                tool_info["description"] = " ".join(desc_parts)
-
-                tool_usage.append(tool_info)
+    # tracesから直接抽出（集約なし）
+    for trace in metrics.traces:
+        if not hasattr(trace, "children"):
+            continue
+            
+        for child in trace.children:
+            if not hasattr(child, "metadata") or "toolUseId" not in child.metadata:
+                continue
+            
+            tool_use_id = child.metadata["toolUseId"]
+            tool_name = child.metadata.get("tool_name", "unknown")
+            
+            # 1つのexecutionを構築
+            execution = {
+                "toolUseId": tool_use_id,
+                "toolName": tool_name,
+                "input": None,
+                "output": None,
+                "status": "unknown"
+            }
+            
+            # messageからinput/output抽出
+            if hasattr(child, "message") and child.message:
+                content = child.message.get("content", [])
+                
+                # デバッグ: contentの構造を確認
+                logger.debug(f"Tool {tool_use_id}: content has {len(content)} items")
+                for idx, item in enumerate(content):
+                    logger.debug(f"  Item {idx} keys: {list(item.keys())}")
+                
+                for item in content:
+                    # toolUseからinput取得
+                    if "toolUse" in item:
+                        tool_use = item["toolUse"]
+                        logger.debug(f"Found toolUse for {tool_use_id}: {list(tool_use.keys())}")
+                        if "input" in tool_use:
+                            execution["input"] = tool_use["input"]
+                    
+                    # toolResultからoutput取得
+                    if "toolResult" in item:
+                        tool_result = item["toolResult"]
+                        execution["status"] = tool_result.get("status", "unknown")
+                        
+                        result_text = ""
+                        if "content" in tool_result:
+                            for c in tool_result["content"]:
+                                if "text" in c:
+                                    result_text = c["text"]
+                                    break
+                        
+                        # truncate適用
+                        if result_text:
+                            execution["output"] = result_text[:TOOL_TEXT_TRUNCATE_LENGTH]
+                        else:
+                            execution["output"] = "" if execution["status"] != "error" else "Unknown error"
+            
+            tool_usage.append(execution)
 
     return tool_usage
 
 
 # Message parsing functions
-def _agent_message_to_dict_legacy(message: Any, agent_response=None) -> Dict[str, Any]:
-    """Convert AgentResult.message (dict or list) to a result dict."""
+def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], str]:
+    """
+    メッセージからJSONとテキストを抽出
+    
+    Args:
+        message: AgentResult.message
+    
+    Returns:
+        Tuple[Optional[Dict], str]: (抽出されたJSON dict, 全テキスト)
+    """
     if isinstance(message, dict) and "content" in message:
-        texts = [
-            block.get("text", "")
-            for block in message["content"]
-            if isinstance(block, dict) and "text" in block
-        ]
-        combined = "".join(texts).strip()
+        text_blocks = []
+        for block in message["content"]:
+            if isinstance(block, dict) and "text" in block:
+                text_blocks.append(block["text"])
+        
+        combined = "".join(text_blocks).strip()
     else:
         combined = str(message).strip()
-
-    logger.debug("combined text (first 400) = %s", combined[:400])
-
-    # Extract first greedy match of { … } from string
+    
+    # マーカー付きJSON抽出を試行
+    json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(1).strip()
+        try:
+            return json.loads(json_str), combined
+        except Exception as e:
+            logger.warning(f"Marker JSON parsing failed: {e}")
+    
+    # フォールバック: 通常のJSON抽出
     m = re.search(r"\{.*\}", combined, re.DOTALL)
     if m:
         json_str = m.group(0)
         try:
-            result = json.loads(json_str)
-            # ツール使用履歴からverificationDetailsを自動生成
-            if agent_response:
-                tool_usage = _extract_tool_usage_from_response(agent_response)
-                result["verificationDetails"] = {"sourcesDetails": tool_usage}
-            else:
-                result["verificationDetails"] = {"sourcesDetails": []}
-            return result
+            return json.loads(json_str), combined
         except Exception as e:
-            logger.warning("json.loads failed: %s", e)
+            logger.warning(f"JSON parsing failed: {e}")
+    
+    return None, combined
 
+
+def _extract_citations_text(message: Any) -> str:
+    """
+    メッセージからcitation情報を抽出してテキスト化
+    
+    Args:
+        message: AgentResult.message
+    
+    Returns:
+        str: 抽出されたcitationテキスト（改行区切り）
+    """
+    if not isinstance(message, dict) or "content" not in message:
+        return "No specific text citations were found in the document."
+    
+    all_citations = []
+    for block in message["content"]:
+        if isinstance(block, dict) and "citationsContent" in block:
+            citations_block = block["citationsContent"]
+            for citation in citations_block.get("citations", []):
+                source_content = citation.get("sourceContent", [{}])[0].get("text", "")
+                if source_content:
+                    all_citations.append(source_content)
+    
+    if all_citations:
+        return "\n\n".join(all_citations)
+    
+    return "No specific text citations were found in the document."
+
+
+def _agent_message_to_dict(
+    message: Any, 
+    agent_response=None,
+    use_citations: bool = False
+) -> Dict[str, Any]:
+    """
+    AgentResult.messageを結果dictに変換（統合版）
+    
+    Args:
+        message: AgentResult.message
+        agent_response: AgentResult（ツール使用履歴抽出用）
+        use_citations: Citation機能を使用するか
+    
+    Returns:
+        Dict: 審査結果
+    """
+    # JSON抽出
+    parsed_json, combined_text = _extract_json_from_message(message)
+    
+    # ツール使用履歴を抽出
+    tool_usage = []
+    if agent_response:
+        tool_usage = _extract_tool_usage_from_response(agent_response)
+    
+    # JSONが抽出できた場合
+    if parsed_json:
+        result = parsed_json
+        
+        # Citation処理
+        if use_citations:
+            result["extractedText"] = _extract_citations_text(message)
+        
+        # verificationDetailsを追加
+        result["verificationDetails"] = {"sourcesDetails": tool_usage}
+        
+        return result
+    
+    # フォールバック
     fallback = {
         "result": "fail",
         "confidence": 0.5,
-        "explanation": combined,
+        "explanation": combined_text,
         "shortExplanation": "Failed to analyze JSON parse",
+        "verificationDetails": {"sourcesDetails": tool_usage}
     }
-
-    # ツール使用履歴からverificationDetailsを自動生成
-    if agent_response:
-        tool_usage = _extract_tool_usage_from_response(agent_response)
-        fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
-    else:
-        fallback["verificationDetails"] = {"sourcesDetails": []}
-
+    
+    if use_citations:
+        fallback["extractedText"] = _extract_citations_text(message)
+    
     return fallback
+
+
+def _agent_message_to_dict_legacy(message: Any, agent_response=None) -> Dict[str, Any]:
+    """Convert AgentResult.message (dict or list) to a result dict."""
+    return _agent_message_to_dict(message, agent_response, use_citations=False)
 
 
 def _agent_message_to_dict_with_citations(
     message: Any, agent_response=None
 ) -> Dict[str, Any]:
     """Convert AgentResult.message to result dict with citation support"""
-    logger.debug("=== CITATION PROCESSING DEBUG ===")
-    logger.debug(f"Message type: {type(message)}")
-
-    if isinstance(message, dict) and "content" in message:
-        text_blocks = []
-        citations_blocks = []
-
-        logger.debug(f"Content blocks count: {len(message['content'])}")
-
-        for i, block in enumerate(message["content"]):
-            if isinstance(block, dict):
-                block_type = list(block.keys())[0]
-                logger.debug(f"Block {i}: {block_type}")
-
-                if "text" in block:
-                    text_content = block["text"]
-                    text_blocks.append(text_content)
-                    logger.debug(f"  Text block length: {len(text_content)}")
-                    logger.debug(f"  Text preview: {text_content[:100]}...")
-                elif "citationsContent" in block:
-                    citations_blocks.append(block["citationsContent"])
-                    citations = block["citationsContent"]
-                    logger.debug(f"  Citations block found")
-                    logger.debug(
-                        f"  Citations keys: {list(citations.keys()) if isinstance(citations, dict) else 'Not dict'}"
-                    )
-                    if isinstance(citations, dict) and "citations" in citations:
-                        logger.debug(f"  Citations count: {len(citations['citations'])}")
-
-        combined = "".join(text_blocks).strip()
-        logger.debug(f"Combined text length: {len(combined)}")
-        logger.debug(f"Combined text preview: {combined[:200]}...")
-
-        # Extract JSON between markers
-        json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
-
-        if json_match:
-            json_str = json_match.group(1).strip()
-            logger.debug(f"Marker JSON found, length: {len(json_str)}")
-            logger.debug(f"Marker JSON preview: {json_str[:200]}...")
-            try:
-                result = json.loads(json_str)
-                logger.debug(f"Marker JSON parsed successfully")
-                logger.debug(f"Result keys: {list(result.keys())}")
-
-                # Set all citation information as extractedText
-                if citations_blocks:
-                    logger.debug(f"Processing {len(citations_blocks)} citation blocks")
-                    all_citations = []
-                    for j, citations_block in enumerate(citations_blocks):
-                        logger.debug(f"  Citation block {j}: {type(citations_block)}")
-                        for k, citation in enumerate(
-                            citations_block.get("citations", [])
-                        ):
-                            logger.debug(f"    Citation {k}: {list(citation.keys())}")
-                            source_content = citation.get("sourceContent", [{}])[0].get(
-                                "text", ""
-                            )
-                            logger.debug(
-                                f"    Source content length: {len(source_content)}"
-                            )
-                            if source_content:
-                                all_citations.append(source_content)
-                                logger.debug(
-                                    f"    Added citation: {source_content[:50]}..."
-                                )
-
-                    if all_citations:
-                        result["extractedText"] = "\n\n".join(all_citations)
-                        logger.debug(
-                            f"Set extractedText with {len(all_citations)} citations"
-                        )
-                        logger.debug(
-                            f"Final extractedText length: {len(result['extractedText'])}"
-                        )
-                    else:
-                        result["extractedText"] = (
-                            "No specific text citations were found in the document."
-                        )
-                        logger.debug("No citations found, set fallback text")
-                else:
-                    result["extractedText"] = (
-                        "No specific text citations were found in the document."
-                    )
-                    logger.debug("No citation blocks found")
-
-                # ツール使用履歴からverificationDetailsを自動生成
-                if agent_response:
-                    tool_usage = _extract_tool_usage_from_response(agent_response)
-                    result["verificationDetails"] = {"sourcesDetails": tool_usage}
-                else:
-                    result["verificationDetails"] = {"sourcesDetails": []}
-
-                return result
-            except Exception as e:
-                logger.error(f"Marker JSON parsing failed: {e}")
-                logger.error(f"JSON string: {json_str}")
-        else:
-            logger.warning("No JSON markers found, trying fallback JSON extraction")
-            # Fallback: try conventional JSON extraction
-            m = re.search(r"\{.*\}", combined, re.DOTALL)
-            if m:
-                json_str = m.group(0)
-                logger.debug(f"Fallback JSON found, length: {len(json_str)}")
-                try:
-                    result = json.loads(json_str)
-                    logger.debug(f"Fallback JSON parsed successfully")
-
-                    # Set citation information as extractedText
-                    if citations_blocks:
-                        all_citations = []
-                        for citations_block in citations_blocks:
-                            for citation in citations_block.get("citations", []):
-                                source_content = citation.get("sourceContent", [{}])[
-                                    0
-                                ].get("text", "")
-                                if source_content:
-                                    all_citations.append(source_content)
-
-                        if all_citations:
-                            result["extractedText"] = "\n\n".join(all_citations)
-                            logger.debug(
-                                f"Fallback: Set extractedText with {len(all_citations)} citations"
-                            )
-                        else:
-                            result["extractedText"] = (
-                                "No specific text citations were found in the document."
-                            )
-                    else:
-                        result["extractedText"] = (
-                            "No specific text citations were found in the document."
-                        )
-
-                    # ツール使用履歴からverificationDetailsを自動生成
-                    if agent_response:
-                        tool_usage = _extract_tool_usage_from_response(agent_response)
-                        result["verificationDetails"] = {"sourcesDetails": tool_usage}
-                    else:
-                        result["verificationDetails"] = {"sourcesDetails": []}
-
-                    return result
-                except Exception as e:
-                    logger.error(f"Fallback JSON parsing failed: {e}")
-
-        # Final fallback processing
-        logger.debug("Using final fallback processing")
-        fallback = {
-            "result": "fail",
-            "confidence": 0.5,
-            "explanation": combined,
-            "shortExplanation": "Failed to analyze JSON parse",
-        }
-
-        # Set citation information as extractedText (fallback mode)
-        if citations_blocks:
-            logger.debug(f"Processing citations in final fallback mode")
-            all_citations = []
-            for citations_block in citations_blocks:
-                for citation in citations_block.get("citations", []):
-                    source_content = citation.get("sourceContent", [{}])[0].get(
-                        "text", ""
-                    )
-                    if source_content:
-                        all_citations.append(source_content)
-
-            if all_citations:
-                fallback["extractedText"] = "\n\n".join(all_citations)
-                logger.debug(
-                    f"Final fallback: Set extractedText with {len(all_citations)} citations"
-                )
-            else:
-                fallback["extractedText"] = (
-                    "No specific text citations were found in the document."
-                )
-                logger.debug("Final fallback: No citations found")
-        else:
-            fallback["extractedText"] = (
-                "No specific text citations were found in the document."
-            )
-            logger.debug("Final fallback: No citation blocks")
-
-        # ツール使用履歴からverificationDetailsを自動生成
-        if agent_response:
-            tool_usage = _extract_tool_usage_from_response(agent_response)
-            fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
-        else:
-            fallback["verificationDetails"] = {"sourcesDetails": []}
-
-        return fallback
-    else:
-        logger.error(f"Unexpected message format: {type(message)}")
-        combined = str(message).strip()
-        fallback = {
-            "result": "fail",
-            "confidence": 0.5,
-            "explanation": combined,
-            "shortExplanation": "Failed to analyze",
-            "extractedText": "No specific text citations were found in the document.",
-        }
-
-        # ツール使用履歴からverificationDetailsを自動生成
-        if agent_response:
-            tool_usage = _extract_tool_usage_from_response(agent_response)
-            fallback["verificationDetails"] = {"sourcesDetails": tool_usage}
-        else:
-            fallback["verificationDetails"] = {"sourcesDetails": []}
-
-        return fallback
+    return _agent_message_to_dict(message, agent_response, use_citations=True)
 
 
 # Prompt generation functions
