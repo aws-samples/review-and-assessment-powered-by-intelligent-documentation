@@ -236,7 +236,10 @@ export class Agent extends Construct {
           "bedrock-agentcore:GetCodeInterpreterSession",
           "bedrock-agentcore:ListCodeInterpreterSessions",
         ],
-        resources: [`arn:aws:bedrock-agentcore:${region}:${accountId}:code-interpreter/*`],
+        resources: [
+          `arn:aws:bedrock-agentcore:${region}:${accountId}:code-interpreter/*`,
+          `arn:aws:bedrock-agentcore:${region}:aws:code-interpreter/*`,
+        ],
       })
     );
 
