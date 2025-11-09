@@ -15,7 +15,7 @@ SUPPORTED_LANGUAGE = Literal["python", "typescript", "javascript"]
 
 
 @tool
-def code_interpreter(code: str, language: SUPPORTED_LANGUAGE) -> dict | None:
+def code_interpreter(code: str) -> dict | None:
     """
     Execute Python code.
     This tool provides a secure execution environment for data analysis,
@@ -46,5 +46,5 @@ def code_interpreter(code: str, language: SUPPORTED_LANGUAGE) -> dict | None:
         logger.error(error_msg)
         return {
             "status": "error",
-            "content": [{"text": f"An error occurred during knowledge search: {str(e)}"}],
+            "content": [{"text": f"An error occurred during code interpreter: {str(e)}"}],
         }

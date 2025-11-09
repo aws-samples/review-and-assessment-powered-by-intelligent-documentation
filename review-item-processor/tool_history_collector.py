@@ -1,13 +1,13 @@
 """Tool execution history collector using Strands Hooks."""
 
-from strands.hooks import HookProvider, HookRegistry
 from strands.experimental.hooks import AfterToolInvocationEvent
+from strands.hooks import HookProvider, HookRegistry
 
 
 class ToolHistoryCollector(HookProvider):
     """Collect tool execution history during agent run."""
 
-    def __init__(self, truncate_length: int = 100):
+    def __init__(self, truncate_length: int = 300):
         """
         Initialize the collector.
 
