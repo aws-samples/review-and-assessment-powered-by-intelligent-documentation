@@ -403,6 +403,9 @@ export const makePrismaReviewResultRepository = async (
       sourceReferences: result.sourceReferences
         ? JSON.parse(result.sourceReferences as string)
         : undefined,
+      externalSources: result.externalSources
+        ? JSON.parse(result.externalSources as string)
+        : undefined,
       checkList: {
         id: result.checkList.id,
         setId: result.checkList.checkListSetId,
@@ -519,6 +522,19 @@ export const makePrismaReviewResultRepository = async (
         }
       }
 
+      // externalSourcesフィールドをパース
+      let externalSources;
+      if (result.externalSources) {
+        try {
+          externalSources = JSON.parse(result.externalSources as string);
+        } catch (e) {
+          console.error(
+            `Failed to parse externalSources for result ${result.id}:`,
+            e
+          );
+        }
+      }
+
       return {
         id: result.id,
         reviewJobId: result.reviewJobId,
@@ -538,6 +554,7 @@ export const makePrismaReviewResultRepository = async (
         outputTokens: result.outputTokens || undefined,
         totalCost: result.totalCost ? Number(result.totalCost) : undefined,
         sourceReferences,
+        externalSources,
         checkList: {
           id: result.checkList.id,
           setId: result.checkList.checkListSetId,
@@ -572,6 +589,9 @@ export const makePrismaReviewResultRepository = async (
         sourceReferences: newResult.sourceReferences
           ? JSON.stringify(newResult.sourceReferences)
           : undefined,
+        externalSources: newResult.externalSources
+          ? JSON.stringify(newResult.externalSources)
+          : undefined,
         reviewMeta: newResult.reviewMeta,
         inputTokens: newResult.inputTokens,
         outputTokens: newResult.outputTokens,
@@ -599,6 +619,12 @@ export const makePrismaReviewResultRepository = async (
             userOverride: result.userOverride,
             userComment: result.userComment,
             updatedAt: result.updatedAt,
+            sourceReferences: result.sourceReferences
+              ? JSON.stringify(result.sourceReferences)
+              : undefined,
+            externalSources: result.externalSources
+              ? JSON.stringify(result.externalSources)
+              : undefined,
             reviewMeta: result.reviewMeta,
             inputTokens: result.inputTokens,
             outputTokens: result.outputTokens,
