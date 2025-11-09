@@ -25,6 +25,7 @@ import ImagePreview from "../../../components/ImagePreview";
 import ReviewItemCostBadge from "./ReviewItemCostBadge";
 import { useReviewItemCost } from "../hooks/useReviewItemCost";
 import ResultCard, { ResultCardVariant } from "../../../components/ResultCard";
+import ExternalSourceItem from "./ExternalSourceItem";
 
 interface ReviewResultItemProps {
   result: ReviewResultDetail;
@@ -377,41 +378,10 @@ export default function ReviewResultItem({
                                       </p>
                                       {reference.externalSources.map(
                                         (source, idx: number) => (
-                                          <div
+                                          <ExternalSourceItem
                                             key={idx}
-                                            className="mt-1 rounded bg-aws-paper-light p-2 text-xs">
-                                            <div className="font-medium text-aws-squid-ink-light">
-                                              {source.toolName}
-                                            </div>
-                                            {source.input && (
-                                              <div className="mt-1 text-aws-font-color-gray">
-                                                <span className="font-medium">
-                                                  Input:
-                                                </span>{" "}
-                                                {JSON.stringify(source.input)}
-                                              </div>
-                                            )}
-                                            {source.output && (
-                                              <div className="mt-1 text-aws-font-color-gray">
-                                                <span className="font-medium">
-                                                  Output:
-                                                </span>{" "}
-                                                {source.output}
-                                              </div>
-                                            )}
-                                            <div className="mt-1">
-                                              <span
-                                                className={`rounded px-1 py-0.5 text-xs ${
-                                                  source.status === "success"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : source.status === "error"
-                                                    ? "bg-red-100 text-red-800"
-                                                    : "bg-gray-100 text-gray-800"
-                                                }`}>
-                                                {source.status || "unknown"}
-                                              </span>
-                                            </div>
-                                          </div>
+                                            source={source}
+                                          />
                                         )
                                       )}
                                     </div>
