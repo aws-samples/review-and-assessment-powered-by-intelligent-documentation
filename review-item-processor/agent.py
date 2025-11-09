@@ -16,8 +16,8 @@ from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
-from tools.code_interpreter import code_interpreter
 from tool_history_collector import ToolHistoryCollector
+from tools.code_interpreter import code_interpreter
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -158,7 +158,7 @@ ENABLE_CODE_INTERPRETER = (
     os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
 )
 # Tool text truncate length
-TOOL_TEXT_TRUNCATE_LENGTH = 100
+TOOL_TEXT_TRUNCATE_LENGTH = 500
 # Models that support prompt and tool caching
 # Base model IDs that support prompt and tool caching (without region prefixes)
 CACHE_SUPPORTED_BASE_MODELS = {
@@ -531,6 +531,7 @@ def _run_strands_agent_with_citations(
         )
 
         # Execute agent
+        logger.debug("Executing agent with citation mode")
         response = agent(content)
 
         # Process citation-enabled response
@@ -553,10 +554,10 @@ def _run_strands_agent_with_citations(
 def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], str]:
     """
     メッセージからJSONとテキストを抽出
-    
+
     Args:
         message: AgentResult.message
-    
+
     Returns:
         Tuple[Optional[Dict], str]: (抽出されたJSON dict, 全テキスト)
     """
@@ -565,11 +566,11 @@ def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], 
         for block in message["content"]:
             if isinstance(block, dict) and "text" in block:
                 text_blocks.append(block["text"])
-        
+
         combined = "".join(text_blocks).strip()
     else:
         combined = str(message).strip()
-    
+
     # マーカー付きJSON抽出を試行
     json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
     if json_match:
@@ -578,7 +579,7 @@ def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], 
             return json.loads(json_str), combined
         except Exception as e:
             logger.warning(f"Marker JSON parsing failed: {e}")
-    
+
     # フォールバック: 通常のJSON抽出
     m = re.search(r"\{.*\}", combined, re.DOTALL)
     if m:
@@ -587,67 +588,85 @@ def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], 
             return json.loads(json_str), combined
         except Exception as e:
             logger.warning(f"JSON parsing failed: {e}")
-    
+
     return None, combined
 
 
 def _extract_citations_text(message: Any) -> str:
     """
     メッセージからcitation情報を抽出してテキスト化
-    
+
     Args:
         message: AgentResult.message
-    
+
     Returns:
         str: 抽出されたcitationテキスト（改行区切り）
     """
+    logger.debug(f"_extract_citations_text called with message type: {type(message)}")
+
     if not isinstance(message, dict) or "content" not in message:
+        logger.debug("Message is not dict or has no content, returning default")
         return "No specific text citations were found in the document."
-    
+
+    logger.debug(f"Processing {len(message['content'])} content blocks")
+
     all_citations = []
-    for block in message["content"]:
+    for i, block in enumerate(message["content"]):
+        logger.debug(
+            f"Block {i}: type={type(block)}, keys={block.keys() if isinstance(block, dict) else 'N/A'}"
+        )
+
         if isinstance(block, dict) and "citationsContent" in block:
+            logger.debug(f"Block {i} has citationsContent")
             citations_block = block["citationsContent"]
-            for citation in citations_block.get("citations", []):
+            logger.debug(
+                f"Citations block structure: {json.dumps(citations_block, indent=2, default=str)}"
+            )
+
+            for j, citation in enumerate(citations_block.get("citations", [])):
+                logger.debug(
+                    f"Processing citation {j}: {json.dumps(citation, indent=2, default=str)}"
+                )
                 source_content = citation.get("sourceContent", [{}])[0].get("text", "")
                 if source_content:
                     all_citations.append(source_content)
-    
+                    logger.debug(f"Added citation text: {source_content[:100]}...")
+
     if all_citations:
+        logger.debug(f"Extracted {len(all_citations)} citations")
         return "\n\n".join(all_citations)
-    
+
+    logger.debug("No citations found, returning default")
     return "No specific text citations were found in the document."
 
 
 def _agent_message_to_dict(
-    message: Any, 
-    agent_response=None,
-    use_citations: bool = False
+    message: Any, agent_response=None, use_citations: bool = False
 ) -> Dict[str, Any]:
     """
     AgentResult.messageを結果dictに変換（統合版）
-    
+
     Args:
         message: AgentResult.message
         agent_response: AgentResult（未使用、後方互換性のため保持）
         use_citations: Citation機能を使用するか
-    
+
     Returns:
         Dict: 審査結果
     """
     # JSON抽出
     parsed_json, combined_text = _extract_json_from_message(message)
-    
+
     # JSONが抽出できた場合
     if parsed_json:
         result = parsed_json
-        
+
         # Citation処理
         if use_citations:
             result["extractedText"] = _extract_citations_text(message)
-        
+
         return result
-    
+
     # フォールバック
     fallback = {
         "result": "fail",
@@ -655,10 +674,10 @@ def _agent_message_to_dict(
         "explanation": combined_text,
         "shortExplanation": "Failed to analyze JSON parse",
     }
-    
+
     if use_citations:
         fallback["extractedText"] = _extract_citations_text(message)
-    
+
     return fallback
 
 
@@ -805,9 +824,7 @@ Follow these guidelines:
 - WHEN your estimated confidence would fall below **0.80**  
   → **USE** one or more MCP tools to raise your confidence.
 
-## OUTPUT FORMAT (STRICT)
-1) First, provide a **brief natural language response in {language_name}** (1-3 sentences) explaining your assessment and citing relevant document sections.
-2) Then, output **ONLY the JSON** enclosed in the markers below. Do not output JSON outside these markers.
+
 
 <<JSON_START>>
 {json_schema}
