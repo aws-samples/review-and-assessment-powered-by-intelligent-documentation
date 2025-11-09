@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   HiChevronDown,
   HiChevronRight,
@@ -21,6 +22,7 @@ interface ExternalSourceItemProps {
 export default function ExternalSourceItem({
   source,
 }: ExternalSourceItemProps) {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isInputObject = source.input && typeof source.input === "object";
@@ -63,7 +65,7 @@ export default function ExternalSourceItem({
         <div className="mt-2 space-y-2">
           {source.input && (
             <div className="text-aws-font-color-gray">
-              <span className="font-medium">Input:</span>
+              <span className="font-medium">{t("review.input")}:</span>
               {isInputObject ? (
                 <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-xs">
                   {JSON.stringify(source.input, null, 2)}
@@ -75,7 +77,7 @@ export default function ExternalSourceItem({
           )}
           {source.output && (
             <div className="text-aws-font-color-gray">
-              <span className="font-medium">Output:</span>
+              <span className="font-medium">{t("review.output")}:</span>
               <div className="mt-1 overflow-x-auto rounded bg-white p-2">
                 {source.output}
               </div>

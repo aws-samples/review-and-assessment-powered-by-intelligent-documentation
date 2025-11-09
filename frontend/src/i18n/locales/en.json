@@ -240,7 +240,10 @@
     "mcpDisabledDescription": "Use standard review processing",
     "mcpEnabled": "Use MCP",
     "mcpEnabledDescription": "Use enhanced review processing with extensions",
-    "noMcpServersAvailable": "No MCP servers available"
+    "noMcpServersAvailable": "No MCP servers available",
+    "externalSources": "External Sources",
+    "input": "Input",
+    "output": "Output"
   },
   "fileUploader": {
     "dropFiles": "Drop files here",
