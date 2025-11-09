@@ -74,4 +74,8 @@ export const parameters = {
   // ---------------------------------------------------
   // reviewMapConcurrency: 1, // レビュープロセッサのMap State並行処理数（デフォルト：1）
   // checklistInlineMapConcurrency: 1, // チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）
+
+  // AgentCore Code Interpreter設定
+  // ---------------------------------------------------
+  // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
 };

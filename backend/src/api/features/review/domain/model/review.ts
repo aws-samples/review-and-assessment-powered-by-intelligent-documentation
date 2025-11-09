@@ -129,11 +129,6 @@ export interface SourceReference {
     label: string;
     coordinates: [number, number, number, number]; // [x1, y1, x2, y2]
   };
-  // 外部情報源の情報
-  externalSources?: Array<{
-    mcpName?: string; // 使用したMCPツール名
-    description: string; // 情報源の詳細説明
-  }>;
 }
 
 export interface ReviewResultEntity {
@@ -151,6 +146,13 @@ export interface ReviewResultEntity {
   createdAt: Date;
   updatedAt: Date;
   sourceReferences?: SourceReference[];
+  externalSources?: Array<{
+    toolUseId: string;
+    toolName: string;
+    input?: any;
+    output?: string;
+    status?: "success" | "error" | "unknown";
+  }>;
   reviewMeta?: any;
   inputTokens?: number;
   outputTokens?: number;
@@ -214,8 +216,11 @@ export const ReviewResultDomain = (() => {
       reviewType: "PDF" | "IMAGE";
       verificationDetails?: {
         sourcesDetails: Array<{
-          description: string;
-          mcpName?: string;
+          toolUseId: string;
+          toolName: string;
+          input?: any;
+          output?: string;
+          status?: "success" | "error" | "unknown";
         }>;
       };
       reviewMeta?: any;
@@ -304,16 +309,6 @@ export const ReviewResultDomain = (() => {
         }
       }
 
-      // 外部情報源の追加（すべてのソース参照に共通）
-      if (
-        verificationDetails?.sourcesDetails &&
-        verificationDetails.sourcesDetails.length > 0
-      ) {
-        sourceReferences.forEach((ref) => {
-          ref.externalSources = verificationDetails.sourcesDetails;
-        });
-      }
-
       // 共通返却値
       const resultEntity: ReviewResultEntity = {
         ...current,
@@ -323,6 +318,7 @@ export const ReviewResultDomain = (() => {
         explanation,
         shortExplanation,
         sourceReferences,
+        externalSources: verificationDetails?.sourcesDetails || undefined,
         userOverride: false,
         updatedAt: new Date(),
         reviewMeta: params.reviewMeta,

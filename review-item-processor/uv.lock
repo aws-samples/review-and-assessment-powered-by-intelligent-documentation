@@ -224,7 +224,7 @@ wheels = [
 
 [[package]]
 name = "bedrock-agentcore"
-version = "1.0.5"
+version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -235,9 +235,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/19/66dcf2987243c56883da5a2cb3ad960e806ab3d46851def2d1002af582f8/bedrock_agentcore-1.0.5.tar.gz", hash = "sha256:63020ff7219d2220f5c1afb2e61a6823e64bd6b531900efc2e5241863f5fd609", size = 271118, upload-time = "2025-10-29T17:10:33.223Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/67/f07523e943d2e68be3dc2f256b0adb1027da521ad31d5a2caba6f158bd2b/bedrock_agentcore-0.1.0.tar.gz", hash = "sha256:05eea20588e8794cb51b1c76c064fa70d01d0a4bfb404b50e680ddccf10c85d0", size = 269981, upload-time = "2025-07-16T18:32:10.763Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/d4/233553051f4e9113e5615d6bd063fe837155b80a62ca2efc3bb3f2e0f019/bedrock_agentcore-1.0.5-py3-none-any.whl", hash = "sha256:aca7f9d0ab51a952642909d578344874d2bfbdb0e3b409f76df7522515412293", size = 80448, upload-time = "2025-10-29T17:10:30.792Z" },
+    { url = "https://files.pythonhosted.org/packages/22/ce/30a61ad1e18b5ee7aeaa997cfcd6cb5cbe449cb90d3669e40d458c94b007/bedrock_agentcore-0.1.0-py3-none-any.whl", hash = "sha256:2356661f0ce5012871ac0f22ad3741654e2accb1acdf21b7f78ff19ef278643a", size = 48710, upload-time = "2025-07-16T18:32:09.363Z" },
 ]
 
 [[package]]
@@ -2117,7 +2117,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pydantic" },
     { name = "strands-agents" },
-    { name = "strands-agents-tools" },
+    { name = "strands-agents-tools", extra = ["agent-core-code-interpreter"] },
 ]
 
 [package.optional-dependencies]
@@ -2129,14 +2129,14 @@ dev = [
 requires-dist = [
     { name = "anyio", specifier = ">=4.0.0" },
     { name = "aws-opentelemetry-distro", specifier = ">=0.12.2" },
-    { name = "bedrock-agentcore", specifier = ">=1.0.5" },
+    { name = "bedrock-agentcore", specifier = "==0.1.0" },
     { name = "boto3", specifier = ">=1.40.22" },
     { name = "mcp", specifier = ">=1.0.0" },
     { name = "pillow", specifier = ">=11.2.1" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "strands-agents", specifier = ">=1.15.0" },
-    { name = "strands-agents-tools", specifier = ">=0.2.14" },
+    { name = "strands-agents-tools", extras = ["agent-core-code-interpreter"], specifier = ">=0.2.14" },
 ]
 provides-extras = ["dev"]
 
@@ -2351,6 +2351,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d5/46/f7988fdb470ec991e6a84a08a293a7041379b12c61df13d2e4daf624a6bd/strands_agents_tools-0.2.14.tar.gz", hash = "sha256:233193b8cb48b4d6f83f7ee827d33b6e5e7e75c28e84e86ecf016823092a860a", size = 452270, upload-time = "2025-11-04T18:40:36.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/c1/17a99b1b9bc94651752b5781b81e96cd6efc39f089410696edfdedade3f7/strands_agents_tools-0.2.14-py3-none-any.whl", hash = "sha256:7b44fa62c0e81b0353b52c23f01c5d0d487034ae6caadbd8d9138d35008147e8", size = 300480, upload-time = "2025-11-04T18:40:34.853Z" },
+]
+
+[package.optional-dependencies]
+agent-core-code-interpreter = [
+    { name = "bedrock-agentcore" },
 ]
 
 [[package]]

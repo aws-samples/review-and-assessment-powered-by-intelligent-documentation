@@ -240,7 +240,10 @@
     "mcpDisabledDescription": "標準の審査処理を使用します",
     "mcpEnabled": "MCP を利用する",
     "mcpEnabledDescription": "拡張機能を使った審査処理を利用します",
-    "noMcpServersAvailable": "利用可能な MCP サーバーがありません"
+    "noMcpServersAvailable": "利用可能な MCP サーバーがありません",
+    "externalSources": "外部ソース",
+    "input": "入力",
+    "output": "出力"
   },
   "fileUploader": {
     "dropFiles": "ファイルをドロップしてください",

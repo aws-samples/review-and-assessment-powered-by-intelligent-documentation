@@ -14,7 +14,10 @@ import boto3
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
+from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
+from tool_history_collector import ToolHistoryCollector
+from tools.code_interpreter import code_interpreter
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -151,6 +154,11 @@ NOVA_PREMIER_MODEL_ID = IMAGE_MODEL_ID
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
+ENABLE_CODE_INTERPRETER = (
+    os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
+)
+# Tool text truncate length
+TOOL_TEXT_TRUNCATE_LENGTH = 500
 # Models that support prompt and tool caching
 # Base model IDs that support prompt and tool caching (without region prefixes)
 CACHE_SUPPORTED_BASE_MODELS = {
@@ -238,6 +246,27 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
 
 
+def create_code_interpreter_tool() -> Optional[AgentTool]:
+    """
+    Create custom code interpreter tool if enabled.
+
+    Returns:
+        Code interpreter tool function or None if disabled
+    """
+    if not ENABLE_CODE_INTERPRETER:
+        logger.debug("Code Interpreter disabled, skipping tool creation")
+        return None
+
+    try:
+        logger.info("Creating custom code interpreter tool")
+
+        return code_interpreter
+
+    except Exception as e:
+        logger.error(f"Failed to create code interpreter tool: {e}")
+        return None
+
+
 def sanitize_file_name(filename: str) -> str:
     """
     Sanitize filename to meet Bedrock requirements.
@@ -301,6 +330,7 @@ def _run_strands_agent_legacy(
     logger.debug(f"Using model: {model_id}, system prompt: {system_prompt}")
 
     meta_tracker = ReviewMetaTracker(model_id)
+    history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
     # MCP servers configuration
     mcp_servers = []
@@ -344,6 +374,13 @@ def _run_strands_agent_legacy(
 
         # Use provided base tools or default to file_read
         tools_to_use = base_tools if base_tools else [file_read]
+
+        # Add code interpreter tool if enabled
+        code_interpreter_tool = create_code_interpreter_tool()
+        if code_interpreter_tool:
+            tools_to_use.append(code_interpreter_tool)
+            logger.debug("Added AgentCore Code Interpreter tool")
+
         # Combine with MCP tools
         tools = tools_to_use + mcp_tools
         logger.debug(f"Total tools available: {len(tools)}")
@@ -374,6 +411,7 @@ def _run_strands_agent_legacy(
             model=BedrockModel(**bedrock_config),
             tools=tools,
             system_prompt=system_prompt,
+            hooks=[history_collector],
         )
 
         # Add file references to the prompt
@@ -388,9 +426,12 @@ def _run_strands_agent_legacy(
         response = agent(full_prompt)
         logger.debug("Agent response received")
 
-        result = _agent_message_to_dict_legacy(response.message)
+        result = _agent_message_to_dict_legacy(response.message, response)
         logger.debug("type(response.message)=%s", type(response.message))
         logger.debug("message.content (trunc)=%s", str(response.message)[:300])
+
+        # Set tool usage history from hook
+        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
 
         logger.debug("Extracting usage metrics from agent result")
         review_meta = meta_tracker.get_review_meta(response)
@@ -419,6 +460,7 @@ def _run_strands_agent_with_citations(
     logger.debug(f"Running Strands agent with citations for {len(file_paths)} files")
 
     meta_tracker = ReviewMetaTracker(model_id)
+    history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
     # MCP servers setup
     mcp_servers = mcpServers if mcpServers and isinstance(mcpServers, list) else []
@@ -435,6 +477,12 @@ def _run_strands_agent_with_citations(
 
         # Citation mode: document-based, file_read not required
         tools = mcp_tools  # MCP tools only
+
+        # Add code interpreter tool if enabled
+        code_interpreter_tool = create_code_interpreter_tool()
+        if code_interpreter_tool:
+            tools.append(code_interpreter_tool)
+            logger.debug("Added AgentCore Code Interpreter tool to citation mode")
 
         # Prepare files in document format
         content = []
@@ -479,13 +527,18 @@ def _run_strands_agent_with_citations(
             model=BedrockModel(**bedrock_config),
             tools=tools,
             system_prompt=system_prompt,
+            hooks=[history_collector],
         )
 
         # Execute agent
+        logger.debug("Executing agent with citation mode")
         response = agent(content)
 
         # Process citation-enabled response
-        result = _agent_message_to_dict_with_citations(response.message)
+        result = _agent_message_to_dict_with_citations(response.message, response)
+
+        # Set tool usage history from hook
+        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
 
         # Add metadata
         review_meta = meta_tracker.get_review_meta(response)
@@ -498,218 +551,146 @@ def _run_strands_agent_with_citations(
 
 
 # Message parsing functions
-def _agent_message_to_dict_legacy(message: Any) -> Dict[str, Any]:
-    """Convert AgentResult.message (dict or list) to a result dict."""
+def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], str]:
+    """
+    メッセージからJSONとテキストを抽出
+
+    Args:
+        message: AgentResult.message
+
+    Returns:
+        Tuple[Optional[Dict], str]: (抽出されたJSON dict, 全テキスト)
+    """
     if isinstance(message, dict) and "content" in message:
-        texts = [
-            block.get("text", "")
-            for block in message["content"]
-            if isinstance(block, dict) and "text" in block
-        ]
-        combined = "".join(texts).strip()
+        text_blocks = []
+        for block in message["content"]:
+            if isinstance(block, dict) and "text" in block:
+                text_blocks.append(block["text"])
+
+        combined = "".join(text_blocks).strip()
     else:
         combined = str(message).strip()
 
-    logger.debug("combined text (first 400) = %s", combined[:400])
+    # マーカー付きJSON抽出を試行
+    json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(1).strip()
+        try:
+            return json.loads(json_str), combined
+        except Exception as e:
+            logger.warning(f"Marker JSON parsing failed: {e}")
 
-    # Extract first greedy match of { … } from string
+    # フォールバック: 通常のJSON抽出
     m = re.search(r"\{.*\}", combined, re.DOTALL)
     if m:
         json_str = m.group(0)
         try:
-            return json.loads(json_str)
+            return json.loads(json_str), combined
         except Exception as e:
-            logger.warning("json.loads failed: %s", e)
+            logger.warning(f"JSON parsing failed: {e}")
 
+    return None, combined
+
+
+def _extract_citations_text(message: Any) -> str:
+    """
+    メッセージからcitation情報を抽出してテキスト化
+
+    Args:
+        message: AgentResult.message
+
+    Returns:
+        str: 抽出されたcitationテキスト（改行区切り）
+    """
+    logger.debug(f"_extract_citations_text called with message type: {type(message)}")
+
+    if not isinstance(message, dict) or "content" not in message:
+        logger.debug("Message is not dict or has no content, returning default")
+        return "No specific text citations were found in the document."
+
+    logger.debug(f"Processing {len(message['content'])} content blocks")
+
+    all_citations = []
+    for i, block in enumerate(message["content"]):
+        logger.debug(
+            f"Block {i}: type={type(block)}, keys={block.keys() if isinstance(block, dict) else 'N/A'}"
+        )
+
+        if isinstance(block, dict) and "citationsContent" in block:
+            logger.debug(f"Block {i} has citationsContent")
+            citations_block = block["citationsContent"]
+            logger.debug(
+                f"Citations block structure: {json.dumps(citations_block, indent=2, default=str)}"
+            )
+
+            for j, citation in enumerate(citations_block.get("citations", [])):
+                logger.debug(
+                    f"Processing citation {j}: {json.dumps(citation, indent=2, default=str)}"
+                )
+                source_content = citation.get("sourceContent", [{}])[0].get("text", "")
+                if source_content:
+                    all_citations.append(source_content)
+                    logger.debug(f"Added citation text: {source_content[:100]}...")
+
+    if all_citations:
+        logger.debug(f"Extracted {len(all_citations)} citations")
+        return "\n\n".join(all_citations)
+
+    logger.debug("No citations found, returning default")
+    return "No specific text citations were found in the document."
+
+
+def _agent_message_to_dict(
+    message: Any, agent_response=None, use_citations: bool = False
+) -> Dict[str, Any]:
+    """
+    AgentResult.messageを結果dictに変換（統合版）
+
+    Args:
+        message: AgentResult.message
+        agent_response: AgentResult（未使用、後方互換性のため保持）
+        use_citations: Citation機能を使用するか
+
+    Returns:
+        Dict: 審査結果
+    """
+    # JSON抽出
+    parsed_json, combined_text = _extract_json_from_message(message)
+
+    # JSONが抽出できた場合
+    if parsed_json:
+        result = parsed_json
+
+        # Citation処理
+        if use_citations:
+            result["extractedText"] = _extract_citations_text(message)
+
+        return result
+
+    # フォールバック
     fallback = {
         "result": "fail",
         "confidence": 0.5,
-        "explanation": combined,
+        "explanation": combined_text,
         "shortExplanation": "Failed to analyze JSON parse",
     }
+
+    if use_citations:
+        fallback["extractedText"] = _extract_citations_text(message)
+
     return fallback
 
 
-def _agent_message_to_dict_with_citations(message: Any) -> Dict[str, Any]:
+def _agent_message_to_dict_legacy(message: Any, agent_response=None) -> Dict[str, Any]:
+    """Convert AgentResult.message (dict or list) to a result dict."""
+    return _agent_message_to_dict(message, agent_response, use_citations=False)
+
+
+def _agent_message_to_dict_with_citations(
+    message: Any, agent_response=None
+) -> Dict[str, Any]:
     """Convert AgentResult.message to result dict with citation support"""
-    logger.debug("=== CITATION PROCESSING DEBUG ===")
-    logger.debug(f"Message type: {type(message)}")
-
-    if isinstance(message, dict) and "content" in message:
-        text_blocks = []
-        citations_blocks = []
-
-        logger.debug(f"Content blocks count: {len(message['content'])}")
-
-        for i, block in enumerate(message["content"]):
-            if isinstance(block, dict):
-                block_type = list(block.keys())[0]
-                logger.debug(f"Block {i}: {block_type}")
-
-                if "text" in block:
-                    text_content = block["text"]
-                    text_blocks.append(text_content)
-                    logger.debug(f"  Text block length: {len(text_content)}")
-                    logger.debug(f"  Text preview: {text_content[:100]}...")
-                elif "citationsContent" in block:
-                    citations_blocks.append(block["citationsContent"])
-                    citations = block["citationsContent"]
-                    logger.debug(f"  Citations block found")
-                    logger.debug(
-                        f"  Citations keys: {list(citations.keys()) if isinstance(citations, dict) else 'Not dict'}"
-                    )
-                    if isinstance(citations, dict) and "citations" in citations:
-                        logger.debug(f"  Citations count: {len(citations['citations'])}")
-
-        combined = "".join(text_blocks).strip()
-        logger.debug(f"Combined text length: {len(combined)}")
-        logger.debug(f"Combined text preview: {combined[:200]}...")
-
-        # Extract JSON between markers
-        json_match = re.search(r"<<JSON_START>>(.*?)<<JSON_END>>", combined, re.DOTALL)
-
-        if json_match:
-            json_str = json_match.group(1).strip()
-            logger.debug(f"Marker JSON found, length: {len(json_str)}")
-            logger.debug(f"Marker JSON preview: {json_str[:200]}...")
-            try:
-                result = json.loads(json_str)
-                logger.debug(f"Marker JSON parsed successfully")
-                logger.debug(f"Result keys: {list(result.keys())}")
-
-                # Set all citation information as extractedText
-                if citations_blocks:
-                    logger.debug(f"Processing {len(citations_blocks)} citation blocks")
-                    all_citations = []
-                    for j, citations_block in enumerate(citations_blocks):
-                        logger.debug(f"  Citation block {j}: {type(citations_block)}")
-                        for k, citation in enumerate(
-                            citations_block.get("citations", [])
-                        ):
-                            logger.debug(f"    Citation {k}: {list(citation.keys())}")
-                            source_content = citation.get("sourceContent", [{}])[0].get(
-                                "text", ""
-                            )
-                            logger.debug(
-                                f"    Source content length: {len(source_content)}"
-                            )
-                            if source_content:
-                                all_citations.append(source_content)
-                                logger.debug(
-                                    f"    Added citation: {source_content[:50]}..."
-                                )
-
-                    if all_citations:
-                        result["extractedText"] = "\n\n".join(all_citations)
-                        logger.debug(
-                            f"Set extractedText with {len(all_citations)} citations"
-                        )
-                        logger.debug(
-                            f"Final extractedText length: {len(result['extractedText'])}"
-                        )
-                    else:
-                        result["extractedText"] = (
-                            "No specific text citations were found in the document."
-                        )
-                        logger.debug("No citations found, set fallback text")
-                else:
-                    result["extractedText"] = (
-                        "No specific text citations were found in the document."
-                    )
-                    logger.debug("No citation blocks found")
-
-                return result
-            except Exception as e:
-                logger.error(f"Marker JSON parsing failed: {e}")
-                logger.error(f"JSON string: {json_str}")
-        else:
-            logger.warning("No JSON markers found, trying fallback JSON extraction")
-            # Fallback: try conventional JSON extraction
-            m = re.search(r"\{.*\}", combined, re.DOTALL)
-            if m:
-                json_str = m.group(0)
-                logger.debug(f"Fallback JSON found, length: {len(json_str)}")
-                try:
-                    result = json.loads(json_str)
-                    logger.debug(f"Fallback JSON parsed successfully")
-
-                    # Set citation information as extractedText
-                    if citations_blocks:
-                        all_citations = []
-                        for citations_block in citations_blocks:
-                            for citation in citations_block.get("citations", []):
-                                source_content = citation.get("sourceContent", [{}])[
-                                    0
-                                ].get("text", "")
-                                if source_content:
-                                    all_citations.append(source_content)
-
-                        if all_citations:
-                            result["extractedText"] = "\n\n".join(all_citations)
-                            logger.debug(
-                                f"Fallback: Set extractedText with {len(all_citations)} citations"
-                            )
-                        else:
-                            result["extractedText"] = (
-                                "No specific text citations were found in the document."
-                            )
-                    else:
-                        result["extractedText"] = (
-                            "No specific text citations were found in the document."
-                        )
-
-                    return result
-                except Exception as e:
-                    logger.error(f"Fallback JSON parsing failed: {e}")
-
-        # Final fallback processing
-        logger.debug("Using final fallback processing")
-        fallback = {
-            "result": "fail",
-            "confidence": 0.5,
-            "explanation": combined,
-            "shortExplanation": "Failed to analyze JSON parse",
-        }
-
-        # Set citation information as extractedText (fallback mode)
-        if citations_blocks:
-            logger.debug(f"Processing citations in final fallback mode")
-            all_citations = []
-            for citations_block in citations_blocks:
-                for citation in citations_block.get("citations", []):
-                    source_content = citation.get("sourceContent", [{}])[0].get(
-                        "text", ""
-                    )
-                    if source_content:
-                        all_citations.append(source_content)
-
-            if all_citations:
-                fallback["extractedText"] = "\n\n".join(all_citations)
-                logger.debug(
-                    f"Final fallback: Set extractedText with {len(all_citations)} citations"
-                )
-            else:
-                fallback["extractedText"] = (
-                    "No specific text citations were found in the document."
-                )
-                logger.debug("Final fallback: No citations found")
-        else:
-            fallback["extractedText"] = (
-                "No specific text citations were found in the document."
-            )
-            logger.debug("Final fallback: No citation blocks")
-
-        return fallback
-    else:
-        logger.error(f"Unexpected message format: {type(message)}")
-        combined = str(message).strip()
-        return {
-            "result": "fail",
-            "confidence": 0.5,
-            "explanation": combined,
-            "shortExplanation": "Failed to analyze",
-            "extractedText": "No specific text citations were found in the document.",
-        }
+    return _agent_message_to_dict(message, agent_response, use_citations=True)
 
 
 # Prompt generation functions
@@ -729,15 +710,7 @@ The actual files are attached. Use the provided *file_read* tool to open and ins
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
   "extractedText": "<relevant excerpt> (IN {language_name})",
-  "pageNumber": <integer starting from 1>,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "pageNumber": <integer starting from 1>
 }}"""
 
     return f"""
@@ -790,26 +763,17 @@ Do **not** output anything outside the JSON. Do **not** use markdown code fences
   "explanation": "The contractor's name, address, and contact information are clearly stated in Article 3.",
   "shortExplanation": "Pass: contractor info present in Article 3",
   "extractedText": "Article 3 (Contractor Information)…",
-  "pageNumber": 2,
-  "verificationDetails": {{ "sourcesDetails": [] }}
+  "pageNumber": 2
 }}
 
-**Medium-confidence fail with MCP verification**
+**Medium-confidence fail**
 {{
   "result": "fail",
   "confidence": 0.80,
-  "explanation": "Property area is not mentioned; firecrawl_search confirmed no area information exists.",
+  "explanation": "Property area is not mentioned in the document.",
   "shortExplanation": "Fail: property area missing",
   "extractedText": "Property location: …",
-  "pageNumber": 1,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "firecrawl_search returned no area info for the given address.",
-        "mcpName": "firecrawl_search"
-      }}
-    ]
-  }}
+  "pageNumber": 1
 }}
 
 REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON, MUST BE IN {language_name}.
@@ -831,15 +795,7 @@ The actual files are attached as documents with citation support enabled."""
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "pageNumber": <integer starting from 1>,
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "pageNumber": <integer starting from 1>
 }}"""
 
     return f"""
@@ -868,9 +824,7 @@ Follow these guidelines:
 - WHEN your estimated confidence would fall below **0.80**  
   → **USE** one or more MCP tools to raise your confidence.
 
-## OUTPUT FORMAT (STRICT)
-1) First, provide a **brief natural language response in {language_name}** (1-3 sentences) explaining your assessment and citing relevant document sections.
-2) Then, output **ONLY the JSON** enclosed in the markers below. Do not output JSON outside these markers.
+
 
 <<JSON_START>>
 {json_schema}
@@ -989,15 +943,7 @@ Respond **only** in the following JSON format (no Markdown code fences):
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning> (IN {language_name})",
   "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "usedImageIndexes": [<indexes actually referenced>]{bbox_field},
-  "verificationDetails": {{
-    "sourcesDetails": [
-      {{
-        "description": "<brief description of external source> (IN {language_name})",
-        "mcpName": "<name of MCP tool used>"
-      }}
-    ]
-  }}
+  "usedImageIndexes": [<indexes actually referenced>]{bbox_field}
 }}
 
 REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON,

@@ -27,12 +27,12 @@ const parameterSchema = z.object({
   // AI モデル設定
   documentProcessingModelId: z
     .string()
-    .default("us.anthropic.claude-3-7-sonnet-20250219-v1:0")
+    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("ドキュメント処理に使用するAIモデルID"),
 
   imageReviewModelId: z
     .string()
-    .default("us.anthropic.claude-3-7-sonnet-20250219-v1:0")
+    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("画像レビューに使用するAIモデルID"),
 
   // 新しいパラメータを追加する場合はここに定義します
@@ -79,6 +79,12 @@ const parameterSchema = z.object({
     .describe(
       "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
     ),
+
+  // AgentCore Code Interpreter設定
+  enableCodeInterpreter: z
+    .boolean()
+    .default(true)
+    .describe("AgentCore Code Interpreterを有効にするかどうか"),
 });
 
 // パラメータの型定義（型安全性のため）

@@ -145,6 +145,7 @@ model ReviewResult {
   createdAt        DateTime  @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime  @map("updated_at") @db.Timestamp(0)
   sourceReferences Json?     @map("source_references")
+  externalSources  Json?     @map("external_sources")
   checkList        CheckList @relation(fields: [checkId], references: [id])
   reviewJob        ReviewJob @relation(fields: [reviewJobId], references: [id])
 
