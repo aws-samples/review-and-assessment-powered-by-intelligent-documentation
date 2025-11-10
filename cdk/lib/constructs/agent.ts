@@ -193,6 +193,15 @@ export class Agent extends Construct {
       })
     );
 
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "BedrockKnowledgeBaseAccess",
+        effect: Effect.ALLOW,
+        actions: ["bedrock:Retrieve"],
+        resources: [`arn:aws:bedrock:${region}:${accountId}:knowledge-base/*`],
+      })
+    );
+
     // Note: currently memory is not used
     const memory = new CfnMemory(this, "Memory", {
       name: Names.uniqueResourceName(this, { maxLength: 40 }),

@@ -17,7 +17,7 @@ from strands.tools.mcp import MCPClient
 from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
 from tool_history_collector import ToolHistoryCollector
-from tools.code_interpreter import code_interpreter
+from tools.factory import create_custom_tools
 
 logger = logging.getLogger(__name__)
 # Set logging level
@@ -154,9 +154,6 @@ NOVA_PREMIER_MODEL_ID = IMAGE_MODEL_ID
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
-ENABLE_CODE_INTERPRETER = (
-    os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
-)
 # Tool text truncate length
 TOOL_TEXT_TRUNCATE_LENGTH = 500
 # Models that support prompt and tool caching
@@ -244,27 +241,6 @@ def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
     # TODO
     # return MCPClient(...)
     raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
-
-
-def create_code_interpreter_tool() -> Optional[AgentTool]:
-    """
-    Create custom code interpreter tool if enabled.
-
-    Returns:
-        Code interpreter tool function or None if disabled
-    """
-    if not ENABLE_CODE_INTERPRETER:
-        logger.debug("Code Interpreter disabled, skipping tool creation")
-        return None
-
-    try:
-        logger.info("Creating custom code interpreter tool")
-
-        return code_interpreter
-
-    except Exception as e:
-        logger.error(f"Failed to create code interpreter tool: {e}")
-        return None
 
 
 def sanitize_file_name(filename: str) -> str:
@@ -375,11 +351,9 @@ def _run_strands_agent_legacy(
         # Use provided base tools or default to file_read
         tools_to_use = base_tools if base_tools else [file_read]
 
-        # Add code interpreter tool if enabled
-        code_interpreter_tool = create_code_interpreter_tool()
-        if code_interpreter_tool:
-            tools_to_use.append(code_interpreter_tool)
-            logger.debug("Added AgentCore Code Interpreter tool")
+        # Add custom tools (code interpreter, knowledge base, etc.)
+        custom_tools = create_custom_tools()
+        tools_to_use.extend(custom_tools)
 
         # Combine with MCP tools
         tools = tools_to_use + mcp_tools
@@ -478,11 +452,9 @@ def _run_strands_agent_with_citations(
         # Citation mode: document-based, file_read not required
         tools = mcp_tools  # MCP tools only
 
-        # Add code interpreter tool if enabled
-        code_interpreter_tool = create_code_interpreter_tool()
-        if code_interpreter_tool:
-            tools.append(code_interpreter_tool)
-            logger.debug("Added AgentCore Code Interpreter tool to citation mode")
+        # Add custom tools (code interpreter, knowledge base, etc.)
+        custom_tools = create_custom_tools()
+        tools.extend(custom_tools)
 
         # Prepare files in document format
         content = []
@@ -722,12 +694,14 @@ Description: {check_description}
 
 {document_access_section}
 
-## WHEN & HOW TO USE MCP TOOLS
-You have access to additional MCP tools.   
+## WHEN & HOW TO USE EXTERNAL TOOLS
+You have access to additional tools including MCP tools and knowledge_base_query.
 Follow these guidelines:
 
 - WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
   → **USE** a search/scrape-type MCP tool to confirm with external sources.
+- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
+  → **USE** knowledge_base_query to search authoritative knowledge bases.
 - WHEN the document content is incomplete, ambiguous, or contradictory  
   → **USE** MCP tools to gather supplementary evidence.
 - WHEN precise definitions of technical terms or regulations are required  
@@ -737,7 +711,7 @@ Follow these guidelines:
 - WHEN the topic involves events or regulations updated within the last 2 years  
   → **USE** an MCP tool to obtain the latest information.
 - WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more MCP tools to raise your confidence.
+  → **USE** one or more external tools to raise your confidence.
 
 ## IMPORTANT OUTPUT LANGUAGE REQUIREMENT
 YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.  
@@ -807,12 +781,14 @@ Description: {check_description}
 
 {document_access_section}
 
-## WHEN & HOW TO USE MCP TOOLS
-You have access to additional MCP tools.   
+## WHEN & HOW TO USE EXTERNAL TOOLS
+You have access to additional tools including MCP tools and knowledge_base_query.
 Follow these guidelines:
 
 - WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
   → **USE** a search/scrape-type MCP tool to confirm with external sources.
+- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
+  → **USE** knowledge_base_query to search authoritative knowledge bases.
 - WHEN the document content is incomplete, ambiguous, or contradictory  
   → **USE** MCP tools to gather supplementary evidence.
 - WHEN precise definitions of technical terms or regulations are required  
@@ -822,7 +798,7 @@ Follow these guidelines:
 - WHEN the topic involves events or regulations updated within the last 2 years  
   → **USE** an MCP tool to obtain the latest information.
 - WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more MCP tools to raise your confidence.
+  → **USE** one or more external tools to raise your confidence.
 
 
 
@@ -906,12 +882,15 @@ Description: {check_description}
 ## DOCUMENT ACCESS
 The actual files are attached. Use the *image_reader* tool to analyze them.
 
-## WHEN & HOW TO USE MCP TOOLS
-You have access to additional MCP tools. Follow these guidelines:
+## WHEN & HOW TO USE EXTERNAL TOOLS
+You have access to additional tools including MCP tools and knowledge_base_query.
+Follow these guidelines:
 
 - WHEN you need to verify factual information in the image (addresses,
   company names, figures, dates, etc.)  
   → **USE** a search/scrape-type MCP tool to confirm with external sources.
+- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
+  → **USE** knowledge_base_query to search authoritative knowledge bases.
 - WHEN the image content is unclear, ambiguous, or requires additional context  
   → **USE** MCP tools to gather supplementary evidence.
 - WHEN precise definitions of visual elements or regulations are required  
@@ -920,7 +899,7 @@ You have access to additional MCP tools. Follow these guidelines:
   in the image  
   → **USE** an MCP tool that can access public registries or databases.
 - WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more MCP tools to raise your confidence.
+  → **USE** one or more external tools to raise your confidence.
 
 ## IMPORTANT OUTPUT LANGUAGE REQUIREMENT
 YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.  

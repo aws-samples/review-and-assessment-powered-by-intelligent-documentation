@@ -1,17 +1,38 @@
 import json
 import logging
 import os
-from typing import Literal
+from typing import Literal, Optional
 
 from bedrock_agentcore.tools.code_interpreter_client import code_session
 from strands.tools import tool
-from strands.types.tools import ToolResult
+from strands.types.tools import ToolResult, AgentTool
 
 logger = logging.getLogger(__name__)
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 # Ref: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-tool.html
 SUPPORTED_LANGUAGE = Literal["python", "typescript", "javascript"]
+
+ENABLE_CODE_INTERPRETER = os.environ.get("ENABLE_CODE_INTERPRETER", "true").lower() == "true"
+
+
+def create_code_interpreter_tool() -> Optional[AgentTool]:
+    """
+    Create custom code interpreter tool if enabled.
+
+    Returns:
+        Code interpreter tool function or None if disabled
+    """
+    if not ENABLE_CODE_INTERPRETER:
+        logger.debug("Code Interpreter disabled, skipping tool creation")
+        return None
+
+    try:
+        logger.info("Creating custom code interpreter tool")
+        return code_interpreter
+    except Exception as e:
+        logger.error(f"Failed to create code interpreter tool: {e}")
+        return None
 
 
 @tool
