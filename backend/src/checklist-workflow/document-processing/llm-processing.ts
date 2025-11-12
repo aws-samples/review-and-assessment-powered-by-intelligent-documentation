@@ -253,7 +253,7 @@ export async function processWithLLM({
     } catch (error) {
       // パースでエラーが発生している場合はJSONブロックを抽出してパースを試みる
       const jsonText = extractJsonBlocks(llmResponse);
-      checklistItems = JSON.parse(jsonText)
+      checklistItems = JSON.parse(jsonText);
     }
     console.log(
       `Parsed LLM response as JSON: ${JSON.stringify(checklistItems, null, 2)}`
