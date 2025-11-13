@@ -48,7 +48,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG_DATE="${{ steps.get-latest-tag.outputs.tag_date }}"
-          PR_LIST=$(gh pr list --search "merged:>$TAG_DATE" --state merged --json number,title,body,mergedAt,url,author -L 100)
+          PR_LIST=$(gh pr list --search "merged:>$TAG_DATE base:main" --state merged --json number,title,body,mergedAt,url,author -L 100)
           PR_COUNT=$(echo "$PR_LIST" | jq '. | length')
           if [ "$PR_COUNT" -eq 0 ]; then
             echo "No PRs found since last tag."
