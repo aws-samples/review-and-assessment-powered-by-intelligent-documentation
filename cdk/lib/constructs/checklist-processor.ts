@@ -228,7 +228,9 @@ export class ChecklistProcessor extends Construct {
     );
 
     // LLM処理にエラーハンドリングを追加
-    processWithLLMTask.addCatch(handleParallelErrorTask);
+    processWithLLMTask.addCatch(handleParallelErrorTask, {
+      resultPath: "$.error",
+    });
 
     // 各ページの処理フロー: LLM処理のみに簡略化
     const processPageFlow = processWithLLMTask;
@@ -287,15 +289,19 @@ export class ChecklistProcessor extends Construct {
       maxAttempts: 5,
     });
 
-    const detectAmbiguityTask = new tasks.LambdaInvoke(this, "DetectAmbiguity", {
-      lambdaFunction: this.documentLambda,
-      payload: sfn.TaskInput.fromObject({
-        action: "detectAmbiguity",
-        checkListSetId: sfn.JsonPath.stringAt("$.checkListSetId"),
-        userId: sfn.JsonPath.stringAt("$.userId"),
-      }),
-      resultPath: "$.ambiguityResult",
-    });
+    const detectAmbiguityTask = new tasks.LambdaInvoke(
+      this,
+      "DetectAmbiguity",
+      {
+        lambdaFunction: this.documentLambda,
+        payload: sfn.TaskInput.fromObject({
+          action: "detectAmbiguity",
+          checkListSetId: sfn.JsonPath.stringAt("$.checkListSetId"),
+          userId: sfn.JsonPath.stringAt("$.userId"),
+        }),
+        resultPath: "$.ambiguityResult",
+      }
+    );
 
     // ワークフロー定義
     const definition = documentProcessorTask.next(inlineMapState);
@@ -309,10 +315,18 @@ export class ChecklistProcessor extends Construct {
     storeToDbTask.next(detectAmbiguityTask);
 
     // エラーハンドリングの設定
-    documentProcessorTask.addCatch(handleErrorTask);
-    aggregateResultTask.addCatch(handleErrorTask);
-    storeToDbTask.addCatch(handleErrorTask);
-    detectAmbiguityTask.addCatch(handleErrorTask);
+    documentProcessorTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
+    aggregateResultTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
+    storeToDbTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
+    detectAmbiguityTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
 
     // IAMロールの作成
     const stateMachineRole = new iam.Role(this, "StateMachineRole", {
@@ -363,7 +377,11 @@ export class ChecklistProcessor extends Construct {
     );
 
     // エラーハンドリングの設定
-    documentProcessorTask.addCatch(handleErrorTask);
-    aggregateResultTask.addCatch(handleErrorTask);
+    documentProcessorTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
+    aggregateResultTask.addCatch(handleErrorTask, {
+      resultPath: "$.error",
+    });
   }
 }

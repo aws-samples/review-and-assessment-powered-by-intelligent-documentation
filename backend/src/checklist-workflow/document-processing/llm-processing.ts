@@ -47,7 +47,7 @@ YOU MUST GENERATE THE ENTIRE OUTPUT IN ${languageName}.
 THIS IS A STRICT REQUIREMENT. ALL TEXT INCLUDING JSON FIELD VALUES MUST BE IN ${languageName}.
 
 ## Output Format
-Output in strict JSON array format. Do not use markdown syntax (like \`\`\`json), return only a pure JSON array.
+Output in strict JSON array format. Return only a pure JSON array.
 
 Important: Always output in array format (enclosed in [ ]). Return an array, not an object ({ }).
 
@@ -94,7 +94,7 @@ Example response (note: the example below is in English, but YOUR RESPONSE MUST 
 ## Notes
 - Include all information that can be extracted from the document
 - Accurately reflect the hierarchical structure
-- Output only strict JSON arrays, without explanatory text or markdown syntax (such as \`\`\`json code blocks)
+- Output only strict JSON arrays.
 - ALWAYS OUTPUT IN ${languageName} including all field values
 - Always express parent_id as a number (or null for top-level items)
 - Always output in array format. Return an array, not an object.
@@ -232,10 +232,29 @@ export async function processWithLLM({
     });
   }
 
+  // JSONコードブロック（```json...```）をスペースなし正確に抽出する関数を修正
+  function extractJsonBlocks(text: string): string {
+    const regex = /```json([\s\S]*?)```/g; // jsonキーワード後のスペースを含めず厳密にマッチ
+    const matches = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      matches.push(match[1]);
+    }
+    // 複数のJSONコードブロックがある場合は連結せず最初のものを返す例
+    // 必要に応じて変更可能
+    return matches.length > 0 ? matches[0] : text;
+  }
+
   let checklistItems: ParsedChecklistItem[];
   try {
     // LLMの出力をJSONとしてパース
-    checklistItems = JSON.parse(llmResponse);
+    try {
+      checklistItems = JSON.parse(llmResponse);
+    } catch (error) {
+      // パースでエラーが発生している場合はJSONブロックを抽出してパースを試みる
+      const jsonText = extractJsonBlocks(llmResponse);
+      checklistItems = JSON.parse(jsonText);
+    }
     console.log(
       `Parsed LLM response as JSON: ${JSON.stringify(checklistItems, null, 2)}`
     );
