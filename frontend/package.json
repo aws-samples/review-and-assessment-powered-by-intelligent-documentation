@@ -15,6 +15,7 @@
     "@aws-amplify/ui-react": "^6.11.1",
     "@fontsource/m-plus-rounded-1c": "^5.2.5",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "aws-amplify": "^6.14.4",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
@@ -24,9 +25,11 @@
     "react-i18next": "^15.5.2",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.22.0",
+    "react-syntax-highlighter": "^16.1.0",
     "react-zoom-pan-pinch": "^3.7.0",
     "swr": "^2.2.4",
     "tailwind-scrollbar": "^3.0.0",
+    "untruncate-json": "^0.0.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
