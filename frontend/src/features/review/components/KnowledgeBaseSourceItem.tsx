@@ -5,10 +5,8 @@ import Button from "../../../components/Button";
 
 interface KBResult {
   text: string;
-  score?: number;
   location?: string;
   metadata?: {
-    "x-amz-bedrock-kb-source-uri"?: string;
     page?: number;
   };
 }
@@ -133,9 +131,6 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
                           <span>
                             {t("review.kb.page")} {result.metadata.page}
                           </span>
-                        )}
-                        {result.score && (
-                          <span className="text-blue-600">⭐ {result.score.toFixed(2)}</span>
                         )}
                       </div>
                       {result.location && (
