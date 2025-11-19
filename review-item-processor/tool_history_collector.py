@@ -44,6 +44,9 @@ class ToolHistoryCollector(HookProvider):
         # Extract essentials for knowledge_base_query
         if event.tool_use["name"] == "knowledge_base_query":
             output_value = self._extract_kb_essentials(output_value)
+        # Extract essentials for code_interpreter
+        elif event.tool_use["name"] == "code_interpreter":
+            output_value = self._extract_code_interpreter_essentials(output_value)
         # Truncate other tools
         elif len(output_value) > self.truncate_length:
             output_value = "<!TRUNCATED>" + output_value[: self.truncate_length]
@@ -79,6 +82,23 @@ class ToolHistoryCollector(HookProvider):
             compact_data = {
                 "query": data.get("query", ""),
                 "results": compact_results
+            }
+            
+            return json.dumps(compact_data, ensure_ascii=False)
+        except:
+            return output
+
+    def _extract_code_interpreter_essentials(self, output: str) -> str:
+        """Extract essential fields from code interpreter output."""
+        import json
+
+        try:
+            data = json.loads(output)
+            
+            compact_data = {
+                "stdout": data.get("stdout", ""),
+                "stderr": data.get("stderr", ""),
+                "exitCode": data.get("exitCode", 0)
             }
             
             return json.dumps(compact_data, ensure_ascii=False)
