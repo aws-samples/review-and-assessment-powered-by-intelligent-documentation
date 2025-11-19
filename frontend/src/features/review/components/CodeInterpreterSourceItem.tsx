@@ -22,38 +22,15 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const parseOutput = () => {
-    if (!source.output) return null;
-    try {
-      const parsed = JSON.parse(source.output);
-      const hasError = (parsed.exitCode !== undefined && parsed.exitCode !== 0) || (parsed.stderr && parsed.stderr.trim() !== "");
-      return {
-        stdout: parsed.stdout || "",
-        stderr: parsed.stderr || "",
-        exitCode: parsed.exitCode,
-        hasError,
-      };
-    } catch {
-      return null;
-    }
-  };
-
-  const parseInput = () => {
-    if (!source.input) return "";
-    if (typeof source.input === "object" && source.input.code) {
-      return source.input.code;
-    }
-    return typeof source.input === "string" ? source.input : JSON.stringify(source.input, null, 2);
-  };
-
-  const output = parseOutput();
-  const inputCode = parseInput();
+  const output = source.output ? JSON.parse(source.output) : null;
+  const hasError = output && (output.exitCode !== 0 || output.stderr?.trim());
+  const inputCode = source.input?.code || "";
 
   return (
     <div className="mt-1 rounded border border-light-gray bg-aws-paper-light p-2 text-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {output?.hasError ? (
+          {hasError ? (
             <HiXCircle className="h-4 w-4 text-red-600" />
           ) : (
             <HiCheckCircle className="h-4 w-4 text-green-600" />
@@ -96,7 +73,7 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
           {output && (
             <div className="text-aws-font-color-gray">
               <span className="font-medium">{t("review.output")}:</span>
-              {output.hasError ? (
+              {hasError ? (
                 <div className="rounded bg-red-900 bg-opacity-10 border border-red-600 p-3 mt-1">
                   <div className="flex items-center gap-2 mb-2 text-red-600 font-medium text-sm">
                     <HiXCircle className="h-4 w-4" />
