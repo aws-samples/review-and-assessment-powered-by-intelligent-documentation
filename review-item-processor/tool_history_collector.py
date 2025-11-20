@@ -41,8 +41,14 @@ class ToolHistoryCollector(HookProvider):
                 elif "text" in c:
                     output_value = c["text"]
 
-        # Truncate if exceeds limit
-        if len(output_value) > self.truncate_length:
+        # Extract essentials for knowledge_base_query
+        if event.tool_use["name"] == "knowledge_base_query":
+            output_value = self._extract_kb_essentials(output_value)
+        # Extract essentials for code_interpreter
+        elif event.tool_use["name"] == "code_interpreter":
+            output_value = self._extract_code_interpreter_essentials(output_value)
+        # Truncate other tools
+        elif len(output_value) > self.truncate_length:
             output_value = "<!TRUNCATED>" + output_value[: self.truncate_length]
 
         self.executions.append(
@@ -54,3 +60,47 @@ class ToolHistoryCollector(HookProvider):
                 "status": event.result.get("status", "unknown"),
             }
         )
+
+    def _extract_kb_essentials(self, output: str) -> str:
+        """Extract essential fields from KB query output."""
+        import json
+
+        try:
+            data = json.loads(output)
+            results = data.get("results", [])
+            
+            compact_results = []
+            for r in results:
+                compact_results.append({
+                    "text": r.get("text", "")[:500],
+                    "location": r.get("location"),
+                    "metadata": {
+                        "page": r.get("metadata", {}).get("page")
+                    } if r.get("metadata", {}).get("page") else {}
+                })
+            
+            compact_data = {
+                "query": data.get("query", ""),
+                "results": compact_results
+            }
+            
+            return json.dumps(compact_data, ensure_ascii=False)
+        except:
+            return output
+
+    def _extract_code_interpreter_essentials(self, output: str) -> str:
+        """Extract essential fields from code interpreter output."""
+        import json
+
+        try:
+            data = json.loads(output)
+            
+            compact_data = {
+                "stdout": data.get("stdout", ""),
+                "stderr": data.get("stderr", ""),
+                "exitCode": data.get("exitCode", 0)
+            }
+            
+            return json.dumps(compact_data, ensure_ascii=False)
+        except:
+            return output

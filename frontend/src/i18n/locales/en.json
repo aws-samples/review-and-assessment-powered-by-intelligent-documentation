@@ -243,7 +243,15 @@
     "noMcpServersAvailable": "No MCP servers available",
     "externalSources": "External Sources",
     "input": "Input",
-    "output": "Output"
+    "output": "Output",
+    "kb": {
+      "searchKeywords": "Search Keywords",
+      "results": "Search Results",
+      "source": "Source",
+      "page": "Page",
+      "viewDocument": "View Document",
+      "relevanceScore": "Relevance"
+    }
   },
   "fileUploader": {
     "dropFiles": "Drop files here",

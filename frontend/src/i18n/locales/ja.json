@@ -243,7 +243,15 @@
     "noMcpServersAvailable": "利用可能な MCP サーバーがありません",
     "externalSources": "外部ソース",
     "input": "入力",
-    "output": "出力"
+    "output": "出力",
+    "kb": {
+      "searchKeywords": "検索キーワード",
+      "results": "検索結果",
+      "source": "参照元",
+      "page": "ページ",
+      "viewDocument": "文書を開く",
+      "relevanceScore": "関連度"
+    }
   },
   "fileUploader": {
     "dropFiles": "ファイルをドロップしてください",
