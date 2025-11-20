@@ -248,7 +248,8 @@
         "input": "入力コード",
         "output": "実行結果",
         "executionError": "実行エラー",
-        "exitCode": "終了コード"
+        "exitCode": "終了コード",
+        "tooltip": "AIエージェントが自律的に計算・分析プログラムを生成して実行します"
       },
       "knowledgeBase": {
         "title": "外部ナレッジを検索",
@@ -256,7 +257,8 @@
         "results": "検索結果",
         "page": "ページ",
         "viewDocument": "文書を開く",
-        "document": "ドキュメント"
+        "document": "ドキュメント",
+        "tooltip": "事前に登録された外部ナレッジベースから関連情報を検索し、審査の参考情報として活用します"
       },
       "generic": {
         "title": "ツール実行",

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiChevronRight, HiCheckCircle, HiDocumentText, HiExternalLink } from "react-icons/hi";
 import Button from "../../../components/Button";
+import Tooltip from "../../../components/Tooltip";
 
 interface KBResult {
   text: string;
@@ -38,9 +39,14 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <HiCheckCircle className="h-4 w-4 text-green-600" />
-          <span className="font-medium text-aws-squid-ink-light">
-            {t("review.sources.knowledgeBase.title")}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-aws-squid-ink-light">
+              {t("review.sources.knowledgeBase.title")}
+            </span>
+            <Tooltip content={t("review.sources.knowledgeBase.tooltip")} position="top">
+              <span className="text-xs text-aws-font-color-blue cursor-help underline decoration-dotted">?</span>
+            </Tooltip>
+          </div>
         </div>
         <Button
           onClick={() => setIsExpanded(!isExpanded)}

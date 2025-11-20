@@ -248,7 +248,8 @@
         "input": "Input Code",
         "output": "Execution Result",
         "executionError": "Execution Error",
-        "exitCode": "Exit Code"
+        "exitCode": "Exit Code",
+        "tooltip": "AI agent autonomously generates and executes computation/analysis programs"
       },
       "knowledgeBase": {
         "title": "Search External Knowledge",
@@ -256,7 +257,8 @@
         "results": "Search Results",
         "page": "Page",
         "viewDocument": "View Document",
-        "document": "Document"
+        "document": "Document",
+        "tooltip": "Searches for relevant information from pre-registered external knowledge bases and uses it as reference for review"
       },
       "generic": {
         "title": "Tool Execution",
