@@ -80,7 +80,9 @@ export default function GenericSourceItem({ source }: GenericSourceItemProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {statusIcon}
-          <span className="font-medium text-aws-squid-ink-light">{source.toolName}</span>
+          <span className="font-medium text-aws-squid-ink-light">
+            {t("review.sources.generic.title")}: {source.toolName}
+          </span>
         </div>
         <Button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -96,7 +98,9 @@ export default function GenericSourceItem({ source }: GenericSourceItemProps) {
           {source.input && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium text-aws-squid-ink-light">{t("review.input")}:</span>
+                <span className="font-medium text-aws-squid-ink-light">
+                  {t("review.sources.generic.input")}:
+                </span>
               </div>
               <SyntaxHighlighter
                 language={inputCode ? "python" : "json"}
@@ -120,11 +124,13 @@ export default function GenericSourceItem({ source }: GenericSourceItemProps) {
           {parsed && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium text-aws-squid-ink-light">{t("review.output")}:</span>
+                <span className="font-medium text-aws-squid-ink-light">
+                  {t("review.sources.generic.output")}:
+                </span>
                 {parsed.isTruncated && (
                   <span className="flex items-center gap-1 text-xs text-yellow-600">
                     <HiExclamation className="h-3 w-3" />
-                    Truncated
+                    {t("review.sources.generic.truncated")}
                   </span>
                 )}
               </div>
@@ -133,8 +139,12 @@ export default function GenericSourceItem({ source }: GenericSourceItemProps) {
                 <div className="rounded border border-red-300 bg-red-50 p-3">
                   <div className="flex items-center gap-2 mb-2 text-red-700 font-medium">
                     <HiXCircle className="h-4 w-4" />
-                    Execution Error
-                    {parsed.exitCode !== undefined && <span className="text-xs">(Exit Code: {parsed.exitCode})</span>}
+                    {t("review.sources.generic.executionError")}
+                    {parsed.exitCode !== undefined && (
+                      <span className="text-xs">
+                        ({t("review.sources.generic.exitCode")}: {parsed.exitCode})
+                      </span>
+                    )}
                   </div>
                   <SyntaxHighlighter
                     language="python"

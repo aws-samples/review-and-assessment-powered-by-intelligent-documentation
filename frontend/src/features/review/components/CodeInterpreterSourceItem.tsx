@@ -35,7 +35,9 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
           ) : (
             <HiCheckCircle className="h-4 w-4 text-green-600" />
           )}
-          <span className="font-medium text-aws-squid-ink-light">{source.toolName}</span>
+          <span className="font-medium text-aws-squid-ink-light">
+            {t("review.sources.codeInterpreter.title")}
+          </span>
         </div>
         <Button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -50,7 +52,7 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
         <div className="mt-2 space-y-2">
           {inputCode && (
             <div className="text-aws-font-color-gray">
-              <span className="font-medium">{t("review.input")}:</span>
+              <span className="font-medium">{t("review.sources.codeInterpreter.input")}:</span>
               <SyntaxHighlighter
                 language="python"
                 style={atomOneDark}
@@ -72,13 +74,17 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
 
           {output && (
             <div className="text-aws-font-color-gray">
-              <span className="font-medium">{t("review.output")}:</span>
+              <span className="font-medium">{t("review.sources.codeInterpreter.output")}:</span>
               {hasError ? (
                 <div className="rounded bg-red-900 bg-opacity-10 border border-red-600 p-3 mt-1">
                   <div className="flex items-center gap-2 mb-2 text-red-600 font-medium text-sm">
                     <HiXCircle className="h-4 w-4" />
-                    Execution Error
-                    {output.exitCode !== undefined && <span className="text-xs">(Exit Code: {output.exitCode})</span>}
+                    {t("review.sources.codeInterpreter.executionError")}
+                    {output.exitCode !== undefined && (
+                      <span className="text-xs">
+                        ({t("review.sources.codeInterpreter.exitCode")}: {output.exitCode})
+                      </span>
+                    )}
                   </div>
                   <SyntaxHighlighter
                     language="python"

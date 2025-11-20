@@ -242,15 +242,30 @@
     "mcpEnabledDescription": "Use enhanced review processing with extensions",
     "noMcpServersAvailable": "No MCP servers available",
     "externalSources": "External Sources",
-    "input": "Input",
-    "output": "Output",
-    "kb": {
-      "searchKeywords": "Search Keywords",
-      "results": "Search Results",
-      "source": "Source",
-      "page": "Page",
-      "viewDocument": "View Document",
-      "relevanceScore": "Relevance"
+    "sources": {
+      "codeInterpreter": {
+        "title": "Computation & Analysis Program Execution",
+        "input": "Input Code",
+        "output": "Execution Result",
+        "executionError": "Execution Error",
+        "exitCode": "Exit Code"
+      },
+      "knowledgeBase": {
+        "title": "Search External Knowledge",
+        "searchKeywords": "Search Keywords",
+        "results": "Search Results",
+        "page": "Page",
+        "viewDocument": "View Document",
+        "document": "Document"
+      },
+      "generic": {
+        "title": "Tool Execution",
+        "input": "Input",
+        "output": "Output",
+        "executionError": "Execution Error",
+        "exitCode": "Exit Code",
+        "truncated": "Truncated"
+      }
     }
   },
   "fileUploader": {
