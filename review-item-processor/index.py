@@ -4,13 +4,15 @@ from typing import Any, Dict, List, Optional
 
 import boto3
 from bedrock_agentcore import BedrockAgentCoreApp
-from agent import DOCUMENT_MODEL_ID, process_review
-from s3_temp_utils import S3TempStorage
 from logger import set_logger, logger
 
 # AgentCore App initialization
 app = BedrockAgentCoreApp()
 set_logger(app.logger)
+
+# Import agent after logger is initialized
+from agent import DOCUMENT_MODEL_ID, process_review
+from s3_temp_utils import S3TempStorage
 
 # Environment variables
 DOCUMENT_BUCKET = os.environ.get("DOCUMENT_BUCKET", "")
