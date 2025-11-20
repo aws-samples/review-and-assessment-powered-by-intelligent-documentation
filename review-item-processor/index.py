@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional
 import boto3
 from bedrock_agentcore import BedrockAgentCoreApp
 from agent import DOCUMENT_MODEL_ID, process_review
-from utils import check_environment_variables, get_language_name
 from s3_temp_utils import S3TempStorage
 
 # AgentCore App initialization
@@ -36,7 +35,8 @@ def handler(event, context):
     print(f"[Strands MCP] Received event: {json.dumps(event)}")
 
     # Check required environment variables
-    missing_vars = check_environment_variables()
+    required_vars = ["DOCUMENT_BUCKET", "BEDROCK_REGION"]
+    missing_vars = [var for var in required_vars if not os.environ.get(var)]
     if missing_vars:
         print(
             f"[Strands MCP] Missing required environment variables: {', '.join(missing_vars)}"
