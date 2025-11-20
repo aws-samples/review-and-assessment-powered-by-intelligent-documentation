@@ -14,8 +14,10 @@ export function parseS3Uri(uri: string): ParsedS3Uri | null {
     return null;
   }
 
+  const key = match[2];
+
   return {
     bucket: match[1],
-    key: match[2],
+    key: key.startsWith("/") ? key.slice(1) : key,
   };
 }
