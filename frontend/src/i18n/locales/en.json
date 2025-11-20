@@ -257,6 +257,7 @@
         "results": "Search Results",
         "page": "Page",
         "viewDocument": "View Document",
+        "loading": "Loading...",
         "document": "Document",
         "tooltip": "Searches for relevant information from pre-registered external knowledge bases and uses it as reference for review"
       },

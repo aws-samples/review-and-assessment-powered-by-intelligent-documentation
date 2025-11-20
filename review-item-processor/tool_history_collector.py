@@ -71,9 +71,11 @@ class ToolHistoryCollector(HookProvider):
             
             compact_results = []
             for r in results:
+                location = r.get("location")
                 compact_results.append({
                     "text": r.get("text", "")[:500],
-                    "location": r.get("location"),
+                    "location": location,
+                    "locationType": self._detect_location_type(location),
                     "metadata": {
                         "page": r.get("metadata", {}).get("page")
                     } if r.get("metadata", {}).get("page") else {}
@@ -87,6 +89,25 @@ class ToolHistoryCollector(HookProvider):
             return json.dumps(compact_data, ensure_ascii=False)
         except:
             return output
+
+    def _detect_location_type(self, location: str) -> str:
+        """
+        Detect location type from formatted location string.
+        
+        Returns:
+            "S3" - S3 URI (s3://bucket/key)
+            "URL" - HTTP(S) URL (Web, Confluence, Salesforce, SharePoint)
+            "OTHER" - Custom, Kendra, SQL or unknown
+        """
+        if not location:
+            return "OTHER"
+        
+        if location.startswith("s3://"):
+            return "S3"
+        elif location.startswith("http://") or location.startswith("https://"):
+            return "URL"
+        else:
+            return "OTHER"
 
     def _extract_code_interpreter_essentials(self, output: str) -> str:
         """Extract essential fields from code interpreter output."""

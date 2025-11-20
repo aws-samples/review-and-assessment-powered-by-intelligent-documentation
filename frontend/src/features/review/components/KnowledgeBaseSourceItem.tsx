@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiChevronRight, HiCheckCircle, HiDocumentText, HiExternalLink } from "react-icons/hi";
 import Button from "../../../components/Button";
 import Tooltip from "../../../components/Tooltip";
+import { usePresignedDownloadUrl } from "../../../hooks/usePresignedDownloadUrl";
+import { parseS3Uri } from "../../../utils/s3";
 
 interface KBResult {
   text: string;
   location?: string;
+  locationType?: "S3" | "URL" | "OTHER";
   metadata?: {
     page?: number;
   };
@@ -25,9 +28,62 @@ interface KnowledgeBaseSourceItemProps {
 export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceItemProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [documentUrls, setDocumentUrls] = useState<Map<number, string>>(new Map());
+  const [loadingUrls, setLoadingUrls] = useState<Set<number>>(new Set());
+  const { getPresignedUrl } = usePresignedDownloadUrl();
 
   const data = source.output ? JSON.parse(source.output) : null;
   const query = source.input?.query || "";
+
+  useEffect(() => {
+    if (!isExpanded || !data?.results) return;
+
+    const fetchS3Urls = async () => {
+      const urlMap = new Map<number, string>();
+      const loading = new Set<number>();
+
+      for (let idx = 0; idx < data.results.length; idx++) {
+        const result = data.results[idx];
+
+        if (result.locationType === "S3" && result.location) {
+          const parsed = parseS3Uri(result.location);
+          if (parsed) {
+            loading.add(idx);
+            setLoadingUrls(new Set(loading));
+            try {
+              const presignedUrl = await getPresignedUrl(parsed.key);
+              const finalUrl = result.metadata?.page
+                ? `${presignedUrl}#page=${result.metadata.page}`
+                : presignedUrl;
+              urlMap.set(idx, finalUrl);
+            } catch (error) {
+              console.error(`Failed to get presigned URL for ${result.location}:`, error);
+            } finally {
+              loading.delete(idx);
+            }
+          }
+        } else if (result.locationType === "URL" && result.location) {
+          urlMap.set(idx, result.location);
+        }
+      }
+
+      setDocumentUrls(urlMap);
+      setLoadingUrls(new Set(loading));
+    };
+
+    fetchS3Urls();
+  }, [isExpanded, data]);
+
+  const handleViewDocument = (idx: number, result: KBResult) => {
+    const url = documentUrls.get(idx);
+
+    if (!url) {
+      console.warn("Document URL not available");
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const getDocumentName = (location?: string) => {
     if (!location) return t("review.sources.knowledgeBase.document");
@@ -88,14 +144,29 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
                         </span>
                       )}
                     </div>
-                    {result.location && (
+                    {result.location && (result.locationType === "S3" || result.locationType === "URL") && (
                       <button
-                        onClick={() => window.open(result.location, "_blank")}
-                        className="flex items-center gap-1 text-xs text-aws-font-color-blue hover:underline"
+                        onClick={() => handleViewDocument(idx, result)}
+                        disabled={loadingUrls.has(idx)}
+                        className="flex items-center gap-1 text-xs text-aws-font-color-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {t("review.sources.knowledgeBase.viewDocument")}
-                        <HiExternalLink className="h-3 w-3" />
+                        {loadingUrls.has(idx) ? (
+                          <>
+                            <span className="inline-block w-3 h-3 border-2 border-aws-font-color-blue border-t-transparent rounded-full animate-spin" />
+                            {t("review.sources.knowledgeBase.loading")}
+                          </>
+                        ) : (
+                          <>
+                            {t("review.sources.knowledgeBase.viewDocument")}
+                            <HiExternalLink className="h-3 w-3" />
+                          </>
+                        )}
                       </button>
+                    )}
+                    {result.location && result.locationType === "OTHER" && (
+                      <span className="text-xs text-aws-font-color-tertiary">
+                        {result.location}
+                      </span>
                     )}
                   </div>
                 </div>
