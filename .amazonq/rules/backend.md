@@ -1,5 +1,13 @@
 # Backend Special Notes
 
+## Project Structure Note
+
+- Backend API implementation: `backend/src/`
+- Review item processing agents: Project root level
+  - `review-item-processor/` - Review item assessment agent implementation
+  - Example: `review-item-processor/tool_history_collector.py`
+- These agent implementations are NOT under the `backend/` directory
+
 ## Language
 
 - All TypeScript. Python prohibited, JavaScript also prohibited
@@ -63,6 +71,8 @@ src/api/features/{feature-name}/
 └── routes/ # Presentation layer
 ├── index.ts # Route definition
 └── handlers.ts # Handler implementation
+
+**Note:** Review item processing agents are located at project root level (e.g., `review-item-processor/`), not under `backend/`.
 
 ## Layer Structure and Responsibilities
 
