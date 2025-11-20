@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiChevronRight, HiCheckCircle, HiDocumentText, HiExternalLink } from "react-icons/hi";
 import Button from "../../../components/Button";
@@ -32,7 +32,7 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
   const [loadingUrls, setLoadingUrls] = useState<Set<number>>(new Set());
   const { getPresignedUrl } = usePresignedDownloadUrl();
 
-  const data = source.output ? JSON.parse(source.output) : null;
+  const data = useMemo(() => source.output ? JSON.parse(source.output) : null, [source.output]);
   const query = source.input?.query || "";
 
   useEffect(() => {
