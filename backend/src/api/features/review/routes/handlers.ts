@@ -237,6 +237,7 @@ export const getReviewJobByIdHandler = async (
 
 interface GetDownloadPresignedUrlRequest {
   key: string;
+  bucket?: string;
   expiresIn?: number;
 }
 
@@ -247,10 +248,11 @@ export const getDownloadPresignedUrlHandler = async (
   request: FastifyRequest<{ Querystring: GetDownloadPresignedUrlRequest }>,
   reply: FastifyReply
 ): Promise<void> => {
-  const { key, expiresIn = 3600 } = request.query;
+  const { key, bucket, expiresIn = 3600 } = request.query;
 
   const url = await getDocumentDownloadUrl({
     key,
+    bucket,
     expiresIn:
       typeof expiresIn === "string" ? parseInt(expiresIn, 10) : expiresIn,
   });

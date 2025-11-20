@@ -2,6 +2,7 @@ import { getDownloadPresignedUrl } from "../../../core/s3";
 
 interface GetDocumentDownloadUrlParams {
   key: string;
+  bucket?: string;
   expiresIn?: number;
 }
 
@@ -11,11 +12,13 @@ interface GetDocumentDownloadUrlParams {
 export async function getDocumentDownloadUrl(
   params: GetDocumentDownloadUrlParams
 ): Promise<string> {
-  const { key, expiresIn = 3600 } = params;
-  const bucketName = process.env.DOCUMENT_BUCKET;
+  const { key, bucket, expiresIn = 3600 } = params;
+  const bucketName = bucket || process.env.DOCUMENT_BUCKET;
 
   if (!bucketName) {
-    throw new Error("Document bucket name is not defined");
+    throw new Error(
+      "Bucket name is not specified and DOCUMENT_BUCKET is not defined"
+    );
   }
 
   return getDownloadPresignedUrl(bucketName, key, expiresIn);

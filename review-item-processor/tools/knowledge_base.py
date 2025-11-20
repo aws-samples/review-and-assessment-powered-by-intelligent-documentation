@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Dict, Any, Optional, TypedDict, NotRequired
+from typing import Any, Dict, List, NotRequired, Optional, TypedDict
 
 import boto3
 from strands.tools import tool
@@ -45,7 +45,9 @@ class KnowledgeBaseConfig(TypedDict):
 # 3. Uncomment and configure KNOWLEDGE_BASE_CONFIG below
 # 4. The tool will be automatically enabled when config is not empty
 #
-KNOWLEDGE_BASE_CONFIG: list[KnowledgeBaseConfig] = []
+KNOWLEDGE_BASE_CONFIG: list[KnowledgeBaseConfig] = [
+    {"knowledge_base_id": "JYKDHBFHTN", "data_source_ids": ["LP4GFWLFJE"]}
+]
 
 
 def create_knowledge_base_tool() -> Optional[AgentTool]:
@@ -60,7 +62,9 @@ def create_knowledge_base_tool() -> Optional[AgentTool]:
         return None
 
     try:
-        logger.info(f"Creating knowledge base query tool with {len(KNOWLEDGE_BASE_CONFIG)} KB(s)")
+        logger.info(
+            f"Creating knowledge base query tool with {len(KNOWLEDGE_BASE_CONFIG)} KB(s)"
+        )
         return knowledge_base_query
     except Exception as e:
         logger.error(f"Failed to create knowledge base tool: {e}")
@@ -83,7 +87,9 @@ def knowledge_base_query(query: str, max_results_per_kb: int = 5) -> dict:
         Dictionary with status and retrieved content
     """
     try:
-        bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=AWS_REGION)
+        bedrock_agent_runtime = boto3.client(
+            "bedrock-agent-runtime", region_name=AWS_REGION
+        )
 
         all_results = []
 
@@ -147,7 +153,13 @@ def knowledge_base_query(query: str, max_results_per_kb: int = 5) -> dict:
         return {
             "status": "success",
             "content": [
-                {"json": {"query": query, "totalResults": len(all_results), "results": all_results}}
+                {
+                    "json": {
+                        "query": query,
+                        "totalResults": len(all_results),
+                        "results": all_results,
+                    }
+                }
             ],
         }
 
@@ -156,7 +168,9 @@ def knowledge_base_query(query: str, max_results_per_kb: int = 5) -> dict:
         logger.error(error_msg)
         return {
             "status": "error",
-            "content": [{"text": f"An error occurred during knowledge base query: {str(e)}"}],
+            "content": [
+                {"text": f"An error occurred during knowledge base query: {str(e)}"}
+            ],
         }
 
 

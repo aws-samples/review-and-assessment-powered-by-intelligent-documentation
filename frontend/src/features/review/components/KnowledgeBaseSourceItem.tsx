@@ -51,7 +51,7 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
             loading.add(idx);
             setLoadingUrls(new Set(loading));
             try {
-              const presignedUrl = await getPresignedUrl(parsed.key);
+              const presignedUrl = await getPresignedUrl(parsed.key, parsed.bucket);
               const finalUrl = result.metadata?.page
                 ? `${presignedUrl}#page=${result.metadata.page}`
                 : presignedUrl;
