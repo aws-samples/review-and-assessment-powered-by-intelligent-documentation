@@ -6,9 +6,11 @@ import boto3
 from bedrock_agentcore import BedrockAgentCoreApp
 from agent import DOCUMENT_MODEL_ID, process_review
 from s3_temp_utils import S3TempStorage
+from logger import set_logger, logger
 
 # AgentCore App initialization
 app = BedrockAgentCoreApp()
+set_logger(app.logger)
 
 # Environment variables
 DOCUMENT_BUCKET = os.environ.get("DOCUMENT_BUCKET", "")
@@ -32,13 +34,13 @@ def handler(event, context):
         "languageName": "language name"
     }
     """
-    print(f"[Strands MCP] Received event: {json.dumps(event)}")
+    logger.info(f"[Strands MCP] Received event: {json.dumps(event)}")
 
     # Check required environment variables
     required_vars = ["DOCUMENT_BUCKET", "BEDROCK_REGION"]
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
     if missing_vars:
-        print(
+        logger.error(
             f"[Strands MCP] Missing required environment variables: {', '.join(missing_vars)}"
         )
         return {
@@ -58,7 +60,7 @@ def handler(event, context):
     if not document_paths:
         raise ValueError("Missing document paths")
 
-    print(
+    logger.info(
         f"[Strands MCP] Processing review item: {review_result_id} for check: {check_id}"
     )
 
@@ -67,7 +69,7 @@ def handler(event, context):
         # The agent.py will automatically detect file types and select the appropriate model
         # Extract MCP servers configuration if available
         mcp_servers = event.get("mcpServers", [])
-        print(f"[DEBUG LAMBDA] MCP servers configuration: {json.dumps(mcp_servers)}")
+        logger.debug(f"[DEBUG LAMBDA] MCP servers configuration: {json.dumps(mcp_servers)}")
 
         review_data = process_review(
             document_bucket=DOCUMENT_BUCKET,
@@ -108,12 +110,12 @@ def handler(event, context):
         if "verificationDetails" in review_data:
             result["verificationDetails"] = review_data["verificationDetails"]
 
-        print(f"[Strands MCP] Review complete with result: {result['result']}")
+        logger.info(f"[Strands MCP] Review complete with result: {result['result']}")
         
         # 🎯 大きなデータをS3に保存して参照情報を返す
         s3_temp = S3TempStorage(TEMP_BUCKET)
         return s3_temp.store(result)
 
     except Exception as e:
-        print(f"[Strands MCP] Error processing review item {review_result_id}: {str(e)}")
+        logger.error(f"[Strands MCP] Error processing review item {review_result_id}: {str(e)}")
         raise e

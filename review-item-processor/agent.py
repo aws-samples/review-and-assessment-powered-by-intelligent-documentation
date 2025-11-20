@@ -1,7 +1,6 @@
 import hashlib
 import itertools
 import json
-import logging
 import os
 import re
 import tempfile
@@ -18,10 +17,7 @@ from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
-
-logger = logging.getLogger(__name__)
-# Set logging level
-logger.setLevel(logging.DEBUG)
+from logger import logger
 
 
 class ReviewMetaTracker:
@@ -137,14 +133,14 @@ IMAGE_MODEL_ID = os.environ.get("IMAGE_REVIEW_MODEL_ID", DEFAULT_IMAGE_MODEL_ID)
 
 # Log model configuration
 if os.environ.get("DOCUMENT_PROCESSING_MODEL_ID"):
-    print(f"INFO: Using custom document processing model: {DOCUMENT_MODEL_ID}")
+    logger.info(f"INFO: Using custom document processing model: {DOCUMENT_MODEL_ID}")
 else:
-    print(f"INFO: Using default document processing model: {DOCUMENT_MODEL_ID}")
+    logger.info(f"INFO: Using default document processing model: {DOCUMENT_MODEL_ID}")
 
 if os.environ.get("IMAGE_REVIEW_MODEL_ID"):
-    print(f"INFO: Using custom image review model: {IMAGE_MODEL_ID}")
+    logger.info(f"INFO: Using custom image review model: {IMAGE_MODEL_ID}")
 else:
-    print(f"INFO: Using default image review model: {IMAGE_MODEL_ID}")
+    logger.info(f"INFO: Using default image review model: {IMAGE_MODEL_ID}")
 
 # Backward compatibility
 SONNET_MODEL_ID = DOCUMENT_MODEL_ID
