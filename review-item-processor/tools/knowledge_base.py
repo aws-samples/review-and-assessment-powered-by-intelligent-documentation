@@ -180,7 +180,8 @@ def _format_location(location: Dict[str, Any]) -> str:
 
     if loc_type == "S3":
         s3_loc = location.get("s3Location", {})
-        return f"s3://{s3_loc.get('uri', '')}"
+        uri = s3_loc.get("uri", "")
+        return uri
     elif loc_type == "WEB":
         web_loc = location.get("webLocation", {})
         return web_loc.get("url", "")
