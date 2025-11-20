@@ -126,7 +126,6 @@ export const makePrismaReviewJobRepository = async (
         updatedAt: job.updatedAt,
         completedAt: job.completedAt || undefined,
         userId: job.userId || undefined,
-        mcpServerName: job.mcpServerName || undefined,
         documents: job.documents.map((doc) => ({
           id: doc.id,
           filename: doc.filename,
@@ -188,7 +187,6 @@ export const makePrismaReviewJobRepository = async (
       status: job.status as REVIEW_JOB_STATUS,
       errorDetail: job.errorDetail || undefined,
       hasError: job.status === REVIEW_JOB_STATUS.FAILED && !!job.errorDetail,
-      mcpServerName: job.mcpServerName || undefined,
       checkList: {
         id: job.checkListSet.id,
         name: job.checkListSet.name,
@@ -221,12 +219,7 @@ export const makePrismaReviewJobRepository = async (
   const createReviewJob = async (params: ReviewJobEntity): Promise<void> => {
     const now = new Date();
 
-    console.log(
-      `[DEBUG REPO] Creating job with mcpServerName: "${params.mcpServerName}"`
-    );
-
     await client.$transaction(async (tx) => {
-      // 審査ジョブを作成
       await tx.reviewJob.create({
         data: {
           id: params.id,
@@ -236,7 +229,6 @@ export const makePrismaReviewJobRepository = async (
           createdAt: now,
           updatedAt: now,
           userId: params.userId,
-          mcpServerName: params.mcpServerName,
         },
         include: {
           documents: true,

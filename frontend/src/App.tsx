@@ -17,12 +17,8 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ChecklistPromptTemplatesPage } from "./features/prompt-template/pages/ChecklistPromptTemplatesPage";
-import { McpServersPage } from "./features/user-preference/pages/McpServersPage";
 import "./App.css";
 
-/**
- * アプリケーションのルートコンポーネント
- */
 function App() {
   return (
     <AuthProvider>
@@ -41,13 +37,11 @@ function App() {
                 v7_relativeSplatPath: true,
               }}>
               <Routes>
-                {/* ルートパスへのアクセスをチェックリストページにリダイレクト */}
                 <Route
                   path="/"
                   element={<Navigate to="/checklist" replace />}
                 />
 
-                {/* 保護されたルート */}
                 <Route
                   path="/"
                   element={
@@ -55,7 +49,6 @@ function App() {
                       <Layout />
                     </ProtectedRoute>
                   }>
-                  {/* チェックリスト関連のルート */}
                   <Route path="checklist" element={<CheckListPage />} />
                   <Route
                     path="checklist/new"
@@ -66,21 +59,15 @@ function App() {
                     element={<CheckListSetDetailPage />}
                   />
 
-                  {/* 審査関連のルート */}
                   <Route path="review" element={<ReviewListPage />} />
                   <Route path="review/create" element={<CreateReviewPage />} />
                   <Route path="review/:id" element={<ReviewDetailPage />} />
 
-                  {/* プロンプトテンプレート関連のルート */}
                   <Route
                     path="prompt-templates/checklist"
                     element={<ChecklistPromptTemplatesPage />}
                   />
 
-                  {/* MCPサーバー関連のルート */}
-                  <Route path="mcp-servers" element={<McpServersPage />} />
-
-                  {/* その他のルート */}
                   <Route path="documents" element={<ReviewListPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
@@ -94,3 +81,4 @@ function App() {
 }
 
 export default App;
+

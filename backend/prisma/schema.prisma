@@ -10,12 +10,11 @@ datasource db {
 }
 
 model UserPreference {
-  id         String   @id @map("preference_id") @db.VarChar(26)
-  userId     String   @map("user_id") @db.VarChar(50)
-  language   String   @default("en") @db.VarChar(10)
-  mcpServers Json?    @map("mcp_servers")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  id        String   @id @map("preference_id") @db.VarChar(26)
+  userId    String   @map("user_id") @db.VarChar(50)
+  language  String   @default("en") @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   @@unique([userId])
   @@map("user_preferences")
@@ -114,7 +113,6 @@ model ReviewJob {
   updatedAt         DateTime         @map("updated_at") @db.Timestamp(0)
   completedAt       DateTime?        @map("completed_at") @db.Timestamp(0)
   userId            String?          @map("user_id") @db.VarChar(50)
-  mcpServerName     String?          @map("mcp_server_name") @db.VarChar(100)
   totalInputTokens  Int?             @map("total_input_tokens")
   totalOutputTokens Int?             @map("total_output_tokens")
   totalCost         Decimal?         @map("total_cost") @db.Decimal(10, 4)

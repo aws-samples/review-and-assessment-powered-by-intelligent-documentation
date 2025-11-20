@@ -78,7 +78,6 @@ This method allows you to deploy directly from your browser using AWS CloudShell
    - `--cognito-user-pool-id`: Existing Cognito User Pool ID (creates new if not specified)
    - `--cognito-user-pool-client-id`: Existing Cognito User Pool Client ID (creates new if not specified)
    - `--cognito-domain-prefix`: Prefix for the Cognito domain (auto-generated if not specified)
-   - `--mcp-admin`: Whether to grant admin privileges to the MCP runtime Lambda function (true/false)
    - `--bedrock-region`: Region to use for Amazon Bedrock (default: us-west-2)
    - `--document-model`: AI model ID for document processing (default: us.anthropic.claude-sonnet-4-20250514-v1:0)
    - `--image-model`: AI model ID for image review processing (default: us.anthropic.claude-sonnet-4-20250514-v1:0)
@@ -157,7 +156,6 @@ The following parameters can be customized during CDK deployment:
 |                           | cognitoDomainPrefix           | Cognito domain prefix                                                                                                                                                      | Auto-generated                             |
 |                           | cognitoSelfSignUpEnabled      | Whether to enable self-signup for Cognito User Pool                                                                                                                        | true (enabled)                             |
 | **Migration**             | autoMigrate                   | Whether to automatically run migration during deployment                                                                                                                   | true (auto-run)                            |
-| **MCP Features**          | mcpAdmin                      | Whether to grant admin privileges to the MCP runtime Lambda function ([details](./docs/en/mcp-features.md))                                                                | false (disabled)                           |
 | **Citations API**         | enableCitations               | Whether to enable Citations API for PDF documents ([AWS announcement](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/)) | true (enabled)                             |
 | **Map State Concurrency** | reviewMapConcurrency          | Map State concurrency for the Review Processor (must be configured in consultation with throttling limits)                                                                 | 1                                          |
 | **Map State Concurrency** | checklistInlineMapConcurrency | Inline Map State concurrency for the Checklist Processor (must be configured in consultation with throttling limits)                                                       | 1                                          |

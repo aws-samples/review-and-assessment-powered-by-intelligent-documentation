@@ -52,7 +52,6 @@ export interface ReviewJobEntity {
   status: REVIEW_JOB_STATUS;
   checkListSetId: string;
   userId?: string;
-  mcpServerName?: string;
   documents: Array<{
     id: string;
     filename: string;
@@ -74,7 +73,6 @@ export interface ReviewJobSummary {
   updatedAt: Date;
   completedAt?: Date;
   userId?: string;
-  mcpServerName?: string;
   documents: Array<{
     id: string;
     filename: string;
@@ -104,7 +102,6 @@ export interface ReviewJobDetail {
     s3Path: string;
     fileType: REVIEW_FILE_TYPE;
   }>;
-  mcpServerName?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;

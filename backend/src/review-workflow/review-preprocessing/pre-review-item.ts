@@ -8,23 +8,11 @@ declare const console: {
   error: (...data: any[]) => void;
 };
 
-/**
- * Review item pre-processing parameters
- */
 export interface PreReviewItemParams {
   reviewJobId: string;
   checkId: string;
   reviewResultId: string;
-  userId?: string; // Optional user ID for language preference
-}
-
-/**
- * MCP サーバー設定情報
- */
-interface McpServerConfig {
-  command: string;
-  args: string[];
-  env?: Record<string, string>;
+  userId?: string;
 }
 
 /**
@@ -38,10 +26,7 @@ export async function preReviewItemProcessor(
 ): Promise<any> {
   const { reviewJobId, checkId, reviewResultId, userId } = params;
 
-  // Get user preference for language if userId is provided
   let userLanguage = DEFAULT_LANGUAGE;
-  // MCPサーバーの設定 (指定がない場合は空文字列で何も使わない)
-  let mcpServerName = "";
 
   if (userId) {
     try {
@@ -59,30 +44,14 @@ export async function preReviewItemProcessor(
       }
     } catch (error) {
       console.error(`[DEBUG PRE] Failed to fetch user preferences:`, error);
-      // Continue with default language
     }
   }
 
-  // ジョブからMCPサーバー名を取得
   const reviewJobRepository = await makePrismaReviewJobRepository();
   const jobDetail = await reviewJobRepository.findReviewJobById({
     reviewJobId,
   });
 
-  // ジョブ詳細の全内容をログ出力（デバッグ用）
-  console.log(`[DEBUG PRE] Job detail dump: ${JSON.stringify(jobDetail)}`);
-
-  if (jobDetail.mcpServerName) {
-    mcpServerName = jobDetail.mcpServerName;
-    console.log(`[DEBUG PRE] Using MCP server: ${mcpServerName}`);
-    console.log(`[DEBUG PRE] Job's mcpServerName value: "${mcpServerName}"`);
-  } else {
-    console.log(
-      `[DEBUG PRE] No mcpServerName found in jobDetail. Available fields: ${Object.keys(jobDetail).join(", ")}`
-    );
-  }
-
-  // Get check list item details
   const checkRepository = await makePrismaCheckRepository();
   const checkList = await checkRepository.findCheckListItemById(checkId);
 
@@ -90,14 +59,10 @@ export async function preReviewItemProcessor(
     throw new Error(`Check list item not found: ${checkId}`);
   }
 
-  // 既に取得済みのためfindReviewJobByIdを再度呼び出さない
-
   if (!jobDetail.documents || jobDetail.documents.length === 0) {
     throw new Error(`No documents found for review job ${reviewJobId}`);
   }
 
-  // Get documents for processing - both PDF and images are now supported
-  // Filter for both PDF and image types
   const pdfDocuments = jobDetail.documents.filter(
     (doc) => doc.fileType === REVIEW_FILE_TYPE.PDF
   );
@@ -106,7 +71,6 @@ export async function preReviewItemProcessor(
     (doc) => doc.fileType === REVIEW_FILE_TYPE.IMAGE
   );
 
-  // Combine documents for processing
   const documentsToProcess = [...pdfDocuments, ...imageDocuments];
 
   if (documentsToProcess.length === 0) {
@@ -119,58 +83,11 @@ export async function preReviewItemProcessor(
     `[DEBUG PRE] Prepared review item data for ${reviewResultId}, found ${pdfDocuments.length} PDF documents and ${imageDocuments.length} image documents`
   );
 
-  // Return data needed by the Python MCP Lambda
-  // Note: fileTypes field removed as agent.py detects file types directly from file extensions
-  const result = {
+  return {
     checkName: checkList.name,
     checkDescription: checkList.description || "",
     languageName: getLanguageName(userLanguage),
     documentPaths: documentsToProcess.map((doc) => doc.s3Path),
     documentIds: documentsToProcess.map((doc) => doc.id),
   };
-
-  // MCPサーバー名が設定されている場合、その設定を取得
-  const mcpServers: McpServerConfig[] = [];
-
-  if (mcpServerName && userId) {
-    try {
-      const userPreferenceRepository =
-        await makePrismaUserPreferenceRepository();
-
-      // 指定されたMCPサーバー名がカンマ区切りの場合、複数のサーバーと見なす
-      const serverNames = mcpServerName.split(",").map((name) => name.trim());
-      console.log(
-        `[DEBUG PRE] Split serverNames: ${JSON.stringify(serverNames)}`
-      );
-
-      for (const name of serverNames) {
-        console.log(`[DEBUG PRE] Fetching config for server: "${name}"`);
-        const config = await userPreferenceRepository.getMcpServerConfigByName(
-          userId,
-          name
-        );
-        console.log(
-          `[DEBUG PRE] Config result for ${name}: ${config ? "Found" : "Not found"}`
-        );
-        if (config) {
-          console.log(`[DEBUG PRE] Found MCP config for server: ${name}`);
-          console.log(`[DEBUG PRE] Config details: ${JSON.stringify(config)}`);
-          mcpServers.push(config);
-        }
-      }
-      console.log(
-        `[DEBUG PRE] Final mcpServers array length: ${mcpServers.length}`
-      );
-    } catch (error) {
-      console.error(`[DEBUG PRE] Failed to fetch MCP server config:`, error);
-    }
-  }
-
-  const finalResult = {
-    ...result,
-    // Always include mcpServers array, even if empty - required by Step Functions
-    mcpServers: mcpServers.length > 0 ? mcpServers : [],
-  };
-  console.log(`[DEBUG PRE] Final return value: ${JSON.stringify(finalResult)}`);
-  return finalResult;
 }

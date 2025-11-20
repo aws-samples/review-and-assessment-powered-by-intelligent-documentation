@@ -135,7 +135,6 @@ export interface CreateReviewJobRequest {
     fileType: REVIEW_FILE_TYPE;
   }>;
   userId?: string;
-  mcpServerName?: string;
 }
 
 export const createReviewJobHandler = async (
