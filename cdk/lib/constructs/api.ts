@@ -57,6 +57,22 @@ export class Api extends Construct {
     // SecretsManagerへのアクセス権限を追加
     props.databaseConnection.secret.grantRead(handlerRole);
 
+    // Knowledge Base等の外部S3バケットへの読み取り権限を追加
+    const region = cdk.Stack.of(this).region;
+    const accountId = cdk.Stack.of(this).account;
+    handlerRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["s3:GetObject"],
+        resources: ["arn:aws:s3:::*/*"],
+        conditions: {
+          StringEquals: {
+            "s3:ResourceAccount": [accountId],
+          },
+        },
+      })
+    );
+
     // Lambda 関数の作成
     this.apiLambda = new lambda.DockerImageFunction(this, "ApiFunction", {
       role: handlerRole,
