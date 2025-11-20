@@ -85,7 +85,7 @@ class ReviewMetaTracker:
         output_tokens = usage.get("outputTokens", 0)
         total_tokens = usage.get("totalTokens", 0)
 
-        logging.debug(
+        logger.debug(
             f"Token usage from metrics: input={input_tokens}, output={output_tokens}, total={total_tokens}"
         )
 
