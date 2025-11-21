@@ -11,6 +11,7 @@ import {
   REVIEW_RESULT,
   REVIEW_RESULT_STATUS,
   REVIEW_FILE_TYPE,
+  ReviewResultDomain,
 } from "./model/review";
 import { CHECK_LIST_STATUS } from "../../checklist/domain/model/checklist";
 
@@ -374,39 +375,10 @@ export const makePrismaReviewResultRepository = async (
     });
 
     // 3) ドメインモデルにマッピングして返却
-    return {
-      id: result.id,
-      reviewJobId: result.reviewJobId,
-      checkId: result.checkId,
-      status: result.status as REVIEW_RESULT_STATUS,
-      result: result.result as REVIEW_RESULT | undefined,
-      confidenceScore: result.confidenceScore ?? undefined,
-      explanation: result.explanation ?? undefined,
-      shortExplanation: result.shortExplanation ?? undefined,
-      extractedText: result.extractedText ?? undefined,
-      userOverride: result.userOverride,
-      userComment: (result as any).userComment ?? undefined,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-      reviewMeta: result.reviewMeta as any,
-      inputTokens: result.inputTokens ?? undefined,
-      outputTokens: result.outputTokens ?? undefined,
-      totalCost: result.totalCost ? Number(result.totalCost) : undefined,
-      sourceReferences: result.sourceReferences
-        ? JSON.parse(result.sourceReferences as string)
-        : undefined,
-      externalSources: result.externalSources
-        ? JSON.parse(result.externalSources as string)
-        : undefined,
-      checkList: {
-        id: result.checkList.id,
-        setId: result.checkList.checkListSetId,
-        name: result.checkList.name,
-        description: result.checkList.description ?? undefined,
-        parentId: result.checkList.parentId ?? undefined,
-      },
-      hasChildren: childCount > 0,
-    };
+    return ReviewResultDomain.fromPrismaReviewResultDetail(
+      result,
+      childCount > 0
+    );
   };
 
   const findReviewResultsById = async (params: {
@@ -501,52 +473,10 @@ export const makePrismaReviewResultRepository = async (
 
     // 結果を新しいモデル形式に変換して返す
     const mappedResults = results.map((result) => {
-      // sourceReferencesフィールドをパース
-      let sourceReferences;
-      if (result.sourceReferences) {
-        try {
-          sourceReferences = JSON.parse(result.sourceReferences as string);
-        } catch (e) {
-          console.error(
-            `Failed to parse sourceReferences for result ${result.id}:`,
-            e
-          );
-        }
-      }
-
-      // externalSourcesフィールドをパース
-      let externalSources;
-      if (result.externalSources) {
-        try {
-          externalSources = JSON.parse(result.externalSources as string);
-        } catch (e) {
-          console.error(
-            `Failed to parse externalSources for result ${result.id}:`,
-            e
-          );
-        }
-      }
+      const baseEntity = ReviewResultDomain.fromPrismaReviewResult(result);
 
       return {
-        id: result.id,
-        reviewJobId: result.reviewJobId,
-        checkId: result.checkId,
-        status: result.status as REVIEW_RESULT_STATUS,
-        result: result.result as REVIEW_RESULT | undefined,
-        confidenceScore: result.confidenceScore || undefined,
-        explanation: result.explanation || undefined,
-        shortExplanation: result.shortExplanation || undefined,
-        extractedText: result.extractedText || undefined,
-        userComment: result.userComment || undefined,
-        userOverride: result.userOverride,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-        reviewMeta: result.reviewMeta as any,
-        inputTokens: result.inputTokens || undefined,
-        outputTokens: result.outputTokens || undefined,
-        totalCost: result.totalCost ? Number(result.totalCost) : undefined,
-        sourceReferences,
-        externalSources,
+        ...baseEntity,
         checkList: {
           id: result.checkList.id,
           setId: result.checkList.checkListSetId,
@@ -566,6 +496,13 @@ export const makePrismaReviewResultRepository = async (
   }): Promise<void> => {
     const { newResult } = params;
 
+    console.log(
+      "[updateResult] extractedText type:",
+      typeof newResult.extractedText,
+      "value:",
+      newResult.extractedText
+    );
+
     await client.reviewResult.update({
       where: { id: newResult.id },
       data: {
@@ -574,7 +511,9 @@ export const makePrismaReviewResultRepository = async (
         confidenceScore: newResult.confidenceScore,
         explanation: newResult.explanation,
         shortExplanation: newResult.shortExplanation,
-        extractedText: newResult.extractedText,
+        extractedText: newResult.extractedText
+          ? (JSON.stringify(newResult.extractedText) as any)
+          : undefined,
         userOverride: newResult.userOverride,
         userComment: newResult.userComment,
         updatedAt: newResult.updatedAt,
@@ -607,7 +546,9 @@ export const makePrismaReviewResultRepository = async (
             confidenceScore: result.confidenceScore,
             explanation: result.explanation,
             shortExplanation: result.shortExplanation,
-            extractedText: result.extractedText,
+            extractedText: result.extractedText
+              ? (JSON.stringify(result.extractedText) as any)
+              : undefined,
             userOverride: result.userOverride,
             userComment: result.userComment,
             updatedAt: result.updatedAt,

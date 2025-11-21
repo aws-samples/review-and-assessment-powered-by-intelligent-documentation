@@ -5,7 +5,6 @@ import os
 import re
 import tempfile
 import time
-from contextlib import ExitStack
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -303,81 +302,77 @@ def _run_strands_agent_legacy(
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
-    with ExitStack() as stack:
-        # MCP tools (現状未実装)
-        mcp_tools = []
+    # Use provided base tools or default to file_read
+    tools_to_use = base_tools if base_tools else [file_read]
 
-        # Use provided base tools or default to file_read
-        tools_to_use = base_tools if base_tools else [file_read]
+    # Add custom tools based on configuration
+    custom_tools = create_custom_tools(toolConfiguration)
+    
+    # Managed Integration: MCPClient passed directly to Agent
+    # Agent handles lifecycle automatically
+    tools = tools_to_use + custom_tools
+    logger.debug(f"Total tools available: {len(tools)}")
 
-        # Add custom tools based on configuration
-        custom_tools = create_custom_tools(toolConfiguration)
-        tools_to_use.extend(custom_tools)
+    # Create Strands agent
+    logger.debug(f"Creating Strands agent with model: {model_id}")
 
-        # Combine with MCP tools
-        tools = tools_to_use + mcp_tools
-        logger.debug(f"Total tools available: {len(tools)}")
+    # Check if model supports caching
+    model_supports_cache = supports_caching(model_id)
+    logger.debug(f"Model {model_id} caching support: {model_supports_cache}")
 
-        # Create Strands agent
-        logger.debug(f"Creating Strands agent with model: {model_id}")
+    # Configure BedrockModel with conditional caching
+    bedrock_config = {
+        "model_id": model_id,
+        "region_name": BEDROCK_REGION,
+        "temperature": temperature,
+        "streaming": False,  # Always disable streaming since this app doesn't use streaming
+    }
 
-        # Check if model supports caching
-        model_supports_cache = supports_caching(model_id)
-        logger.debug(f"Model {model_id} caching support: {model_supports_cache}")
+    if model_supports_cache:
+        bedrock_config["cache_prompt"] = "default"  # Enable system prompt caching
+        bedrock_config["cache_tools"] = "default"  # Enable tool definitions caching
+        logger.debug("Caching enabled for system prompt and tools")
+    else:
+        logger.debug("Caching disabled - model does not support prompt caching")
 
-        # Configure BedrockModel with conditional caching
-        bedrock_config = {
-            "model_id": model_id,
-            "region_name": BEDROCK_REGION,
-            "temperature": temperature,
-            "streaming": False,  # Always disable streaming since this app doesn't use streaming
-        }
+    agent = Agent(
+        model=BedrockModel(**bedrock_config),
+        tools=tools,
+        system_prompt=system_prompt,
+        hooks=[history_collector],
+    )
 
-        if model_supports_cache:
-            bedrock_config["cache_prompt"] = "default"  # Enable system prompt caching
-            bedrock_config["cache_tools"] = "default"  # Enable tool definitions caching
-            logger.debug("Caching enabled for system prompt and tools")
-        else:
-            logger.debug("Caching disabled - model does not support prompt caching")
+    # Add file references to the prompt
+    files_prompt = "\n".join([f"- '{file_path}'" for file_path in file_paths])
+    full_prompt = f"{prompt}\n\nPlease analyze the following files:\n{files_prompt}"
 
-        agent = Agent(
-            model=BedrockModel(**bedrock_config),
-            tools=tools,
-            system_prompt=system_prompt,
-            hooks=[history_collector],
-        )
+    logger.debug(f"Running agent with prompt: {full_prompt[:100]}...")
+    logger.debug(f"Full prompt: {full_prompt}")
 
-        # Add file references to the prompt
-        files_prompt = "\n".join([f"- '{file_path}'" for file_path in file_paths])
-        full_prompt = f"{prompt}\n\nPlease analyze the following files:\n{files_prompt}"
+    # Run agent synchronously
+    logger.debug("Executing agent completion")
+    response = agent(full_prompt)
+    logger.debug("Agent response received")
 
-        logger.debug(f"Running agent with prompt: {full_prompt[:100]}...")
-        logger.debug(f"Full prompt: {full_prompt}")
+    result = _agent_message_to_dict_legacy(response.message, response)
+    logger.debug("type(response.message)=%s", type(response.message))
+    logger.debug("message.content (trunc)=%s", str(response.message)[:300])
 
-        # Run agent synchronously
-        logger.debug("Executing agent completion")
-        response = agent(full_prompt)
-        logger.debug("Agent response received")
+    # Set tool usage history from hook
+    result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
 
-        result = _agent_message_to_dict_legacy(response.message, response)
-        logger.debug("type(response.message)=%s", type(response.message))
-        logger.debug("message.content (trunc)=%s", str(response.message)[:300])
+    logger.debug("Extracting usage metrics from agent result")
+    review_meta = meta_tracker.get_review_meta(response)
+    result["reviewMeta"] = review_meta
+    result["inputTokens"] = review_meta["input_tokens"]
+    result["outputTokens"] = review_meta["output_tokens"]
+    result["totalCost"] = review_meta["total_cost"]
 
-        # Set tool usage history from hook
-        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
-
-        logger.debug("Extracting usage metrics from agent result")
-        review_meta = meta_tracker.get_review_meta(response)
-        result["reviewMeta"] = review_meta
-        result["inputTokens"] = review_meta["input_tokens"]
-        result["outputTokens"] = review_meta["output_tokens"]
-        result["totalCost"] = review_meta["total_cost"]
-
-        logger.info(
-            f"Token usage: input={review_meta['input_tokens']}, output={review_meta['output_tokens']}, cost=${review_meta['total_cost']:.6f}"
-        )
-        logger.debug(f"Extracted result dict: {result}")
-        return result
+    logger.info(
+        f"Token usage: input={review_meta['input_tokens']}, output={review_meta['output_tokens']}, cost=${review_meta['total_cost']:.6f}"
+    )
+    logger.debug(f"Extracted result dict: {result}")
+    return result
 
 
 def _run_strands_agent_with_citations(
@@ -395,83 +390,79 @@ def _run_strands_agent_with_citations(
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
-    with ExitStack() as stack:
-        # MCP tools (現状未実装)
-        mcp_tools = []
+    # Add custom tools based on configuration
+    custom_tools = create_custom_tools(toolConfiguration)
+    
+    # Managed Integration: MCPClient passed directly to Agent
+    # Agent handles lifecycle automatically
+    tools = custom_tools
+    logger.debug(f"Total tools available: {len(tools)}")
 
-        # Citation mode: document-based, file_read not required
-        tools = mcp_tools.copy()
+    # Citation mode: document-based, file_read not required
+    # Prepare files in document format
+    content = []
+    for file_path in file_paths:
+        try:
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+        except Exception as e:
+            logger.error(f"Failed to read file {file_path}: {e}")
+            continue  # Skip to next file
 
-        # Add custom tools based on configuration
-        custom_tools = create_custom_tools(toolConfiguration)
-        tools.extend(custom_tools)
+        # Sanitize filename
+        filename = os.path.basename(file_path)
+        sanitized_name = sanitize_file_name(filename)
 
-        logger.debug(f"Total tools available: {len(tools)}")
-
-        # Prepare files in document format
-        content = []
-        for file_path in file_paths:
-            try:
-                with open(file_path, "rb") as f:
-                    file_bytes = f.read()
-            except Exception as e:
-                logger.error(f"Failed to read file {file_path}: {e}")
-                continue  # Skip to next file
-
-            # Sanitize filename
-            filename = os.path.basename(file_path)
-            sanitized_name = sanitize_file_name(filename)
-
-            content.append(
-                {
-                    "document": {
-                        "name": sanitized_name,
-                        "source": {"bytes": file_bytes},
-                        "format": "pdf",
-                        "citations": {"enabled": True},
-                    }
+        content.append(
+            {
+                "document": {
+                    "name": sanitized_name,
+                    "source": {"bytes": file_bytes},
+                    "format": "pdf",
+                    "citations": {"enabled": True},
                 }
-            )
-
-        content.append({"text": prompt})
-
-        # BedrockModel configuration
-        model_supports_cache = supports_caching(model_id)
-        bedrock_config = {
-            "model_id": model_id,
-            "region_name": BEDROCK_REGION,
-            "temperature": temperature,
-            "streaming": False,
-        }
-        if model_supports_cache:
-            bedrock_config["cache_prompt"] = "default"
-            bedrock_config["cache_tools"] = "default"
-
-        agent = Agent(
-            model=BedrockModel(**bedrock_config),
-            tools=tools,
-            system_prompt=system_prompt,
-            hooks=[history_collector],
+            }
         )
 
-        # Execute agent
-        logger.debug("Executing agent with citation mode")
-        response = agent(content)
+    content.append({"text": prompt})
 
-        # Process citation-enabled response
-        result = _agent_message_to_dict_with_citations(response.message, response)
+    # BedrockModel configuration
+    model_supports_cache = supports_caching(model_id)
+    bedrock_config = {
+        "model_id": model_id,
+        "region_name": BEDROCK_REGION,
+        "temperature": temperature,
+        "streaming": False,
+    }
+    if model_supports_cache:
+        bedrock_config["cache_prompt"] = "default"
+        bedrock_config["cache_tools"] = "default"
 
-        # Set tool usage history from hook
-        result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
+    agent = Agent(
+        model=BedrockModel(**bedrock_config),
+        tools=tools,
+        system_prompt=system_prompt,
+        hooks=[history_collector],
+    )
 
-        # Add metadata
-        review_meta = meta_tracker.get_review_meta(response)
-        result["reviewMeta"] = review_meta
-        result["inputTokens"] = review_meta["input_tokens"]
-        result["outputTokens"] = review_meta["output_tokens"]
-        result["totalCost"] = review_meta["total_cost"]
+    # Execute agent
+    logger.debug("Executing agent with citation mode")
+    response = agent(content)
 
-        return result
+    # Process citation-enabled response
+    result = _agent_message_to_dict_with_citations(response.message, response)
+
+    # Set tool usage history from hook
+    result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
+
+    # Add metadata
+    review_meta = meta_tracker.get_review_meta(response)
+    result["reviewMeta"] = review_meta
+    result["inputTokens"] = review_meta["input_tokens"]
+    result["outputTokens"] = review_meta["output_tokens"]
+    result["totalCost"] = review_meta["total_cost"]
+
+    return result
 
 
 # Message parsing functions
@@ -516,52 +507,37 @@ def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], 
     return None, combined
 
 
-def _extract_citations_text(message: Any) -> str:
+def _extract_citations_text(message: Any) -> List[str]:
     """
-    メッセージからcitation情報を抽出してテキスト化
-
+    Extract citations from JSON response as array.
+    
+    Note: This method parses citations from the JSON output instead of using
+    citationsContent blocks because Strands Agent does not properly support
+    citationsContent in non-streaming mode. The model generates <cite> tags
+    instead of proper citation blocks when using the Citations API.
+    
+    Workaround: We explicitly instruct the model to include citations as a
+    JSON array field in the response, then parse and return them here.
+    
     Args:
-        message: AgentResult.message
-
+        message: AgentResult.message containing JSON response
+        
     Returns:
-        str: 抽出されたcitationテキスト（改行区切り）
+        List[str]: Citations array, or empty list if none found
     """
-    logger.debug(f"_extract_citations_text called with message type: {type(message)}")
-
-    if not isinstance(message, dict) or "content" not in message:
-        logger.debug("Message is not dict or has no content, returning default")
-        return "No specific text citations were found in the document."
-
-    logger.debug(f"Processing {len(message['content'])} content blocks")
-
-    all_citations = []
-    for i, block in enumerate(message["content"]):
-        logger.debug(
-            f"Block {i}: type={type(block)}, keys={block.keys() if isinstance(block, dict) else 'N/A'}"
-        )
-
-        if isinstance(block, dict) and "citationsContent" in block:
-            logger.debug(f"Block {i} has citationsContent")
-            citations_block = block["citationsContent"]
-            logger.debug(
-                f"Citations block structure: {json.dumps(citations_block, indent=2, default=str)}"
-            )
-
-            for j, citation in enumerate(citations_block.get("citations", [])):
-                logger.debug(
-                    f"Processing citation {j}: {json.dumps(citation, indent=2, default=str)}"
-                )
-                source_content = citation.get("sourceContent", [{}])[0].get("text", "")
-                if source_content:
-                    all_citations.append(source_content)
-                    logger.debug(f"Added citation text: {source_content[:100]}...")
-
-    if all_citations:
-        logger.debug(f"Extracted {len(all_citations)} citations")
-        return "\n\n".join(all_citations)
-
-    logger.debug("No citations found, returning default")
-    return "No specific text citations were found in the document."
+    try:
+        # Extract JSON from message
+        parsed_json, _ = _extract_json_from_message(message)
+        
+        if parsed_json and "citations" in parsed_json:
+            citations = parsed_json["citations"]
+            if citations and isinstance(citations, list):
+                return citations
+    except Exception as e:
+        logger.warning(f"Failed to extract citations from JSON: {e}")
+    
+    # Return empty list if no citations found
+    return []
 
 
 def _agent_message_to_dict(
@@ -731,14 +707,15 @@ def _get_document_review_prompt_with_citations(
     check_description: str,
     tool_config: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Improved PDF document review prompt with citations and dynamic tool section"""
+    """PDF document review prompt with citations in JSON array"""
 
     json_schema = f"""{{
   "result": "pass" | "fail",
   "confidence": <number between 0 and 1>,
   "explanation": "<detailed reasoning in {language_name}>",
   "shortExplanation": "<max 80 chars in {language_name}>",
-  "pageNumber": <integer starting from 1>
+  "pageNumber": <integer starting from 1>,
+  "citations": ["<quoted text 1>", "<quoted text 2>", ...]
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
@@ -751,8 +728,19 @@ def _get_document_review_prompt_with_citations(
 </check_item>
 
 <document_access>
-Documents are attached with citation support enabled. Reference specific passages naturally in your explanation.
+Documents are provided with citation support enabled. When you reference specific information from the documents, write your explanation in natural prose.
 </document_access>
+
+<citation_instruction>
+When you reference specific content from the documents, include the exact quoted text in the "citations" array.
+Each citation should be a direct quote from the source document that supports your explanation.
+
+Example:
+"citations": [
+  "The building height shall not exceed 15 meters as specified in Section 3.2",
+  "Fire safety equipment must be installed on every floor per Regulation 4.1"
+]
+</citation_instruction>
 {tool_section}
 <output_requirements>
 Generate your entire response in {language_name}. Output only the JSON below, enclosed in markers:
@@ -761,12 +749,14 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 {json_schema}
 <<JSON_END>>
 
+Write the explanation field as clear, flowing prose in {language_name}. Include relevant quotes in the citations array.
+
 Confidence guidelines:
 - 0.90-1.00: Clear evidence, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence with some uncertainty
 - 0.50-0.69: Ambiguous evidence, significant uncertainty
 
-Your response must be valid JSON within the markers. All field values must be in {language_name}. Citations will be automatically extracted from your natural language explanation.
+Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
 """.strip()
 

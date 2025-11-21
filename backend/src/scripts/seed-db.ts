@@ -547,11 +547,11 @@ async function main(): Promise<void> {
   const resultStatuses = ["pass", "fail", "warning", "pending"];
   const confidenceScores = [0.98, 0.85, 0.76, 0.92, 0.65];
   const extractedTexts = [
-    "申請者：山田太郎、東京都渋谷区〇〇1-2-3",
-    "建築場所：東京都新宿区××4-5-6",
-    "用途：事務所兼住宅",
-    "構造：鉄筋コンクリート造 地上5階",
-    "建築面積：250.5㎡、延床面積：1250.8㎡",
+    ["申請者：山田太郎、東京都渋谷区〇〇1-2-3"],
+    ["建築場所：東京都新宿区××4-5-6"],
+    ["用途：事務所兼住宅"],
+    ["構造：鉄筋コンクリート造 地上5階"],
+    ["建築面積：250.5㎡、延床面積：1250.8㎡"],
   ];
   const explanations = [
     "申請者情報が正確に記載されています。",
@@ -570,7 +570,7 @@ async function main(): Promise<void> {
     let result = null;
     let confidenceScore = null;
     let explanation = null;
-    let extractedText = null;
+    let extractedText: string[] | null = null;
     let userOverride = false;
     let userComment = null;
 
@@ -585,7 +585,7 @@ async function main(): Promise<void> {
         explanation = explanations[0];
         result = "pass";
       } else if (checkItem.name.includes("平面図")) {
-        extractedText = "平面図の添付なし";
+        extractedText = ["平面図の添付なし"];
         explanation = explanations[1];
         result = "fail";
         // ユーザーによる上書きの例
@@ -594,7 +594,7 @@ async function main(): Promise<void> {
           userComment = "確認済み。後日提出予定とのこと。";
         }
       } else if (checkItem.name.includes("容積率")) {
-        extractedText = "容積率：250%（許容：200%）";
+        extractedText = ["容積率：250%（許容：200%）"];
         explanation = explanations[2];
         result = "warning";
       } else if (Math.random() > 0.7) {
@@ -658,7 +658,9 @@ async function main(): Promise<void> {
         confidenceScore,
         explanation,
         shortExplanation,
-        extractedText,
+        extractedText: extractedText
+          ? JSON.stringify(extractedText)
+          : undefined,
         userOverride,
         userComment,
         // 料金情報を追加

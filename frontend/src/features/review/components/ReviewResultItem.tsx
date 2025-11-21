@@ -313,14 +313,21 @@ export default function ReviewResultItem({
                   )}
 
                   {/* Display extracted text */}
-                  {result.extractedText && (
+                  {result.extractedText && result.extractedText.length > 0 && (
                     <div className="rounded border border-light-gray bg-aws-paper-light p-3 text-sm">
                       <p className="mb-1 font-medium text-aws-squid-ink-light">
                         {t("review.sourceText", "Source Text")}:
                       </p>
-                      <p className="whitespace-pre-wrap text-aws-font-color-gray">
-                        {result.extractedText}
-                      </p>
+                      <div className="space-y-2">
+                        {result.extractedText.map((citation, index) => (
+                          <div
+                            key={index}
+                            className="rounded border border-light-gray bg-white p-2 text-aws-font-color-gray"
+                          >
+                            {citation}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

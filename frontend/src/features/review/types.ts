@@ -280,7 +280,7 @@ export interface ReviewResultEntity {
   confidenceScore?: number;
   explanation?: string;
   shortExplanation?: string;
-  extractedText?: string;
+  extractedText?: string[];
   userComment?: string;
   userOverride: boolean;
   createdAt: Date;

@@ -187,7 +187,7 @@ export async function postReviewItemProcessor(
         documents,
         reviewType: "PDF",
         typeSpecificData: {
-          extractedText: resolvedReviewData.extractedText || "",
+          extractedText: resolvedReviewData.extractedText || [],
         },
         verificationDetails: resolvedReviewData.verificationDetails,
         reviewMeta: resolvedReviewData.reviewMeta || null,
