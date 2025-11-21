@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { HiExternalLink, HiX } from "react-icons/hi";
 import { useToolConfigurations } from "../../tool-configuration/hooks/useToolConfigurationQueries";
 import Modal from "../../../components/Modal";
@@ -17,6 +18,7 @@ export default function AssignToolConfigModal({
   onAssign,
   currentConfigId,
 }: AssignToolConfigModalProps) {
+  const { t } = useTranslation();
   const { toolConfigurations, isLoading } = useToolConfigurations();
 
   const handleAssign = (configId: string | null) => {
@@ -30,31 +32,31 @@ export default function AssignToolConfigModal({
       tools.push(`KB (${config.knowledgeBase.length})`);
     }
     if (config.codeInterpreter) {
-      tools.push("Code Interpreter");
+      tools.push(t("toolConfiguration.codeInterpreter"));
     }
     if (config.mcpConfig) {
-      tools.push("MCP");
+      tools.push(t("toolConfiguration.mcp"));
     }
-    return tools.join(", ") || "None";
+    return tools.join(", ") || t("review.noDocuments");
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Assign Tool Configuration">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("checklist.assignToolConfiguration")}>
       <div className="space-y-4">
         <div className="space-y-2">
           {isLoading ? (
             <div className="py-4 text-center text-aws-font-color-gray">
-              Loading...
+              {t("common.loading")}
             </div>
           ) : toolConfigurations.length === 0 ? (
             <div className="py-8 text-center">
               <p className="mb-4 text-sm text-aws-font-color-gray">
-                No tool configurations found. Please create one first.
+                {t("checklist.noToolConfigurationsFound")}
               </p>
               <a
                 href="/tool-configurations/new"
                 className="inline-block rounded-lg bg-aws-sea-blue-light px-4 py-2 text-sm font-medium text-white hover:bg-aws-sea-blue-hover-light">
-                Create Tool Configuration
+                {t("checklist.createToolConfiguration")}
               </a>
             </div>
           ) : (
@@ -102,7 +104,7 @@ export default function AssignToolConfigModal({
               onClick={() => handleAssign(null)}
               icon={<HiX className="h-5 w-5" />}
               fullWidth>
-              Unassign Tool Configuration
+              {t("checklist.unassignToolConfiguration")}
             </Button>
           </div>
         )}

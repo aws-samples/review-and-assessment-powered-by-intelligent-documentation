@@ -47,7 +47,8 @@
     "review": "Review",
     "menu": "Menu",
     "settings": "Prompt Management",
-    "checklistPrompt": "Checklist Prompt"
+    "checklistPrompt": "Checklist Prompt",
+    "toolConfiguration": "Tool Configuration"
   },
   "auth": {
     "signIn": "Sign In",
@@ -152,7 +153,11 @@
     "ambiguityDetectionError": "Failed to re-detect ambiguity",
     "improvementSuggestions": "Improvement Suggestions",
     "filterAll": "All",
-    "filterNeedsReview": "Needs Review"
+    "filterNeedsReview": "Needs Review",
+    "assignToolConfiguration": "Assign Tool Configuration",
+    "unassignToolConfiguration": "Unassign Tool Configuration",
+    "noToolConfigurationsFound": "No tool configurations found. Please create one first.",
+    "createToolConfiguration": "Create Tool Configuration"
   },
   "review": {
     "title": "Review Jobs",
@@ -345,5 +350,47 @@
   "experimental": {
     "beta": "Beta",
     "experimental": "Experimental"
+  },
+  "toolConfiguration": {
+    "title": "Tool Configurations",
+    "description": "Manage tool configurations for checklist items",
+    "create": "New Configuration",
+    "name": "Name",
+    "namePlaceholder": "Enter configuration name",
+    "nameRequired": "Name is required",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter description (optional)",
+    "tools": "Tools",
+    "toolsRequired": "At least one tool must be enabled",
+    "codeInterpreter": "Code Interpreter",
+    "codeInterpreterHelp": "AI automatically codes and executes formulas described in specifications. It autonomously performs complex calculations and numerical validations to support review decisions.",
+    "knowledgeBase": "Knowledge Base",
+    "knowledgeBaseHelp": "Searches for relevant information from pre-registered reference materials (standards, guidelines, etc.). Automatically references criteria to be compared with review target documents.",
+    "knowledgeBaseWarning": "Note: Knowledge Base must exist in the same region and AWS account as this application.",
+    "knowledgeBaseId": "Knowledge Base ID",
+    "dataSourceIds": "Data Source IDs (comma-separated, optional)",
+    "addKnowledgeBase": "Add Knowledge Base",
+    "remove": "Remove",
+    "mcp": "MCP (Model Context Protocol)",
+    "mcpComingSoon": "Coming Soon",
+    "createTitle": "Create Tool Configuration",
+    "createDescription": "Configure tools for checklist items",
+    "detailsTitle": "Tool Configuration",
+    "detailsDescription": "Tool configuration details",
+    "backToList": "Back to Tool Configurations",
+    "notFound": "Tool configuration not found",
+    "loadError": "Failed to retrieve tool configuration",
+    "deleteConfirmation": "Delete \"{{name}}\"?",
+    "deleteTitle": "Confirm",
+    "deleteButton": "Delete",
+    "deleteError": "Cannot delete tool configuration that is in use",
+    "deleteSuccess": "Tool configuration deleted successfully",
+    "usage": "Usage",
+    "usedBy": "Used by {{count}} items",
+    "noConfigurations": "No tool configurations found",
+    "createSuccess": "Tool configuration created successfully",
+    "createError": "Failed to create tool configuration",
+    "updating": "Updating...",
+    "creating": "Creating..."
   }
 }

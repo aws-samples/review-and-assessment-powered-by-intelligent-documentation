@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { CreateToolConfigurationRequest, KnowledgeBaseConfigUI, ToolConfiguration } from "../types";
 import Button from "../../../components/Button";
 import FormTextField from "../../../components/FormTextField";
@@ -19,6 +20,7 @@ export default function ToolConfigurationForm({
   onSubmit,
   onCancel,
 }: ToolConfigurationFormProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [codeInterpreter, setCodeInterpreter] = useState(false);
@@ -61,11 +63,11 @@ export default function ToolConfigurationForm({
     };
 
     if (!name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = t("toolConfiguration.nameRequired");
     }
 
     if (!codeInterpreter && !enableKB) {
-      newErrors.tools = "At least one tool must be enabled";
+      newErrors.tools = t("toolConfiguration.toolsRequired");
     }
 
     setErrors(newErrors);
@@ -128,7 +130,7 @@ export default function ToolConfigurationForm({
       <FormTextField
         id="name"
         name="name"
-        label="Name"
+        label={t("toolConfiguration.name")}
         value={name}
         onChange={(e) => {
           setName(e.target.value);
@@ -136,7 +138,7 @@ export default function ToolConfigurationForm({
             setErrors((prev) => ({ ...prev, name: "" }));
           }
         }}
-        placeholder="Enter configuration name"
+        placeholder={t("toolConfiguration.namePlaceholder")}
         required={!isReadOnly}
         error={errors.name}
         disabled={isReadOnly}
@@ -145,16 +147,16 @@ export default function ToolConfigurationForm({
       <FormTextArea
         id="description"
         name="description"
-        label="Description"
+        label={t("toolConfiguration.description")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="Enter description (optional)"
+        placeholder={t("toolConfiguration.descriptionPlaceholder")}
         disabled={isReadOnly}
       />
 
       <div className="mb-6">
         <label className="mb-2 block font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-          Tools {!isReadOnly && <span className="text-red">*</span>}
+          {t("toolConfiguration.tools")} {!isReadOnly && <span className="text-red">*</span>}
         </label>
 
         {errors.tools && !isReadOnly && (
@@ -181,9 +183,9 @@ export default function ToolConfigurationForm({
               disabled={isReadOnly}
             />
             <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-              Code Interpreter
+              {t("toolConfiguration.codeInterpreter")}
             </span>
-            <HelpIcon content="AIが仕様書に記載された計算式などを自動的にコード化して実行します。複雑な計算や数値検証を自律的に行い、レビュー判定を支援します。" />
+            <HelpIcon content={t("toolConfiguration.codeInterpreterHelp")} />
           </label>
 
           <div>
@@ -201,9 +203,9 @@ export default function ToolConfigurationForm({
                 disabled={isReadOnly}
               />
               <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-                Knowledge Base
+                {t("toolConfiguration.knowledgeBase")}
               </span>
-              <HelpIcon content="事前に登録した参照資料（規格書、ガイドライン等）から関連情報を検索します。レビュー対象文書と照合すべき基準を自動的に参照できます。" />
+              <HelpIcon content={t("toolConfiguration.knowledgeBaseHelp")} />
             </label>
 
             {enableKB && (
@@ -211,7 +213,7 @@ export default function ToolConfigurationForm({
                 <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
                   <HiInformationCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
                   <div className="text-blue-900">
-                    <strong>注意:</strong> Knowledge Baseはこのアプリケーションと同一リージョン・同一AWSアカウントに存在する必要があります。
+                    <strong>{t("common.warning")}:</strong> {t("toolConfiguration.knowledgeBaseWarning")}
                   </div>
                 </div>
                 {kbConfigs.map((kb, index) => (
@@ -220,7 +222,7 @@ export default function ToolConfigurationForm({
                     className="space-y-3 rounded-lg border border-light-gray bg-aws-squid-ink-lightest p-4">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-                        Knowledge Base ID {!isReadOnly && <span className="text-red">*</span>}
+                        {t("toolConfiguration.knowledgeBaseId")} {!isReadOnly && <span className="text-red">*</span>}
                       </label>
                       <input
                         type="text"
@@ -239,7 +241,7 @@ export default function ToolConfigurationForm({
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-                        Data Source IDs (comma-separated, optional)
+                        {t("toolConfiguration.dataSourceIds")}
                       </label>
                       <input
                         type="text"
@@ -258,14 +260,14 @@ export default function ToolConfigurationForm({
                         onClick={() => removeKBConfig(index)}
                         variant="danger"
                         outline>
-                        Remove
+                        {t("toolConfiguration.remove")}
                       </Button>
                     )}
                   </div>
                 ))}
                 {!isReadOnly && (
                   <Button type="button" onClick={addKBConfig} outline>
-                    Add Knowledge Base
+                    {t("toolConfiguration.addKnowledgeBase")}
                   </Button>
                 )}
               </div>
@@ -281,10 +283,10 @@ export default function ToolConfigurationForm({
                 className="h-4 w-4 rounded border-gray-300"
               />
               <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-                MCP (Model Context Protocol)
+                {t("toolConfiguration.mcp")}
               </span>
               <span className="text-xs text-aws-font-color-gray italic">
-                Coming Soon
+                {t("toolConfiguration.mcpComingSoon")}
               </span>
             </label>
           </div>
@@ -293,7 +295,7 @@ export default function ToolConfigurationForm({
 
       <div className="mt-4 flex justify-end space-x-3">
         <Button type="button" onClick={onCancel} outline>
-          {isReadOnly ? 'Close' : 'Cancel'}
+          {isReadOnly ? t("common.close") : t("common.cancel")}
         </Button>
         {!isReadOnly && (
           <Button type="submit" variant="primary" disabled={isSubmitting}>
@@ -302,7 +304,7 @@ export default function ToolConfigurationForm({
                 <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent"></div>
               </div>
             )}
-            {mode === 'create' ? 'Create' : 'Save'}
+            {mode === 'create' ? t("common.create") : t("common.save")}
           </Button>
         )}
       </div>

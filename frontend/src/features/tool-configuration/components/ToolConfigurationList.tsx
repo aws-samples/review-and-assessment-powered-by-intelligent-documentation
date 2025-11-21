@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { HiTrash, HiLockClosed, HiEye } from "react-icons/hi";
 import { ToolConfiguration } from "../types";
 import Table, { TableColumn, TableAction } from "../../../components/Table";
@@ -15,6 +16,7 @@ export default function ToolConfigurationList({
   isLoading,
   onDelete,
 }: ToolConfigurationListProps) {
+  const { t } = useTranslation();
   const { showConfirm, showError, AlertModal } = useAlert();
 
   const handleRowClick = (item: ToolConfiguration) => {
@@ -23,18 +25,18 @@ export default function ToolConfigurationList({
 
   const handleDelete = (item: ToolConfiguration, e: React.MouseEvent) => {
     if ((item.usageCount ?? 0) > 0) {
-      showError("Cannot delete tool configuration that is in use");
+      showError(t("toolConfiguration.deleteError"));
       return;
     }
 
-    showConfirm(`Delete "${item.name}"?`, {
-      title: "Confirm",
-      confirmButtonText: "Delete",
+    showConfirm(t("toolConfiguration.deleteConfirmation", { name: item.name }), {
+      title: t("toolConfiguration.deleteTitle"),
+      confirmButtonText: t("toolConfiguration.deleteButton"),
       onConfirm: async () => {
         try {
           await onDelete(item.id, item.name);
         } catch (error) {
-          showError(`Failed to delete "${item.name}"`);
+          showError(t("toolConfiguration.deleteError"));
         }
       },
     });
@@ -43,7 +45,7 @@ export default function ToolConfigurationList({
   const columns: TableColumn<ToolConfiguration>[] = [
     {
       key: "name",
-      header: "Name",
+      header: t("toolConfiguration.name"),
       render: (item) => (
         <div>
           <div className="text-sm font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
@@ -59,35 +61,35 @@ export default function ToolConfigurationList({
     },
     {
       key: "tools",
-      header: "Tools",
+      header: t("toolConfiguration.tools"),
       render: (item) => {
         const tools = [];
         if (item.knowledgeBase && item.knowledgeBase.length > 0) {
           tools.push(`KB (${item.knowledgeBase.length})`);
         }
         if (item.codeInterpreter) {
-          tools.push("Code Interpreter");
+          tools.push(t("toolConfiguration.codeInterpreter"));
         }
         if (item.mcpConfig) {
-          tools.push("MCP");
+          tools.push(t("toolConfiguration.mcp"));
         }
         return (
           <div className="text-sm text-aws-font-color-gray">
-            {tools.join(", ") || "None"}
+            {tools.join(", ") || t("review.noDocuments")}
           </div>
         );
       },
     },
     {
       key: "usageCount",
-      header: "Usage",
+      header: t("toolConfiguration.usage"),
       render: (item) => (
         <div className="flex items-center gap-2">
           {(item.usageCount ?? 0) > 0 && (
             <HiLockClosed className="h-5 w-5 text-aws-font-color-gray" />
           )}
           <span className="text-sm text-aws-font-color-gray">
-            Used by {item.usageCount ?? 0} items
+            {t("toolConfiguration.usedBy", { count: item.usageCount ?? 0 })}
           </span>
         </div>
       ),
@@ -97,7 +99,7 @@ export default function ToolConfigurationList({
   const actions: TableAction<ToolConfiguration>[] = [
     {
       icon: <HiEye className="mr-1 h-4 w-4" />,
-      label: "Details",
+      label: t("common.details"),
       onClick: (item) => {
         window.location.href = `/tool-configurations/${item.id}`;
       },
@@ -107,7 +109,7 @@ export default function ToolConfigurationList({
     },
     {
       icon: <HiTrash className="mr-1 h-4 w-4" />,
-      label: "Delete",
+      label: t("common.delete"),
       onClick: handleDelete,
       disabled: (item) => (item.usageCount ?? 0) > 0,
       variant: "danger",
@@ -123,7 +125,7 @@ export default function ToolConfigurationList({
         columns={columns}
         actions={actions}
         isLoading={isLoading}
-        emptyMessage="No tool configurations found"
+        emptyMessage={t("toolConfiguration.noConfigurations")}
         keyExtractor={(item) => item.id}
         onRowClick={handleRowClick}
         rowClickable={true}

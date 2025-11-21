@@ -1,11 +1,13 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useToolConfiguration } from "../hooks/useToolConfigurationQueries";
 import ToolConfigurationForm from "../components/ToolConfigurationForm";
 import PageHeader from "../../../components/PageHeader";
 import { HiExclamationCircle } from "react-icons/hi";
 
 export default function ToolConfigurationDetailPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { toolConfiguration, isLoading, error } = useToolConfiguration(id!);
@@ -26,10 +28,10 @@ export default function ToolConfigurationDetailPage() {
     return (
       <div>
         <PageHeader
-          title="Tool Configuration"
+          title={t("toolConfiguration.detailsTitle")}
           backLink={{
             to: "/tool-configurations",
-            label: "Back to Tool Configurations",
+            label: t("toolConfiguration.backToList"),
           }}
         />
         <div
@@ -37,9 +39,9 @@ export default function ToolConfigurationDetailPage() {
           role="alert">
           <div className="flex items-center">
             <HiExclamationCircle className="mr-2 h-6 w-6" />
-            <strong className="font-medium">Error: </strong>
+            <strong className="font-medium">{t("common.error")}: </strong>
             <span className="ml-2">
-              {error?.message || "Tool configuration not found"}
+              {error?.message || t("toolConfiguration.notFound")}
             </span>
           </div>
         </div>
@@ -51,10 +53,10 @@ export default function ToolConfigurationDetailPage() {
     <div>
       <PageHeader
         title={toolConfiguration.name}
-        description="Tool configuration details"
+        description={t("toolConfiguration.detailsDescription")}
         backLink={{
           to: "/tool-configurations",
-          label: "Back to Tool Configurations",
+          label: t("toolConfiguration.backToList"),
         }}
       />
 

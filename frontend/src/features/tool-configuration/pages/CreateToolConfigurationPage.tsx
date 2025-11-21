@@ -1,11 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCreateToolConfiguration } from "../hooks/useToolConfigurationMutations";
 import ToolConfigurationForm from "../components/ToolConfigurationForm";
 import { CreateToolConfigurationRequest } from "../types";
 import PageHeader from "../../../components/PageHeader";
 
 export default function CreateToolConfigurationPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { createToolConfiguration } = useCreateToolConfiguration();
 
@@ -21,11 +23,11 @@ export default function CreateToolConfigurationPage() {
   return (
     <div>
       <PageHeader
-        title="Create Tool Configuration"
-        description="Configure tools for checklist items"
+        title={t("toolConfiguration.createTitle")}
+        description={t("toolConfiguration.createDescription")}
         backLink={{
           to: "/tool-configurations",
-          label: "Back to Tool Configurations",
+          label: t("toolConfiguration.backToList"),
         }}
       />
 

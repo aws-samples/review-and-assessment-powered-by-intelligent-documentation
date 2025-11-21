@@ -104,7 +104,7 @@ export default function Sidebar() {
                   }`}
                   onClick={() => setIsOpen(false)}>
                   <HiCog className="mr-3 h-5 w-5" />
-                  Tool Configuration
+                  {t("sidebar.toolConfiguration")}
                 </Link>
               </li>
 

@@ -312,7 +312,7 @@ export function CheckListSetDetailPage() {
                     onClick={() => setIsToolConfigModalOpen(true)}
                     disabled={selectedItemIds.size === 0}
                     icon={<HiCog className="h-5 w-5" />}>
-                    Assign Tool Configuration
+                    {t("checklist.assignToolConfiguration")}
                     {selectedItemIds.size > 0 && ` (${selectedItemIds.size})`}
                   </Button>
                 </div>
