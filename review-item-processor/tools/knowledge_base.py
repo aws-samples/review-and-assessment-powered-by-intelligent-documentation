@@ -2,9 +2,9 @@ import os
 from typing import Any, Dict, List, Optional, TypedDict
 
 import boto3
+from logger import logger
 from strands.tools import tool
 from strands.types.tools import AgentTool
-from logger import logger
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 
@@ -133,7 +133,7 @@ def _format_location(location: Dict[str, Any]) -> str:
 
     if loc_type == "S3":
         s3_location = location.get("s3Location", {})
-        return f"s3://{s3_location.get('uri', 'unknown')}"
+        return f"{s3_location.get('uri', 'unknown')}"
     elif loc_type == "WEB":
         web_location = location.get("webLocation", {})
         return web_location.get("url", "unknown")
