@@ -13,6 +13,7 @@ import {
   HiPencil,
   HiTrash,
   HiPlus,
+  HiCog,
 } from "react-icons/hi";
 import CheckListItemEditModal from "./CheckListItemEditModal";
 import CheckListItemAddModal from "./CheckListItemAddModal";
@@ -23,6 +24,7 @@ import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import Button from "../../../components/Button";
 import ResultCard from "../../../components/ResultCard";
+import Tooltip from "../../../components/Tooltip";
 
 interface CheckListItemTreeNodeProps {
   setId: string;
@@ -159,8 +161,23 @@ export default function CheckListItemTreeNode({
                   </button>
                 )}
                 <div>
-                  <div className="flex items-center font-medium text-aws-squid-ink-light">
+                  <div className="flex items-center gap-2 font-medium text-aws-squid-ink-light">
                     {item.name}
+                    
+                    {/* ツール設定アイコン - 名前の厳密な右 */}
+                    {item.toolConfiguration && (
+                      <Tooltip content={item.toolConfiguration.name}>
+                        <a
+                          href={`/tool-configurations/${item.toolConfiguration.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray hover:text-aws-font-color-blue transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <HiCog className="h-4 w-4" />
+                        </a>
+                      </Tooltip>
+                    )}
                   </div>
                   {item.description && (
                     <p className="mt-1 text-sm text-aws-font-color-gray">
