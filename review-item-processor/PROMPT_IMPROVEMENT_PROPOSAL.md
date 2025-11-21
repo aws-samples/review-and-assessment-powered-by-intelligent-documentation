@@ -2,13 +2,95 @@
 
 ## 改善の方針
 
-Claude 4ベストプラクティスに基づき、以下の方針で改善します:
+Claude 4ベストプラクティス（https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices）に基づき、以下の方針で改善します:
 
-1. **肯定形の指示に変更**: "Do not"を削除し、"Do"で指示
-2. **明示的なツール使用指示**: デフォルト動作を明確化
-3. **簡潔化**: 冗長な説明を削除
-4. **並列実行の最適化**: 複数ツールの同時実行を促進
-5. **一貫したJSON制御**: マーカーの統一使用
+1. **XMLタグで構造化**: 重要なセクションをXMLタグで明示
+2. **肯定形の指示に変更**: "Do not"を削除し、"Do"で指示
+3. **動的ツールセクション生成**: ツール設定に基づいてプロンプトを動的生成
+4. **簡潔化**: 冗長な例示を削除
+5. **並列実行の最適化**: 複数ツールの同時実行を促進
+6. **一貫したJSON制御**: マーカーの統一使用
+
+## 現在のツール構成
+
+実装済み:
+- **Code Interpreter**: 計算・データ分析
+- **Knowledge Base**: 規制・標準の検索
+- **MCP**: 将来実装予定（任意のツール追加可能）
+
+注意: インターネットアクセスは想定されていない
+
+---
+
+## 動的ツールセクション生成
+
+ツール設定に基づいてプロンプトを動的に生成する関数を追加:
+
+```python
+def _build_tool_usage_section(
+    tool_config: Optional[ToolConfiguration],
+    language_name: str,
+) -> str:
+    """Build tool usage section dynamically based on configuration"""
+    if not tool_config:
+        return ""
+    
+    tool_descriptions = []
+    use_cases = []
+    
+    # Code Interpreter
+    if tool_config.get("codeInterpreter", False):
+        tool_descriptions.append(
+            "- **code_interpreter**: Perform calculations, data analysis, or process structured data"
+        )
+        use_cases.append("- Perform calculations or data analysis → Use code_interpreter")
+    
+    # Knowledge Base
+    kb_config = tool_config.get("knowledgeBase")
+    if kb_config:
+        tool_descriptions.append(
+            "- **knowledge_base_query**: Search knowledge bases for regulations, standards, or reference information"
+        )
+        use_cases.append("- Verify compliance with regulations/standards → Use knowledge_base_query")
+    
+    # MCP (future)
+    mcp_config = tool_config.get("mcpConfig")
+    if mcp_config:
+        tool_descriptions.append(
+            "- **MCP tools**: Additional specialized tools configured for this review"
+        )
+        use_cases.append("- Access external data sources → Use MCP tools")
+    
+    if not tool_descriptions:
+        return ""
+    
+    tools_list = "\n".join(tool_descriptions)
+    use_cases_list = "\n".join(use_cases)
+    
+    return f"""
+<tool_usage>
+<default_to_action>
+Use available tools proactively to verify information:
+
+{tools_list}
+
+When to use tools:
+{use_cases_list}
+- Confidence below 0.80 → Use tools to increase confidence
+</default_to_action>
+
+<use_parallel_tool_calls>
+When calling multiple independent tools, execute them in parallel. Only call tools sequentially when later calls depend on earlier results.
+</use_parallel_tool_calls>
+</tool_usage>
+"""
+```
+
+**メリット**:
+- ツール設定なし → Tool Usageセクション自体が表示されない
+- Code Interpreterのみ → Code Interpreterの説明のみ
+- KB + Code Interpreter → 両方の説明
+- MCP対応準備完了 → `mcpConfig`があれば自動追加
 
 ---
 
@@ -19,8 +101,9 @@ def _get_document_review_prompt_legacy(
     language_name: str,
     check_name: str,
     check_description: str,
+    tool_config: Optional[ToolConfiguration] = None,
 ) -> str:
-    """Improved PDF document review prompt for legacy file_read approach"""
+    """Improved PDF document review prompt with dynamic tool section"""
 
     json_schema = f"""{{
   "result": "pass" | "fail",
@@ -31,71 +114,74 @@ def _get_document_review_prompt_legacy(
   "pageNumber": <integer starting from 1>
 }}"""
 
+    tool_section = _build_tool_usage_section(tool_config, language_name)
+
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
-**Check Item**: {check_name}
+<check_item>
+**Name**: {check_name}
 **Description**: {check_description}
+</check_item>
 
-## Document Access
+<document_access>
 Use the file_read tool to open and inspect each attached file.
-
-## Tool Usage - Default to Action
-<default_to_action>
-By default, use external tools proactively to verify information. When you need factual verification, compliance checks, or supplementary evidence, immediately call the appropriate tool rather than making assumptions.
-
-Use tools in these situations:
-- Verify factual information (addresses, names, figures, dates) → Use search/scrape MCP tools
-- Check compliance with regulations/standards → Use knowledge_base_query
-- Resolve ambiguous or contradictory content → Use MCP tools for clarification
-- Confirm technical definitions or regulations → Use authoritative reference tools
-- Verify organization/person legitimacy → Use public registry tools
-- Check recent events/regulations (within 2 years) → Use current information tools
-- Confidence below 0.80 → Use one or more tools to increase confidence
-</default_to_action>
-
-<use_parallel_tool_calls>
-When calling multiple independent tools, execute them in parallel. For example, if verifying three different facts, make three tool calls simultaneously rather than sequentially. Only call tools sequentially when later calls depend on earlier results.
-</use_parallel_tool_calls>
-
-## Output Requirements
+</document_access>
+{tool_section}
+<output_requirements>
 Generate your entire response in {language_name}. Output only the JSON below, enclosed in markers:
 
 <<JSON_START>>
 {json_schema}
 <<JSON_END>>
 
-**Confidence Guidelines**:
+Confidence guidelines:
 - 0.90-1.00: Clear evidence, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence with some uncertainty
 - 0.50-0.69: Ambiguous evidence, significant uncertainty
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
+</output_requirements>
 """.strip()
 ```
 
 **主な変更点と理由**:
 
-1. ✅ **`<default_to_action>`タグ追加**
-   - 理由: Claude 4.5はデフォルトでツールを積極的に使うよう明示的に指示する必要がある
-   - 効果: "can you suggest"のような曖昧な表現を避け、即座にアクションを取る
+1. ✅ **XMLタグで構造化**
+   - 追加: `<check_item>`, `<document_access>`, `<tool_usage>`, `<output_requirements>`
+   - 理由: Claude 4.5はXMLタグで構造化された指示を好む
+   - 効果: セクションの明確化、指示の理解向上
 
-2. ✅ **`<use_parallel_tool_calls>`タグ追加**
+2. ✅ **動的ツールセクション生成**
+   - 追加: `tool_config`パラメータと`_build_tool_usage_section()`関数
+   - 理由: ツール設定に基づいて必要な指示のみを含める
+   - 効果: 不要な情報を排除、プロンプトの簡潔性向上
+
+3. ✅ **`<default_to_action>`タグ（条件付き）**
+   - 理由: ツールがある場合のみ積極的使用を促す
+   - 効果: ツールなし時は不要な指示を避ける
+
+4. ✅ **`<use_parallel_tool_calls>`タグ（条件付き）**
    - 理由: Claude 4.5の並列実行能力を最大限活用
    - 効果: 複数の検証を同時実行し、処理速度向上
 
-3. ✅ **否定形の削除**
+5. ✅ **否定形の削除**
    - 変更前: "Do **not** output anything outside the JSON"
-   - 変更後: "Output only the JSON below, enclosed in markers"
+   - 変更後: "Output only the JSON below"
    - 理由: ベストプラクティス「Tell Claude what to do instead of what not to do」
 
-4. ✅ **冗長な例示の削除**
-   - 変更前: 長い例示セクション
+6. ✅ **冗長な例示の削除**
+   - 変更前: 長い例示セクション（High-confidence pass, Medium-confidence fail）
    - 変更後: 簡潔な信頼度ガイドラインのみ
    - 理由: Claude 4.5は簡潔な指示を好む
 
-5. ✅ **マーカーの一貫使用**
+7. ✅ **マーカーの一貫使用**
    - すべてのプロンプトで`<<JSON_START>>`/`<<JSON_END>>`を使用
    - 理由: JSON抽出の信頼性向上
+
+8. ✅ **実装との整合性**
+   - インターネット関連の記述を削除（MCP未実装のため）
+   - 実装済みツール（Code Interpreter, Knowledge Base）のみ言及
+   - 理由: 実装されていない機能への言及を避ける
 
 ---
 

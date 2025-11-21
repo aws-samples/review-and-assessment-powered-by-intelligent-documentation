@@ -21,7 +21,11 @@ export function useCreateCheckListItem(setId: string) {
   const createCheckListItem = async (body: CreateChecklistItemRequest) => {
     const res = await mutateAsync(body);
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
@@ -46,8 +50,11 @@ export function useUpdateCheckListItem(setId: string) {
       `/checklist-sets/${setId}/items/${itemId}`
     );
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
-    mutate(`/checklist-sets/${setId}/items/${itemId}`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
@@ -69,7 +76,11 @@ export function useDeleteCheckListItem(setId: string) {
       `/checklist-sets/${setId}/items/${itemId}`
     );
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
@@ -94,7 +105,10 @@ export function useBulkAssignToolConfiguration() {
       "/checklist-items/bulk/tool-configuration"
     );
     mutate(
-      (key) => typeof key === "string" && key.includes("/items/hierarchy")
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith("/checklist-sets/") &&
+        key.includes("/items")
     );
     return res;
   };
