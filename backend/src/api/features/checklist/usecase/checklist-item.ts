@@ -115,14 +115,15 @@ export const removeCheckListItem = async (params: {
   });
 };
 
-export const assignToolConfiguration = async (params: {
-  checkId: string;
+export const bulkAssignToolConfiguration = async (params: {
+  checkIds: string[];
   toolConfigurationId: string | null;
   deps?: { repo?: CheckRepository };
-}): Promise<void> => {
+}): Promise<number> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
-  await repo.updateToolConfiguration({
-    checkId: params.checkId,
+  const updatedCount = await repo.bulkUpdateToolConfiguration({
+    checkIds: params.checkIds,
     toolConfigurationId: params.toolConfigurationId,
   });
+  return updatedCount;
 };

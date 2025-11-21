@@ -33,7 +33,7 @@ import { ErrorAlert } from "../../../components/ErrorAlert";
 import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
 import { AmbiguityFilter } from "../types";
-import { useAssignToolConfiguration } from "../hooks/useCheckListItemMutations";
+import { useBulkAssignToolConfiguration } from "../hooks/useCheckListItemMutations";
 
 /**
  * チェックリストセット詳細ページ
@@ -63,7 +63,7 @@ export function CheckListSetDetailPage() {
   );
   const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
   const isDetecting = checklistSet?.processingStatus === 'detecting';
-  const { assignToolConfiguration } = useAssignToolConfiguration();
+  const { bulkAssignToolConfiguration } = useBulkAssignToolConfiguration();
 
   const { showConfirm, AlertModal } = useAlert();
 
@@ -147,14 +147,8 @@ export function CheckListSetDetailPage() {
     if (selectedItemIds.size === 0) return;
 
     try {
-      // TODO: Backend側で一括割り当てAPIが実装されたら、以下を置き換える
-      // await bulkAssignToolConfiguration(Array.from(selectedItemIds), configId);
-      
-      // 暫定実装: 既存APIを複数回呼び出し
-      for (const itemId of selectedItemIds) {
-        await assignToolConfiguration(itemId, configId);
-      }
-      
+      await bulkAssignToolConfiguration(Array.from(selectedItemIds), configId);
+
       addToast("Tool configuration assigned successfully", "success");
       setSelectedItemIds(new Set());
       setIsToolConfigModalOpen(false);

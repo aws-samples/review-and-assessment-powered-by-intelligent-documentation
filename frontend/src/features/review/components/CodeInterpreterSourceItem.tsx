@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiChevronRight, HiCheckCircle, HiXCircle } from "react-icons/hi";
 import Button from "../../../components/Button";
-import Tooltip from "../../../components/Tooltip";
+import HelpIcon from "../../../components/HelpIcon";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
@@ -40,9 +40,7 @@ export default function CodeInterpreterSourceItem({ source }: CodeInterpreterSou
             <span className="font-medium text-aws-squid-ink-light">
               {t("review.sources.codeInterpreter.title")}
             </span>
-            <Tooltip content={t("review.sources.codeInterpreter.tooltip")} position="top">
-              <span className="text-xs text-aws-font-color-blue cursor-help underline decoration-dotted">?</span>
-            </Tooltip>
+            <HelpIcon content={t("review.sources.codeInterpreter.tooltip")} />
           </div>
         </div>
         <Button

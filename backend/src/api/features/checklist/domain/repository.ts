@@ -53,10 +53,10 @@ export interface CheckRepository {
     itemId: string;
     ambiguityReview: AmbiguityDetectionResult;
   }): Promise<void>;
-  updateToolConfiguration(params: {
-    checkId: string;
+  bulkUpdateToolConfiguration(params: {
+    checkIds: string[];
     toolConfigurationId: string | null;
-  }): Promise<void>;
+  }): Promise<number>;
 }
 
 export const makePrismaCheckRepository = async (
@@ -641,14 +641,21 @@ export const makePrismaCheckRepository = async (
     });
   };
 
-  const updateToolConfiguration = async (params: {
-    checkId: string;
+  const bulkUpdateToolConfiguration = async (params: {
+    checkIds: string[];
     toolConfigurationId: string | null;
-  }): Promise<void> => {
-    await client.checkList.update({
-      where: { id: params.checkId },
-      data: { toolConfigurationId: params.toolConfigurationId },
+  }): Promise<number> => {
+    const result = await client.checkList.updateMany({
+      where: {
+        id: {
+          in: params.checkIds,
+        },
+      },
+      data: {
+        toolConfigurationId: params.toolConfigurationId,
+      },
     });
+    return result.count;
   };
 
   return {
@@ -666,6 +673,6 @@ export const makePrismaCheckRepository = async (
     deleteCheckListItemById,
     checkSetEditable,
     updateAmbiguityReview,
-    updateToolConfiguration,
+    bulkUpdateToolConfiguration,
   };
 };

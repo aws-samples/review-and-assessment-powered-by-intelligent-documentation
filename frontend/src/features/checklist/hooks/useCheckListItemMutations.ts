@@ -77,28 +77,27 @@ export function useDeleteCheckListItem(setId: string) {
 }
 
 /**
- * ツール設定の割り当て
+ * 一括ツール設定の割り当て
  */
-export function useAssignToolConfiguration() {
+export function useBulkAssignToolConfiguration() {
   const { mutateAsync, status, error } = useApiClient().useMutation<
-    { success: boolean },
-    { toolConfigurationId: string | null }
-  >("patch", "/checklist-items");
+    { success: boolean; updatedCount: number },
+    { checkIds: string[]; toolConfigurationId: string | null }
+  >("patch", "/checklist-items/bulk/tool-configuration");
 
-  const assignToolConfiguration = async (
-    checkId: string,
+  const bulkAssignToolConfiguration = async (
+    checkIds: string[],
     toolConfigurationId: string | null
   ) => {
     const res = await mutateAsync(
-      { toolConfigurationId },
-      `/checklist-items/${checkId}/tool-configuration`
+      { checkIds, toolConfigurationId },
+      "/checklist-items/bulk/tool-configuration"
     );
-    // キャッシュ更新
     mutate(
       (key) => typeof key === "string" && key.includes("/items/hierarchy")
     );
     return res;
   };
 
-  return { assignToolConfiguration, status, error };
+  return { bulkAssignToolConfiguration, status, error };
 }

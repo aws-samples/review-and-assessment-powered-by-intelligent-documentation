@@ -3,7 +3,8 @@ import { CreateToolConfigurationRequest, KnowledgeBaseConfig, ToolConfiguration 
 import Button from "../../../components/Button";
 import FormTextField from "../../../components/FormTextField";
 import FormTextArea from "../../../components/FormTextArea";
-import { HiExclamationCircle } from "react-icons/hi";
+import HelpIcon from "../../../components/HelpIcon";
+import { HiExclamationCircle, HiInformationCircle } from "react-icons/hi";
 
 type ToolConfigurationFormProps = {
   mode: 'create' | 'view' | 'edit';
@@ -172,6 +173,7 @@ export default function ToolConfigurationForm({
             <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
               Code Interpreter
             </span>
+            <HelpIcon content="AIが仕様書に記載された計算式などを自動的にコード化して実行します。複雑な計算や数値検証を自律的に行い、レビュー判定を支援します。" />
           </label>
 
           <div>
@@ -191,10 +193,17 @@ export default function ToolConfigurationForm({
               <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
                 Knowledge Base
               </span>
+              <HelpIcon content="事前に登録した参照資料（規格書、ガイドライン等）から関連情報を検索します。レビュー対象文書と照合すべき基準を自動的に参照できます。" />
             </label>
 
             {enableKB && (
               <div className="ml-6 mt-4 space-y-4">
+                <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+                  <HiInformationCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+                  <div className="text-blue-900">
+                    <strong>注意:</strong> Knowledge Baseはこのアプリケーションと同一リージョン・同一AWSアカウントに存在する必要があります。
+                  </div>
+                </div>
                 {kbConfigs.map((kb, index) => (
                   <div
                     key={index}

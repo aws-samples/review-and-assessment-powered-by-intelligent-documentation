@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiChevronRight, HiCheckCircle, HiDocumentText, HiExternalLink } from "react-icons/hi";
 import Button from "../../../components/Button";
-import Tooltip from "../../../components/Tooltip";
+import HelpIcon from "../../../components/HelpIcon";
 import { usePresignedDownloadUrl } from "../../../hooks/usePresignedDownloadUrl";
 import { parseS3Uri } from "../../../utils/s3";
 
@@ -99,9 +99,7 @@ export default function KnowledgeBaseSourceItem({ source }: KnowledgeBaseSourceI
             <span className="font-medium text-aws-squid-ink-light">
               {t("review.sources.knowledgeBase.title")}
             </span>
-            <Tooltip content={t("review.sources.knowledgeBase.tooltip")} position="top">
-              <span className="text-xs text-aws-font-color-blue cursor-help underline decoration-dotted">?</span>
-            </Tooltip>
+            <HelpIcon content={t("review.sources.knowledgeBase.tooltip")} />
           </div>
         </div>
         <Button
