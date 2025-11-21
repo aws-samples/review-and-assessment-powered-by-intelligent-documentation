@@ -617,92 +617,111 @@ def _agent_message_to_dict_with_citations(
     return _agent_message_to_dict(message, agent_response, use_citations=True)
 
 
+# Helper function for dynamic tool section generation
+def _build_tool_usage_section(
+    tool_config: Optional[Dict[str, Any]],
+    language_name: str,
+) -> str:
+    """Build tool usage section dynamically based on configuration"""
+    if not tool_config:
+        return ""
+
+    tool_descriptions = []
+    use_cases = []
+
+    # Code Interpreter
+    if tool_config.get("codeInterpreter", False):
+        tool_descriptions.append(
+            "- **code_interpreter**: Perform calculations, data analysis, or process structured data"
+        )
+        use_cases.append("- Perform calculations or data analysis → Use code_interpreter")
+
+    # Knowledge Base
+    kb_config = tool_config.get("knowledgeBase")
+    if kb_config:
+        tool_descriptions.append(
+            "- **knowledge_base_query**: Search knowledge bases for regulations, standards, or reference information"
+        )
+        use_cases.append("- Verify compliance with regulations/standards → Use knowledge_base_query")
+
+    # MCP (future)
+    mcp_config = tool_config.get("mcpConfig")
+    if mcp_config:
+        tool_descriptions.append(
+            "- **MCP tools**: Additional specialized tools configured for this review"
+        )
+        use_cases.append("- Access external data sources → Use MCP tools")
+
+    if not tool_descriptions:
+        return ""
+
+    tools_list = "\n".join(tool_descriptions)
+    use_cases_list = "\n".join(use_cases)
+
+    return f"""
+<tool_usage>
+<default_to_action>
+Use available tools proactively to verify information:
+
+{tools_list}
+
+When to use tools:
+{use_cases_list}
+- Confidence below 0.80 → Use tools to increase confidence
+</default_to_action>
+
+<use_parallel_tool_calls>
+When calling multiple independent tools, execute them in parallel. Only call tools sequentially when later calls depend on earlier results.
+</use_parallel_tool_calls>
+</tool_usage>
+"""
+
+
 # Prompt generation functions
 def _get_document_review_prompt_legacy(
     language_name: str,
     check_name: str,
     check_description: str,
+    tool_config: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """PDF document review prompt for legacy file_read approach"""
-
-    document_access_section = """## DOCUMENT ACCESS
-The actual files are attached. Use the provided *file_read* tool to open and inspect each file."""
+    """Improved PDF document review prompt with dynamic tool section"""
 
     json_schema = f"""{{
   "result": "pass" | "fail",
   "confidence": <number between 0 and 1>,
-  "explanation": "<detailed reasoning> (IN {language_name})",
-  "shortExplanation": "<≤80 characters summary> (IN {language_name})",
-  "extractedText": "<relevant excerpt> (IN {language_name})",
+  "explanation": "<detailed reasoning in {language_name}>",
+  "shortExplanation": "<max 80 chars in {language_name}>",
+  "extractedText": "<relevant excerpt in {language_name}>",
   "pageNumber": <integer starting from 1>
 }}"""
 
-    return f"""
-You are an AI assistant that reviews documents.
-Please review the provided documents based on the following check item.
+    tool_section = _build_tool_usage_section(tool_config, language_name)
 
-Check item: {check_name}
-Description: {check_description}
+    return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
-{document_access_section}
+<check_item>
+**Name**: {check_name}
+**Description**: {check_description}
+</check_item>
 
-## WHEN & HOW TO USE EXTERNAL TOOLS
-You have access to additional tools including MCP tools and knowledge_base_query.
-Follow these guidelines:
+<document_access>
+Use the file_read tool to open and inspect each attached file.
+</document_access>
+{tool_section}
+<output_requirements>
+Generate your entire response in {language_name}. Output only the JSON below, enclosed in markers:
 
-- WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
-  → **USE** a search/scrape-type MCP tool to confirm with external sources.
-- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
-  → **USE** knowledge_base_query to search authoritative knowledge bases.
-- WHEN the document content is incomplete, ambiguous, or contradictory  
-  → **USE** MCP tools to gather supplementary evidence.
-- WHEN precise definitions of technical terms or regulations are required  
-  → **USE** an MCP tool to consult official or authoritative references.
-- WHEN confirming the existence or legitimacy of an organisation/person  
-  → **USE** an MCP tool that can access public registries or databases.
-- WHEN the topic involves events or regulations updated within the last 2 years  
-  → **USE** an MCP tool to obtain the latest information.
-- WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more external tools to raise your confidence.
-
-## IMPORTANT OUTPUT LANGUAGE REQUIREMENT
-YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.  
-THIS IS A STRICT REQUIREMENT. **ALL TEXT, INCLUDING EVERY JSON FIELD VALUE, MUST BE IN {language_name}.**
-
-Determine whether the document complies with the check item and respond **only** in the following JSON format.  
-Do **not** output anything outside the JSON. Do **not** use markdown code fences such as ```json.
-
+<<JSON_START>>
 {json_schema}
+<<JSON_END>>
 
-### Confidence‐score examples
-- **High** (0.90 – 1.00): clear evidence, obvious compliance/non-compliance  
-- **Medium** (0.70 – 0.89): relevant evidence but some uncertainty  
-- **Low** (0.50 – 0.69): ambiguous evidence, significant uncertainty  
+Confidence guidelines:
+- 0.90-1.00: Clear evidence, obvious compliance/non-compliance
+- 0.70-0.89: Relevant evidence with some uncertainty
+- 0.50-0.69: Ambiguous evidence, significant uncertainty
 
-### Example responses  
-*(illustrative only — your real output must be in {language_name})*
-
-**High-confidence pass**
-{{
-  "result": "pass",
-  "confidence": 0.95,
-  "explanation": "The contractor's name, address, and contact information are clearly stated in Article 3.",
-  "shortExplanation": "Pass: contractor info present in Article 3",
-  "extractedText": "Article 3 (Contractor Information)…",
-  "pageNumber": 2
-}}
-
-**Medium-confidence fail**
-{{
-  "result": "fail",
-  "confidence": 0.80,
-  "explanation": "Property area is not mentioned in the document.",
-  "shortExplanation": "Fail: property area missing",
-  "extractedText": "Property location: …",
-  "pageNumber": 1
-}}
-
-REMEMBER: YOUR ENTIRE RESPONSE, INCLUDING EVERY VALUE INSIDE THE JSON, MUST BE IN {language_name}.
+Your response must be valid JSON within the markers. All field values must be in {language_name}.
+</output_requirements>
 """.strip()
 
 
@@ -710,58 +729,45 @@ def _get_document_review_prompt_with_citations(
     language_name: str,
     check_name: str,
     check_description: str,
+    tool_config: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """PDF document review prompt with citation support"""
-
-    document_access_section = """## DOCUMENT ACCESS
-The actual files are attached as documents with citation support enabled."""
+    """Improved PDF document review prompt with citations and dynamic tool section"""
 
     json_schema = f"""{{
   "result": "pass" | "fail",
   "confidence": <number between 0 and 1>,
-  "explanation": "<detailed reasoning> (IN {language_name})",
-  "shortExplanation": "<≤80 characters summary> (IN {language_name})",
+  "explanation": "<detailed reasoning in {language_name}>",
+  "shortExplanation": "<max 80 chars in {language_name}>",
   "pageNumber": <integer starting from 1>
 }}"""
 
-    return f"""
-You are an AI assistant that reviews documents.
-Please review the provided documents based on the following check item.
+    tool_section = _build_tool_usage_section(tool_config, language_name)
 
-Check item: {check_name}
-Description: {check_description}
+    return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
-{document_access_section}
+<check_item>
+**Name**: {check_name}
+**Description**: {check_description}
+</check_item>
 
-## WHEN & HOW TO USE EXTERNAL TOOLS
-You have access to additional tools including MCP tools and knowledge_base_query.
-Follow these guidelines:
-
-- WHEN you need to verify factual information in the document (addresses, company names, figures, dates, etc.)  
-  → **USE** a search/scrape-type MCP tool to confirm with external sources.
-- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
-  → **USE** knowledge_base_query to search authoritative knowledge bases.
-- WHEN the document content is incomplete, ambiguous, or contradictory  
-  → **USE** MCP tools to gather supplementary evidence.
-- WHEN precise definitions of technical terms or regulations are required  
-  → **USE** an MCP tool to consult official or authoritative references.
-- WHEN confirming the existence or legitimacy of an organisation/person  
-  → **USE** an MCP tool that can access public registries or databases.
-- WHEN the topic involves events or regulations updated within the last 2 years  
-  → **USE** an MCP tool to obtain the latest information.
-- WHEN your estimated confidence would fall below **0.80**  
-  → **USE** one or more external tools to raise your confidence.
-
-
+<document_access>
+Documents are attached with citation support enabled. Reference specific passages naturally in your explanation.
+</document_access>
+{tool_section}
+<output_requirements>
+Generate your entire response in {language_name}. Output only the JSON below, enclosed in markers:
 
 <<JSON_START>>
 {json_schema}
 <<JSON_END>>
 
-IMPORTANT: 
-- ALL JSON field values must be in {language_name}
-- The natural language response will enable citation generation
-- Only output JSON within the specified markers
+Confidence guidelines:
+- 0.90-1.00: Clear evidence, obvious compliance/non-compliance
+- 0.70-0.89: Relevant evidence with some uncertainty
+- 0.50-0.69: Ambiguous evidence, significant uncertainty
+
+Your response must be valid JSON within the markers. All field values must be in {language_name}. Citations will be automatically extracted from your natural language explanation.
+</output_requirements>
 """.strip()
 
 
@@ -771,15 +777,16 @@ def get_document_review_prompt(
     check_name: str,
     check_description: str,
     use_citations: bool = False,
+    tool_config: Optional[Dict[str, Any]] = None,
 ) -> str:
     """PDF document review prompt with optional citation support"""
     if use_citations:
         return _get_document_review_prompt_with_citations(
-            language_name, check_name, check_description
+            language_name, check_name, check_description, tool_config
         )
     else:
         return _get_document_review_prompt_legacy(
-            language_name, check_name, check_description
+            language_name, check_name, check_description, tool_config
         )
 
 
@@ -788,40 +795,39 @@ def get_image_review_prompt(
     check_name: str,
     check_description: str,
     model_id: str,
+    tool_config: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """
-    Build an image-review prompt that automatically switches:
-
-    * If `model_id` contains "amazon.nova" → include bounding-box instructions
-      and the "boundingBoxes" field in the JSON schema.
-    * Otherwise (e.g. Sonnet) → omit all bounding-box requirements.
-
-    The prompt also requires `usedImageIndexes` to list **only** images actually
-    referenced when making the judgment.
-    """
+    """Improved image review prompt with dynamic tool section"""
     is_nova = "amazon.nova" in model_id
 
-    bbox_note = (
-        """
-If objects related to the check item exist in the image, provide the bounding-
-box coordinates in [x1, y1, x2, y2] format (0–1000 scale).
-"""
-        if is_nova
-        else ""
-    )
-
     bbox_field = (
-        f"""
-  ,"boundingBoxes": [
+        f""",
+  "boundingBoxes": [
       {{
         "imageIndex": <image index>,
-        "label": "<label of detected object> (IN {language_name})",
+        "label": "<label in {language_name}>",
         "coordinates": [<x1>, <y1>, <x2>, <y2>]
       }}
   ]"""
         if is_nova
         else ""
     )
+
+    bbox_instruction = (
+        "\n\nFor detected objects, provide bounding box coordinates in [x1, y1, x2, y2] format (0-1000 scale)."
+        if is_nova
+        else ""
+    )
+
+    json_schema = f"""{{
+  "result": "pass" | "fail",
+  "confidence": <number between 0 and 1>,
+  "explanation": "<detailed reasoning in {language_name}>",
+  "shortExplanation": "<max 80 chars in {language_name}>",
+  "usedImageIndexes": [<indexes of images actually referenced>]{bbox_field}
+}}"""
+
+    tool_section = _build_tool_usage_section(tool_config, language_name)
 
     return f"""
 You are an AI assistant who reviews images.
@@ -858,7 +864,7 @@ YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.
 ALL TEXT — including every JSON value — MUST BE IN {language_name}.
 
 Review the content and determine compliance. If multiple images are provided,
-address them by zero-based index (0th, 1st, …).{bbox_note}
+address them by zero-based index (0th, 1st, …).{bbox_instruction}
 
 **Populate `usedImageIndexes` only with the indexes of images you explicitly
 referenced when making your judgment; do NOT include unused images.**
@@ -907,7 +913,7 @@ def _process_review_with_citations(
     logger.debug("Using citation-enabled processing")
 
     prompt = _get_document_review_prompt_with_citations(
-        language_name, check_name, check_description
+        language_name, check_name, check_description, toolConfiguration
     )
 
     system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
@@ -940,13 +946,13 @@ def _process_review_legacy(
 
     if has_images:
         prompt = get_image_review_prompt(
-            language_name, check_name, check_description, model_id
+            language_name, check_name, check_description, model_id, toolConfiguration
         )
         tools = [file_read, image_reader]
         review_type = "IMAGE"
     else:
         prompt = _get_document_review_prompt_legacy(
-            language_name, check_name, check_description
+            language_name, check_name, check_description, toolConfiguration
         )
         tools = [file_read]
         review_type = "PDF"

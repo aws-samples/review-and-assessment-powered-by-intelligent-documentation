@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CreateToolConfigurationRequest, KnowledgeBaseConfig, ToolConfiguration } from "../types";
+import { CreateToolConfigurationRequest, KnowledgeBaseConfigUI, ToolConfiguration } from "../types";
 import Button from "../../../components/Button";
 import FormTextField from "../../../components/FormTextField";
 import FormTextArea from "../../../components/FormTextArea";
@@ -23,8 +23,8 @@ export default function ToolConfigurationForm({
   const [description, setDescription] = useState("");
   const [codeInterpreter, setCodeInterpreter] = useState(false);
   const [enableKB, setEnableKB] = useState(false);
-  const [kbConfigs, setKbConfigs] = useState<KnowledgeBaseConfig[]>([
-    { knowledgeBaseId: "", dataSourceIds: [] },
+  const [kbConfigs, setKbConfigs] = useState<KnowledgeBaseConfigUI[]>([
+    { knowledgeBaseId: "", dataSourceIds: [], dataSourceIdsRaw: "" },
   ]);
   const [errors, setErrors] = useState({
     name: "",
@@ -42,7 +42,10 @@ export default function ToolConfigurationForm({
       setCodeInterpreter(initialData.codeInterpreter);
       setEnableKB(!!initialData.knowledgeBase && initialData.knowledgeBase.length > 0);
       if (initialData.knowledgeBase && initialData.knowledgeBase.length > 0) {
-        setKbConfigs(initialData.knowledgeBase);
+        setKbConfigs(initialData.knowledgeBase.map(kb => ({
+          ...kb,
+          dataSourceIdsRaw: kb.dataSourceIds?.join(", ") || ""
+        })));
       }
     }
   }, [initialData]);
@@ -76,7 +79,9 @@ export default function ToolConfigurationForm({
       description: description.trim() || undefined,
       codeInterpreter,
       knowledgeBase: enableKB
-        ? kbConfigs.filter((kb) => kb.knowledgeBaseId.trim())
+        ? kbConfigs
+            .filter((kb) => kb.knowledgeBaseId.trim())
+            .map(({ dataSourceIdsRaw, ...kb }) => kb)
         : undefined,
     };
 
@@ -89,7 +94,7 @@ export default function ToolConfigurationForm({
   };
 
   const addKBConfig = () => {
-    setKbConfigs([...kbConfigs, { knowledgeBaseId: "", dataSourceIds: [] }]);
+    setKbConfigs([...kbConfigs, { knowledgeBaseId: "", dataSourceIds: [], dataSourceIdsRaw: "" }]);
   };
 
   const removeKBConfig = (index: number) => {
@@ -98,18 +103,23 @@ export default function ToolConfigurationForm({
 
   const updateKBConfig = (
     index: number,
-    field: keyof KnowledgeBaseConfig,
+    field: keyof KnowledgeBaseConfigUI,
     value: string
   ) => {
+    console.log(`[DEBUG] updateKBConfig called - index: ${index}, field: ${field}, value: "${value}"`);
     const updated = [...kbConfigs];
     if (field === "knowledgeBaseId") {
       updated[index].knowledgeBaseId = value;
     } else if (field === "dataSourceIds") {
-      updated[index].dataSourceIds = value
+      updated[index].dataSourceIdsRaw = value;
+      const parsed = value
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+      console.log(`[DEBUG] Parsed dataSourceIds:`, parsed);
+      updated[index].dataSourceIds = parsed;
     }
+    console.log(`[DEBUG] Updated kbConfigs:`, updated);
     setKbConfigs(updated);
   };
 
@@ -233,10 +243,11 @@ export default function ToolConfigurationForm({
                       </label>
                       <input
                         type="text"
-                        value={kb.dataSourceIds?.join(", ") || ""}
-                        onChange={(e) =>
-                          updateKBConfig(index, "dataSourceIds", e.target.value)
-                        }
+                        value={kb.dataSourceIdsRaw || ""}
+                        onChange={(e) => {
+                          console.log(`[DEBUG] Input onChange - value: "${e.target.value}"`);
+                          updateKBConfig(index, "dataSourceIds", e.target.value);
+                        }}
                         className="w-full rounded-md border border-light-gray px-4 py-2"
                         disabled={isReadOnly}
                       />
