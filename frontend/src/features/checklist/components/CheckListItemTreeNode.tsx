@@ -13,14 +13,11 @@ import {
   HiPencil,
   HiTrash,
   HiPlus,
-  HiCog,
 } from "react-icons/hi";
 import CheckListItemEditModal from "./CheckListItemEditModal";
 import CheckListItemAddModal from "./CheckListItemAddModal";
-import AssignToolConfigModal from "./AssignToolConfigModal";
 import {
   useDeleteCheckListItem,
-  useAssignToolConfiguration,
 } from "../hooks/useCheckListItemMutations";
 import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
@@ -34,6 +31,8 @@ interface CheckListItemTreeNodeProps {
   maxDepth?: number;
   autoExpand?: boolean;
   ambiguityFilter: AmbiguityFilter;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function CheckListItemTreeNode({
@@ -43,13 +42,12 @@ export default function CheckListItemTreeNode({
   maxDepth = 2,
   autoExpand = false,
   ambiguityFilter,
+  selectedIds,
+  onToggleSelect,
 }: CheckListItemTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < maxDepth || autoExpand);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
-  const [isToolConfigModalOpen, setIsToolConfigModalOpen] = useState(false);
-
-  const { assignToolConfiguration } = useAssignToolConfiguration();
 
   const {
     deleteCheckListItem,
@@ -107,16 +105,6 @@ export default function CheckListItemTreeNode({
   const { t } = useTranslation();
   const { showConfirm, showError, AlertModal } = useAlert();
 
-  const handleAssignTool = async (configId: string | null) => {
-    try {
-      await assignToolConfiguration(item.id, configId);
-      refetchRoot();
-      refetchChildren();
-    } catch (error) {
-      showError("Failed to assign tool configuration");
-    }
-  };
-
   const handleDelete = () => {
     if (!isEditable) return;
 
@@ -149,6 +137,16 @@ export default function CheckListItemTreeNode({
             variant={item.ambiguityReview && isEditable ? "error" : "default"}>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
+                {/* チェックボックス - リーフノードのみ */}
+                {!item.hasChildren && onToggleSelect && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.has(item.id) || false}
+                    onChange={() => onToggleSelect(item.id)}
+                    disabled={!isEditable}
+                    className="mr-3 h-4 w-4 rounded border-gray-300 text-aws-sea-blue-light focus:ring-aws-sea-blue-light disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                )}
                 {item.hasChildren && (
                   <button
                     onClick={toggleExpand}
@@ -185,30 +183,6 @@ export default function CheckListItemTreeNode({
                     !isEditable ? "text-gray-300 cursor-not-allowed" : ""
                   }
                 />
-
-                {/* ツール設定ボタン - リーフノードのみ */}
-                {!item.hasChildren && (
-                  <Button
-                    variant="text"
-                    size="sm"
-                    icon={<HiCog className="h-5 w-5" />}
-                    onClick={() => isEditable && setIsToolConfigModalOpen(true)}
-                    disabled={!isEditable}
-                    title={
-                      item.toolConfiguration
-                        ? `Tool: ${item.toolConfiguration.name}`
-                        : "Assign Tool"
-                    }
-                    aria-label="ツール設定"
-                    className={
-                      !isEditable
-                        ? "text-gray-300 cursor-not-allowed"
-                        : item.toolConfiguration
-                          ? "text-aws-sea-blue-light"
-                          : ""
-                    }
-                  />
-                )}
 
                 {/* 既存の編集ボタン - Button コンポーネントを使用 */}
                 <Button
@@ -301,17 +275,7 @@ export default function CheckListItemTreeNode({
           />
         )}
 
-        {/* ツール設定モーダル */}
-        {isToolConfigModalOpen && (
-          <AssignToolConfigModal
-            isOpen={isToolConfigModalOpen}
-            onClose={() => setIsToolConfigModalOpen(false)}
-            onAssign={handleAssignTool}
-            currentConfigId={item.toolConfiguration?.id}
-          />
-        )}
-
-        {/* 子項目を表示（展開時のみ） */}
+        {/* 子項目を表示(展開時のみ) */}
         {isExpanded && item.hasChildren && (
           <div className="mt-2 space-y-2">
             {isLoadingChildren ? (
@@ -335,6 +299,8 @@ export default function CheckListItemTreeNode({
                   level={level + 1}
                   maxDepth={maxDepth}
                   ambiguityFilter={ambiguityFilter}
+                  selectedIds={selectedIds}
+                  onToggleSelect={onToggleSelect}
                 />
               ))
             )}
