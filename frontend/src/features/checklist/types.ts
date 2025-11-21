@@ -201,6 +201,10 @@ export interface CheckListItemEntity {
  */
 export interface CheckListItemDetail extends CheckListItemEntity {
   hasChildren: boolean;
+  toolConfiguration?: {
+    id: string;
+    name: string;
+  };
 }
 
 /**

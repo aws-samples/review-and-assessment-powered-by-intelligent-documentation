@@ -2,6 +2,7 @@ import { makePrismaReviewJobRepository } from "../../api/features/review/domain/
 import { makePrismaUserPreferenceRepository } from "../../api/features/user-preference/domain/repository";
 import { REVIEW_FILE_TYPE } from "../../api/features/review/domain/model/review";
 import { makePrismaCheckRepository } from "../../api/features/checklist/domain/repository";
+import { makePrismaToolConfigurationRepository } from "../../api/features/tool-configuration/domain/repository";
 import { getLanguageName, DEFAULT_LANGUAGE } from "../../utils/language";
 declare const console: {
   log: (...data: any[]) => void;
@@ -83,11 +84,30 @@ export async function preReviewItemProcessor(
     `[DEBUG PRE] Prepared review item data for ${reviewResultId}, found ${pdfDocuments.length} PDF documents and ${imageDocuments.length} image documents`
   );
 
+  // ツール設定を取得
+  let toolConfiguration = null;
+  if (checkList.toolConfigurationId) {
+    const toolConfigRepo = await makePrismaToolConfigurationRepository();
+    try {
+      const config = await toolConfigRepo.findById(
+        checkList.toolConfigurationId
+      );
+      toolConfiguration = {
+        knowledgeBase: config.knowledgeBase,
+        codeInterpreter: config.codeInterpreter,
+        mcpConfig: config.mcpConfig,
+      };
+    } catch (error) {
+      console.error(`Failed to fetch tool configuration: ${error}`);
+    }
+  }
+
   return {
     checkName: checkList.name,
     checkDescription: checkList.description || "",
     languageName: getLanguageName(userLanguage),
     documentPaths: documentsToProcess.map((doc) => doc.s3Path),
     documentIds: documentsToProcess.map((doc) => doc.id),
+    toolConfiguration,
   };
 }

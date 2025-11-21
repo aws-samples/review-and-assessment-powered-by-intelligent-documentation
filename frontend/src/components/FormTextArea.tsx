@@ -11,6 +11,7 @@ interface FormTextAreaProps {
   error?: string;
   rows?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -28,6 +29,7 @@ export const FormTextArea: React.FC<FormTextAreaProps> = ({
   error,
   rows = 4,
   className = '',
+  disabled = false,
 }) => {
   return (
     <div className={`mb-6 ${className}`}>
@@ -45,6 +47,7 @@ export const FormTextArea: React.FC<FormTextAreaProps> = ({
         }`}
         placeholder={placeholder}
         required={required}
+        disabled={disabled}
       />
       {error && (
         <p className="mt-1 text-red text-sm">{error}</p>

@@ -16,6 +16,7 @@ import {
   getAllChecklistSetsHandler,
   duplicateChecklistSetHandler,
   detectAmbiguityHandler,
+  assignToolConfigurationHandler,
 } from "./handlers";
 
 /**
@@ -83,5 +84,10 @@ export function registerChecklistRoutes(fastify: FastifyInstance): void {
   // 曖昧さ検知エンドポイント
   fastify.post("/checklist-sets/:setId/detect-ambiguity", {
     handler: detectAmbiguityHandler,
+  });
+
+  // ツール設定割り当てエンドポイント
+  fastify.patch("/checklist-items/:checkId/tool-configuration", {
+    handler: assignToolConfigurationHandler,
   });
 }

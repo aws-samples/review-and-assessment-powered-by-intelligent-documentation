@@ -294,61 +294,24 @@ def _run_strands_agent_legacy(
     system_prompt: str = "You are an expert document reviewer.",
     temperature: float = 0.0,
     base_tools: Optional[List[Any]] = None,
-    mcpServers: Optional[List[Dict[str, Any]]] = None,
+    toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run Strands agent with traditional file_read approach"""
     logger.debug(f"Running Strands agent with {len(file_paths)} files")
-    logger.debug(f"File paths: {file_paths}")
-    logger.debug(f"Using model: {model_id}, system prompt: {system_prompt}")
+    logger.debug(f"Tool configuration: {toolConfiguration}")
 
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
-    # MCP servers configuration
-    mcp_servers = []
-
-    logger.debug(f"mcpServers input: {type(mcpServers)}, value: {mcpServers}")
-
-    if mcpServers and isinstance(mcpServers, list) and len(mcpServers) > 0:
-        logger.debug(f"Using {len(mcpServers)} MCP server(s)")
-        mcp_servers = mcpServers
-    else:
-        logger.debug("No MCP servers specified or empty array, running without MCP tools")
-        mcp_servers = []
-
-    logger.debug(f"Final MCP servers configuration: {mcp_servers}")
-
     with ExitStack() as stack:
-        # Create MCP clients
-        logger.debug("Creating MCP clients")
-
-        # clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
-
-        # logger.debug("Gathering tools from all MCP clients")
-
-        # mcp_tools = list(
-        #     itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
-        # )
-
-        # logger.debug(f"Found total of {len(mcp_tools)} MCP tools")
-        # for t in mcp_tools:
-        #     tool_name = (
-        #         getattr(t, "tool_name", None)
-        #         or (t.get("name") if isinstance(t, dict) else None)
-        #         or getattr(t, "name", repr(t))
-        #     )
-        #     logger.debug("* MCP tool: %s", tool_name)
-
-        # TODO
+        # MCP tools (現状未実装)
         mcp_tools = []
-
-        logger.debug(f"Found total of {len(mcp_tools)} MCP tools")
 
         # Use provided base tools or default to file_read
         tools_to_use = base_tools if base_tools else [file_read]
 
-        # Add custom tools (code interpreter, knowledge base, etc.)
-        custom_tools = create_custom_tools()
+        # Add custom tools based on configuration
+        custom_tools = create_custom_tools(toolConfiguration)
         tools_to_use.extend(custom_tools)
 
         # Combine with MCP tools
@@ -423,34 +386,27 @@ def _run_strands_agent_with_citations(
     model_id: str = DOCUMENT_MODEL_ID,
     system_prompt: str = "You are an expert document reviewer.",
     temperature: float = 0.0,
-    mcpServers: Optional[List[Dict[str, Any]]] = None,
+    toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run Strands agent with citation support (PDF only)"""
-
     logger.debug(f"Running Strands agent with citations for {len(file_paths)} files")
+    logger.debug(f"Tool configuration: {toolConfiguration}")
 
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
-    # MCP servers setup
-    mcp_servers = mcpServers if mcpServers and isinstance(mcpServers, list) else []
-
     with ExitStack() as stack:
-        # # Create MCP clients
-        # clients = [stack.enter_context(create_mcp_client(cfg)) for cfg in mcp_servers]
-        # mcp_tools = list(
-        #     itertools.chain.from_iterable(client.list_tools_sync() for client in clients)
-        # )
-
-        # TODO
+        # MCP tools (現状未実装)
         mcp_tools = []
 
         # Citation mode: document-based, file_read not required
-        tools = mcp_tools  # MCP tools only
+        tools = mcp_tools.copy()
 
-        # Add custom tools (code interpreter, knowledge base, etc.)
-        custom_tools = create_custom_tools()
+        # Add custom tools based on configuration
+        custom_tools = create_custom_tools(toolConfiguration)
         tools.extend(custom_tools)
+
+        logger.debug(f"Total tools available: {len(tools)}")
 
         # Prepare files in document format
         content = []
@@ -944,8 +900,8 @@ def _process_review_with_citations(
     check_description: str,
     language_name: str = "日本語",
     model_id: str = DOCUMENT_MODEL_ID,
-    mcpServers: Optional[List[Dict[str, Any]]] = None,
     local_file_paths: List[str] = None,
+    toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Citation-enabled processing path"""
     logger.debug("Using citation-enabled processing")
@@ -961,7 +917,7 @@ def _process_review_with_citations(
         file_paths=local_file_paths,
         model_id=model_id,
         system_prompt=system_prompt,
-        mcpServers=mcpServers,
+        toolConfiguration=toolConfiguration,
     )
 
     result["reviewType"] = "PDF"
@@ -975,9 +931,9 @@ def _process_review_legacy(
     check_description: str,
     language_name: str = "日本語",
     model_id: str = DOCUMENT_MODEL_ID,
-    mcpServers: Optional[List[Dict[str, Any]]] = None,
     local_file_paths: List[str] = None,
     has_images: bool = False,
+    toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Traditional file_read processing path"""
     logger.debug("Using legacy file_read processing")
@@ -1003,7 +959,7 @@ def _process_review_legacy(
         model_id=model_id,
         system_prompt=system_prompt,
         base_tools=tools,
-        mcpServers=mcpServers,
+        toolConfiguration=toolConfiguration,
     )
 
     result["reviewType"] = review_type
@@ -1017,16 +973,14 @@ def process_review(
     check_description: str,
     language_name: str = "日本語",
     model_id: str = DOCUMENT_MODEL_ID,
-    mcpServers: Optional[List[Dict[str, Any]]] = None,
+    toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Process a document review using Strands agent with local file reading.
     Main dispatcher that chooses between citation and legacy processing.
     """
     logger.debug(f"Processing review for check: {check_name}")
-    logger.debug(f"Documents: {len(document_paths)} files from bucket {document_bucket}")
-    logger.debug(f"Document paths: {document_paths}")
-    logger.debug(f"Using default model: {model_id}, language: {language_name}")
+    logger.debug(f"Tool configuration: {toolConfiguration}")
 
     # Create temporary directory for downloaded files
     temp_dir = tempfile.mkdtemp()
@@ -1096,8 +1050,8 @@ def process_review(
                 check_description,
                 language_name,
                 selected_model_id,
-                mcpServers,
                 local_file_paths,
+                toolConfiguration,
             )
             logger.debug("Used citation-enabled processing")
         else:
@@ -1108,9 +1062,9 @@ def process_review(
                 check_description,
                 language_name,
                 selected_model_id,
-                mcpServers,
                 local_file_paths,
                 has_images,
+                toolConfiguration,
             )
             logger.debug("Used legacy processing")
 

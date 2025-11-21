@@ -95,6 +95,20 @@ export default function Sidebar() {
               </li>
 
               <li className="mb-1">
+                <Link
+                  to="/tool-configurations"
+                  className={`flex items-center rounded-md px-4 py-3 transition-colors ${
+                    isActive("/tool-configurations")
+                      ? "bg-aws-sea-blue-light text-aws-font-color-white-light"
+                      : "text-aws-font-color-white-light hover:bg-aws-sea-blue-hover-light"
+                  }`}
+                  onClick={() => setIsOpen(false)}>
+                  <HiCog className="mr-3 h-5 w-5" />
+                  Tool Configuration
+                </Link>
+              </li>
+
+              <li className="mb-1">
                 <button
                   className={`flex w-full items-center rounded-md px-4 py-3 transition-colors ${
                     isActive("/prompt-templates")

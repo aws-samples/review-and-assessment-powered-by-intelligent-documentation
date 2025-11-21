@@ -11,6 +11,11 @@ import {
   CreateReviewPage,
   ReviewDetailPage,
 } from "./features/review";
+import {
+  ToolConfigurationListPage,
+  CreateToolConfigurationPage,
+  ToolConfigurationDetailPage,
+} from "./features/tool-configuration";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -62,6 +67,19 @@ function App() {
                   <Route path="review" element={<ReviewListPage />} />
                   <Route path="review/create" element={<CreateReviewPage />} />
                   <Route path="review/:id" element={<ReviewDetailPage />} />
+
+                  <Route
+                    path="tool-configurations"
+                    element={<ToolConfigurationListPage />}
+                  />
+                  <Route
+                    path="tool-configurations/new"
+                    element={<CreateToolConfigurationPage />}
+                  />
+                  <Route
+                    path="tool-configurations/:id"
+                    element={<ToolConfigurationDetailPage />}
+                  />
 
                   <Route
                     path="prompt-templates/checklist"

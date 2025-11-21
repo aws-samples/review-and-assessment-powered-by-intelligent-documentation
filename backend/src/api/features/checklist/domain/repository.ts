@@ -53,6 +53,10 @@ export interface CheckRepository {
     itemId: string;
     ambiguityReview: AmbiguityDetectionResult;
   }): Promise<void>;
+  updateToolConfiguration(params: {
+    checkId: string;
+    toolConfigurationId: string | null;
+  }): Promise<void>;
 }
 
 export const makePrismaCheckRepository = async (
@@ -340,6 +344,13 @@ export const makePrismaCheckRepository = async (
         checkListSetId: true,
         documentId: true,
         ambiguityReview: true,
+        toolConfigurationId: true,
+        toolConfiguration: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { id: "asc" },
     });
@@ -380,13 +391,12 @@ export const makePrismaCheckRepository = async (
     );
 
     // 結果を新しいモデル形式に変換して返す
-    const mappedItems = items.map((item) => {
-      const entity = CheckListItemDomain.fromPrismaCheckListItem(item);
-      return {
-        ...entity,
-        hasChildren: parentsWithChildren.has(item.id),
-      };
-    });
+    const mappedItems = items.map((item) =>
+      CheckListItemDomain.fromPrismaCheckListItemWithDetail(
+        item,
+        parentsWithChildren.has(item.id)
+      )
+    );
 
     console.log(
       `[Repository] Final items with hasChildren:`,
@@ -536,6 +546,7 @@ export const makePrismaCheckRepository = async (
         checkListSetId: true,
         documentId: true,
         ambiguityReview: true,
+        toolConfigurationId: true,
       },
     });
 
@@ -630,6 +641,16 @@ export const makePrismaCheckRepository = async (
     });
   };
 
+  const updateToolConfiguration = async (params: {
+    checkId: string;
+    toolConfigurationId: string | null;
+  }): Promise<void> => {
+    await client.checkList.update({
+      where: { id: params.checkId },
+      data: { toolConfigurationId: params.toolConfigurationId },
+    });
+  };
+
   return {
     storeCheckListSet,
     deleteCheckListSetById,
@@ -645,5 +666,6 @@ export const makePrismaCheckRepository = async (
     deleteCheckListItemById,
     checkSetEditable,
     updateAmbiguityReview,
+    updateToolConfiguration,
   };
 };

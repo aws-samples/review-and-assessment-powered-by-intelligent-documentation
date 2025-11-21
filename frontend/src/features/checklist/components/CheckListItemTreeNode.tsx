@@ -13,10 +13,15 @@ import {
   HiPencil,
   HiTrash,
   HiPlus,
+  HiCog,
 } from "react-icons/hi";
 import CheckListItemEditModal from "./CheckListItemEditModal";
 import CheckListItemAddModal from "./CheckListItemAddModal";
-import { useDeleteCheckListItem } from "../hooks/useCheckListItemMutations";
+import AssignToolConfigModal from "./AssignToolConfigModal";
+import {
+  useDeleteCheckListItem,
+  useAssignToolConfiguration,
+} from "../hooks/useCheckListItemMutations";
 import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import Button from "../../../components/Button";
@@ -42,6 +47,9 @@ export default function CheckListItemTreeNode({
   const [isExpanded, setIsExpanded] = useState(level < maxDepth || autoExpand);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
+  const [isToolConfigModalOpen, setIsToolConfigModalOpen] = useState(false);
+
+  const { assignToolConfiguration } = useAssignToolConfiguration();
 
   const {
     deleteCheckListItem,
@@ -98,6 +106,16 @@ export default function CheckListItemTreeNode({
 
   const { t } = useTranslation();
   const { showConfirm, showError, AlertModal } = useAlert();
+
+  const handleAssignTool = async (configId: string | null) => {
+    try {
+      await assignToolConfiguration(item.id, configId);
+      refetchRoot();
+      refetchChildren();
+    } catch (error) {
+      showError("Failed to assign tool configuration");
+    }
+  };
 
   const handleDelete = () => {
     if (!isEditable) return;
@@ -167,6 +185,30 @@ export default function CheckListItemTreeNode({
                     !isEditable ? "text-gray-300 cursor-not-allowed" : ""
                   }
                 />
+
+                {/* ツール設定ボタン - リーフノードのみ */}
+                {!item.hasChildren && (
+                  <Button
+                    variant="text"
+                    size="sm"
+                    icon={<HiCog className="h-5 w-5" />}
+                    onClick={() => isEditable && setIsToolConfigModalOpen(true)}
+                    disabled={!isEditable}
+                    title={
+                      item.toolConfiguration
+                        ? `Tool: ${item.toolConfiguration.name}`
+                        : "Assign Tool"
+                    }
+                    aria-label="ツール設定"
+                    className={
+                      !isEditable
+                        ? "text-gray-300 cursor-not-allowed"
+                        : item.toolConfiguration
+                          ? "text-aws-sea-blue-light"
+                          : ""
+                    }
+                  />
+                )}
 
                 {/* 既存の編集ボタン - Button コンポーネントを使用 */}
                 <Button
@@ -256,6 +298,16 @@ export default function CheckListItemTreeNode({
               refetchChildren(); // 子項目を再取得
               setIsAddChildModalOpen(false);
             }}
+          />
+        )}
+
+        {/* ツール設定モーダル */}
+        {isToolConfigModalOpen && (
+          <AssignToolConfigModal
+            isOpen={isToolConfigModalOpen}
+            onClose={() => setIsToolConfigModalOpen(false)}
+            onAssign={handleAssignTool}
+            currentConfigId={item.toolConfiguration?.id}
           />
         )}
 

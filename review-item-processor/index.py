@@ -67,11 +67,13 @@ def handler(event, context):
     )
 
     try:
-        # Process review with MCP tools using our Strands agent
+        # Process review with tool configuration
         # The agent.py will automatically detect file types and select the appropriate model
-        # Extract MCP servers configuration if available
-        mcp_servers = event.get("mcpServers", [])
-        logger.debug(f"[DEBUG LAMBDA] MCP servers configuration: {json.dumps(mcp_servers)}")
+        # Extract tool configuration if available
+        tool_configuration = event.get("toolConfiguration")
+        logger.debug(
+            f"[DEBUG LAMBDA] Tool configuration: {json.dumps(tool_configuration)}"
+        )
 
         review_data = process_review(
             document_bucket=DOCUMENT_BUCKET,
@@ -80,7 +82,7 @@ def handler(event, context):
             check_description=check_description,
             language_name=language_name,
             model_id=DOCUMENT_MODEL_ID,  # Default model, will be overridden for images
-            mcpServers=mcp_servers,
+            toolConfiguration=tool_configuration,
         )
 
         # Return results to Step Functions - handle both PDF and image results

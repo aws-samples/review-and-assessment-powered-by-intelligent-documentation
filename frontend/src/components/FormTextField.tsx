@@ -10,6 +10,7 @@ interface FormTextFieldProps {
   required?: boolean;
   error?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export const FormTextField: React.FC<FormTextFieldProps> = ({
   required = false,
   error,
   className = '',
+  disabled = false,
 }) => {
   return (
     <div className={`mb-6 ${className}`}>
@@ -43,6 +45,7 @@ export const FormTextField: React.FC<FormTextFieldProps> = ({
         }`}
         placeholder={placeholder}
         required={required}
+        disabled={disabled}
       />
       {error && (
         <p className="mt-1 text-red text-sm">{error}</p>
