@@ -241,7 +241,7 @@
     "mcpEnabled": "Use MCP",
     "mcpEnabledDescription": "Use enhanced review processing with extensions",
     "noMcpServersAvailable": "No MCP servers available",
-    "externalSources": "External Sources",
+    "externalSources": "AI Work History",
     "sources": {
       "codeInterpreter": {
         "title": "Computation & Analysis Program Execution",

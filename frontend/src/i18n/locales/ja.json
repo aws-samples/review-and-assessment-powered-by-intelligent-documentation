@@ -241,7 +241,7 @@
     "mcpEnabled": "MCP を利用する",
     "mcpEnabledDescription": "拡張機能を使った審査処理を利用します",
     "noMcpServersAvailable": "利用可能な MCP サーバーがありません",
-    "externalSources": "外部ソース",
+    "externalSources": "AIの作業履歴",
     "sources": {
       "codeInterpreter": {
         "title": "計算・分析プログラムの実行",
