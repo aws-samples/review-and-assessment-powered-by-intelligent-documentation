@@ -87,7 +87,7 @@ def test_code_interpreter_with_numbers():
             # language_name="English",
             language_name="Japanese",
             model_id=config["document_model_id"],
-            mcpServers=[],
+            toolConfiguration={"codeInterpreter": True},
         )
 
         print(f"✅ Code interpreter test with numbers completed")
