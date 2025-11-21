@@ -30,6 +30,7 @@ export const handler: Handler = async (event: StepFunctionsInput) => {
       checkDescription: event.preItemResult.Payload.checkDescription,
       languageName: event.preItemResult.Payload.languageName,
       mcpServers: event.preItemResult.Payload.mcpServers,
+      toolConfiguration: event.preItemResult.Payload.toolConfiguration,
     };
 
     console.log("Transformed payload:", JSON.stringify(agentPayload, null, 2));

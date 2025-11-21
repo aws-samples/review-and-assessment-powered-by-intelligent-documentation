@@ -10,6 +10,7 @@ export interface StepFunctionsInput {
       documentPaths: string[];
       documentIds: string[];
       mcpServers: McpServerConfig[];
+      toolConfiguration: any;
     };
   };
 }
@@ -29,4 +30,5 @@ export interface AgentPayload {
   checkDescription: string;
   languageName: string;
   mcpServers: McpServerConfig[];
+  toolConfiguration: any;
 }
