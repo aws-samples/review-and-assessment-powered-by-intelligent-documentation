@@ -1,7 +1,9 @@
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from strands.types.tools import AgentTool
+from strands.tools.mcp import MCPClient
 from tools.code_interpreter import create_code_interpreter_tool
 from tools.knowledge_base import create_knowledge_base_tool
+from tools.mcp_tool import create_mcp_clients
 from logger import logger
 
 
@@ -18,7 +20,7 @@ class ToolConfiguration(TypedDict, total=False):
 
 def create_custom_tools(
     tool_config: Optional[ToolConfiguration] = None,
-) -> List[AgentTool]:
+) -> List[Union[AgentTool, MCPClient]]:
     """
     Create custom tools based on configuration.
 
@@ -26,7 +28,7 @@ def create_custom_tools(
         tool_config: Tool configuration from database
 
     Returns:
-        List of enabled custom tools
+        List of enabled custom tools (including MCP clients)
     """
     tools = []
 
@@ -58,7 +60,9 @@ def create_custom_tools(
     # MCP Config
     mcp_config = tool_config.get("mcpConfig")
     if mcp_config:
-        logger.debug(f"MCP Config present: {mcp_config}")
+        mcp_clients = create_mcp_clients(mcp_config)
+        tools.extend(mcp_clients)
+        logger.debug(f"Enabled: {len(mcp_clients)} MCP client(s)")
 
     logger.info(f"Created {len(tools)} custom tool(s) from configuration")
     return tools
