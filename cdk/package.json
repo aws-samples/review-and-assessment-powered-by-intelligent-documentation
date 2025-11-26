@@ -6,7 +6,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "preinstall": "cd lib/constructs/mcp-runtime/typescript && npm ci && cd ../../../../../backend && npm ci && npm run prisma:generate"
+    "preinstall": "cd ../backend && npm ci && npm run prisma:generate"
   },
   "devDependencies": {
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.312",
