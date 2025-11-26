@@ -691,10 +691,20 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 {json_schema}
 <<JSON_END>>
 
+**CRITICAL RULES:**
+1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
+2. **If the required information is not found in the documents or through tool usage:**
+   - Set "result": "fail"
+   - Set "confidence": 0.40 (or lower if extremely uncertain)
+   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+   - Set "extractedText": "" (empty string)
+
 Confidence guidelines:
-- 0.90-1.00: Clear evidence, obvious compliance/non-compliance
-- 0.70-0.89: Relevant evidence with some uncertainty
-- 0.50-0.69: Ambiguous evidence, significant uncertainty
+- 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
+- 0.70-0.89: Relevant evidence found in documents with some uncertainty
+- 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
+- 0.30-0.49: Insufficient evidence in documents to make a determination
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -751,10 +761,20 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 
 Write the explanation field as clear, flowing prose in {language_name}. Include relevant quotes in the citations array.
 
+**CRITICAL RULES:**
+1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
+2. **If the required information is not found in the documents or through tool usage:**
+   - Set "result": "fail"
+   - Set "confidence": 0.40 (or lower if extremely uncertain)
+   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+   - Set "citations": [] (empty array)
+
 Confidence guidelines:
-- 0.90-1.00: Clear evidence, obvious compliance/non-compliance
-- 0.70-0.89: Relevant evidence with some uncertainty
-- 0.50-0.69: Ambiguous evidence, significant uncertainty
+- 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
+- 0.70-0.89: Relevant evidence found in documents with some uncertainty
+- 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
+- 0.30-0.49: Insufficient evidence in documents to make a determination
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -863,6 +883,15 @@ referenced when making your judgment; do NOT include unused images.**
 relevant to the check item.** If you relied on just one image, the array must
 contain exactly that single index; an empty array means “none used”.
 
+
+**CRITICAL RULES:**
+1. **Base your judgment ONLY on the provided images and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
+2. **If the required visual information is not found in the images or through tool usage:**
+   - Set "result": "fail"
+   - Set "confidence": 0.40 (or lower if extremely uncertain)
+   - In "explanation", clearly state in {language_name} that the required visual information was not found and describe what specific visual elements are missing
+   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+   - Set "usedImageIndexes": [] (empty array)
 Respond **only** in the following JSON format (no Markdown code fences):
 
 {{
