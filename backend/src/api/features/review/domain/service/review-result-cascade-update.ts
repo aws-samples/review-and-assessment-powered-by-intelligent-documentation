@@ -70,7 +70,7 @@ export const updateCheckResultCascade = async (params: {
       node.result = allPass ? REVIEW_RESULT.PASS : REVIEW_RESULT.FAIL;
       node.confidenceScore = calculateMinimumConfidence(childModels);
       node.explanation = generateParentExplanation(childModels, allPass);
-      node.extractedText = "";
+      node.extractedText = [];
 
       toUpdate.push(node);
 

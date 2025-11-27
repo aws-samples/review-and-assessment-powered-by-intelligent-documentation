@@ -11,6 +11,7 @@ import { useAlert } from "../../../hooks/useAlert";
 import CheckListItemAddModal from "../components/CheckListItemAddModal";
 import CheckListItemTree from "../components/CheckListItemTree";
 import DuplicateChecklistModal from "../components/DuplicateChecklistModal";
+import AssignToolConfigModal from "../components/AssignToolConfigModal";
 import { useToast } from "../../../contexts/ToastContext";
 import { DetailSkeleton } from "../../../components/Skeleton";
 import SegmentedControl from "../../../components/SegmentedControl";
@@ -22,6 +23,7 @@ import {
   HiInformationCircle,
   HiDuplicate,
   HiSparkles,
+  HiCog,
 } from "react-icons/hi";
 import Button from "../../../components/Button";
 import Tooltip from "../../../components/Tooltip";
@@ -31,6 +33,7 @@ import { ErrorAlert } from "../../../components/ErrorAlert";
 import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
 import { AmbiguityFilter } from "../types";
+import { useBulkAssignToolConfiguration } from "../hooks/useCheckListItemMutations";
 
 /**
  * チェックリストセット詳細ページ
@@ -51,6 +54,8 @@ export function CheckListSetDetailPage() {
   const { detectAmbiguity, status: detectStatus } = useDetectAmbiguity();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isToolConfigModalOpen, setIsToolConfigModalOpen] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [ambiguityFilter, setAmbiguityFilter] = useState<AmbiguityFilter>(
@@ -58,6 +63,7 @@ export function CheckListSetDetailPage() {
   );
   const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
   const isDetecting = checklistSet?.processingStatus === 'detecting';
+  const { bulkAssignToolConfiguration } = useBulkAssignToolConfiguration();
 
   const { showConfirm, AlertModal } = useAlert();
 
@@ -122,6 +128,34 @@ export function CheckListSetDetailPage() {
     } catch (error) {
       console.error(t("common.error"), error);
       addToast(t("checklist.ambiguityDetectionError"), "error");
+    }
+  };
+
+  const handleToggleSelect = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAssignToolConfig = async (configId: string | null) => {
+    if (selectedItemIds.size === 0) return;
+
+    try {
+      await bulkAssignToolConfiguration(Array.from(selectedItemIds), configId);
+
+      addToast("Tool configuration assigned successfully", "success");
+      setSelectedItemIds(new Set());
+      setIsToolConfigModalOpen(false);
+      refetchRoot();
+    } catch (error) {
+      console.error("Error assigning tool configuration", error);
+      addToast("Failed to assign tool configuration", "error");
     }
   };
 
@@ -253,27 +287,43 @@ export function CheckListSetDetailPage() {
                 />
               )}
               {checklistSet && checklistSet.isEditable && (
-                <Tooltip content={t("checklist.ambiguityDetectTooltip")}>
+                <div className="flex space-x-2">
+                  <Tooltip content={t("checklist.ambiguityDetectTooltip")}>
+                    <Button
+                      variant="primary"
+                      outline={true}
+                      onClick={handleDetectAmbiguity}
+                      disabled={isDetecting}
+                      icon={
+                        isDetecting ? (
+                          <HiSparkles className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <HiSparkles className="h-5 w-5" />
+                        )
+                      }>
+                      {isDetecting
+                        ? t("checklist.ambiguityDetecting")
+                        : t("checklist.ambiguityDetect")}
+                    </Button>
+                  </Tooltip>
                   <Button
                     variant="primary"
                     outline={true}
-                    onClick={handleDetectAmbiguity}
-                    disabled={isDetecting}
-                    icon={
-                      isDetecting ? (
-                        <HiSparkles className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <HiSparkles className="h-5 w-5" />
-                      )
-                    }>
-                    {isDetecting
-                      ? t("checklist.ambiguityDetecting")
-                      : t("checklist.ambiguityDetect")}
+                    onClick={() => setIsToolConfigModalOpen(true)}
+                    disabled={selectedItemIds.size === 0}
+                    icon={<HiCog className="h-5 w-5" />}>
+                    {t("checklist.assignToolConfiguration")}
+                    {selectedItemIds.size > 0 && ` (${selectedItemIds.size})`}
                   </Button>
-                </Tooltip>
+                </div>
               )}
             </div>
-            <CheckListItemTree setId={id} ambiguityFilter={ambiguityFilter} />
+            <CheckListItemTree 
+              setId={id} 
+              ambiguityFilter={ambiguityFilter}
+              selectedIds={selectedItemIds}
+              onToggleSelect={handleToggleSelect}
+            />
           </>
         )}
 
@@ -317,6 +367,15 @@ export function CheckListSetDetailPage() {
           initialName={newName}
           initialDescription={newDescription}
           isLoading={duplicateStatus === "loading"}
+        />
+      )}
+
+      {/* ツール設定割り当てモーダル */}
+      {isToolConfigModalOpen && (
+        <AssignToolConfigModal
+          isOpen={isToolConfigModalOpen}
+          onClose={() => setIsToolConfigModalOpen(false)}
+          onAssign={handleAssignToolConfig}
         />
       )}
       <AlertModal />

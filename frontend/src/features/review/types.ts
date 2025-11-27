@@ -265,6 +265,10 @@ export interface ReviewJobDetail {
 export interface SourceReference {
   documentId: string;
   pageNumber?: number;
+  boundingBox?: {
+    label: string;
+    coordinates: [number, number, number, number]; // [x1, y1, x2, y2]
+  };
 }
 
 export interface ReviewResultEntity {
@@ -276,12 +280,19 @@ export interface ReviewResultEntity {
   confidenceScore?: number;
   explanation?: string;
   shortExplanation?: string;
-  extractedText?: string;
+  extractedText?: string[];
   userComment?: string;
   userOverride: boolean;
   createdAt: Date;
   updatedAt: Date;
   sourceReferences?: SourceReference[];
+  externalSources?: Array<{
+    toolUseId: string;
+    toolName: string;
+    input?: any;
+    output?: string;
+    status?: "success" | "error" | "unknown";
+  }>;
   reviewMeta?: {
     model_id: string;
     input_tokens: number;

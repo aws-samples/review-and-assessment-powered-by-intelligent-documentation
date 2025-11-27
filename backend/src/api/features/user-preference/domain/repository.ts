@@ -5,10 +5,6 @@ export interface UserPreferenceRepository {
   getUserPreference(userId: string): Promise<UserPreferenceModel | null>;
   saveUserPreference(preference: UserPreferenceModel): Promise<void>;
   updateUserPreference(preference: UserPreferenceModel): Promise<void>;
-  getMcpServerConfigByName(
-    userId: string,
-    serverName: string
-  ): Promise<any | null>;
 }
 
 export const makePrismaUserPreferenceRepository = async (
@@ -31,7 +27,6 @@ export const makePrismaUserPreferenceRepository = async (
       id: preference.id,
       userId: preference.userId,
       language: preference.language,
-      mcpServers: preference.mcpServers as any,
       createdAt: preference.createdAt,
       updatedAt: preference.updatedAt,
     };
@@ -45,7 +40,6 @@ export const makePrismaUserPreferenceRepository = async (
         id: preference.id,
         userId: preference.userId,
         language: preference.language,
-        mcpServers: preference.mcpServers as any,
         createdAt: preference.createdAt,
         updatedAt: preference.updatedAt,
       },
@@ -59,29 +53,14 @@ export const makePrismaUserPreferenceRepository = async (
       where: { userId: preference.userId },
       data: {
         language: preference.language,
-        mcpServers: preference.mcpServers as any,
         updatedAt: preference.updatedAt,
       },
     });
-  };
-
-  const getMcpServerConfigByName = async (
-    userId: string,
-    serverName: string
-  ): Promise<any | null> => {
-    const preference = await getUserPreference(userId);
-
-    if (!preference || !preference.mcpServers) {
-      return null;
-    }
-
-    return preference.mcpServers[serverName] || null;
   };
 
   return {
     getUserPreference,
     saveUserPreference,
     updateUserPreference,
-    getMcpServerConfigByName,
   };
 };

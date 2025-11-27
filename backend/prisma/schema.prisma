@@ -10,12 +10,11 @@ datasource db {
 }
 
 model UserPreference {
-  id         String   @id @map("preference_id") @db.VarChar(26)
-  userId     String   @map("user_id") @db.VarChar(50)
-  language   String   @default("en") @db.VarChar(10)
-  mcpServers Json?    @map("mcp_servers")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  id        String   @id @map("preference_id") @db.VarChar(26)
+  userId    String   @map("user_id") @db.VarChar(50)
+  language  String   @default("en") @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
   @@unique([userId])
   @@map("user_preferences")
@@ -48,19 +47,35 @@ model CheckListSet {
   @@map("check_list_sets")
 }
 
+model ToolConfiguration {
+  id              String      @id @map("tool_configuration_id") @db.VarChar(26)
+  name            String      @db.VarChar(255)
+  description     String?     @db.Text
+  knowledgeBase   Json?       @map("knowledge_base")
+  codeInterpreter Boolean     @default(false) @map("code_interpreter")
+  mcpConfig       Json?       @map("mcp_config")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+  checkLists      CheckList[]
+
+  @@map("tool_configurations")
+}
+
 model CheckList {
-  id              String             @id @map("check_id") @db.VarChar(26)
-  name            String             @db.VarChar(255)
-  description     String?            @db.Text
-  parentId        String?            @map("parent_id") @db.VarChar(26)
-  checkListSetId  String             @map("check_list_set_id") @db.VarChar(26)
-  documentId      String?            @map("document_id") @db.VarChar(26)
-  ambiguityReview Json?              @map("ambiguity_review")
-  checkListSet    CheckListSet       @relation(fields: [checkListSetId], references: [id])
-  document        CheckListDocument? @relation(fields: [documentId], references: [id])
-  parent          CheckList?         @relation("CheckListToCheckList", fields: [parentId], references: [id])
-  children        CheckList[]        @relation("CheckListToCheckList")
-  reviewResults   ReviewResult[]
+  id                  String             @id @map("check_id") @db.VarChar(26)
+  name                String             @db.VarChar(255)
+  description         String?            @db.Text
+  parentId            String?            @map("parent_id") @db.VarChar(26)
+  checkListSetId      String             @map("check_list_set_id") @db.VarChar(26)
+  documentId          String?            @map("document_id") @db.VarChar(26)
+  ambiguityReview     Json?              @map("ambiguity_review")
+  toolConfigurationId String?            @map("tool_configuration_id") @db.VarChar(26)
+  checkListSet        CheckListSet       @relation(fields: [checkListSetId], references: [id])
+  document            CheckListDocument? @relation(fields: [documentId], references: [id])
+  parent              CheckList?         @relation("CheckListToCheckList", fields: [parentId], references: [id])
+  children            CheckList[]        @relation("CheckListToCheckList")
+  reviewResults       ReviewResult[]
+  toolConfiguration   ToolConfiguration? @relation(fields: [toolConfigurationId], references: [id], onDelete: Restrict)
 
   /// `parentId` だけで検索するケース（直下の子チェック項目を取得）を高速化
   @@index([parentId], map: "idx_check_list_parent")
@@ -69,6 +84,7 @@ model CheckList {
   /// `checkListSetId` と `parentId` を**同時に等価条件**で絞り込むクエリが最も多いため複合キーを追加
   /// 例: `findCheckListItems(setId, parentId)`
   @@index([checkListSetId, parentId], map: "idx_check_list_set_parent")
+  @@index([toolConfigurationId], map: "idx_check_list_tool_config")
   @@map("check_lists")
 }
 
@@ -114,7 +130,6 @@ model ReviewJob {
   updatedAt         DateTime         @map("updated_at") @db.Timestamp(0)
   completedAt       DateTime?        @map("completed_at") @db.Timestamp(0)
   userId            String?          @map("user_id") @db.VarChar(50)
-  mcpServerName     String?          @map("mcp_server_name") @db.VarChar(100)
   totalInputTokens  Int?             @map("total_input_tokens")
   totalOutputTokens Int?             @map("total_output_tokens")
   totalCost         Decimal?         @map("total_cost") @db.Decimal(10, 4)
@@ -145,6 +160,7 @@ model ReviewResult {
   createdAt        DateTime  @map("created_at") @db.Timestamp(0)
   updatedAt        DateTime  @map("updated_at") @db.Timestamp(0)
   sourceReferences Json?     @map("source_references")
+  externalSources  Json?     @map("external_sources")
   checkList        CheckList @relation(fields: [checkId], references: [id])
   reviewJob        ReviewJob @relation(fields: [reviewJobId], references: [id])
 

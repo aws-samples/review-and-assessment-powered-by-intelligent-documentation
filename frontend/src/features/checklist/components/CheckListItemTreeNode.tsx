@@ -13,14 +13,18 @@ import {
   HiPencil,
   HiTrash,
   HiPlus,
+  HiCog,
 } from "react-icons/hi";
 import CheckListItemEditModal from "./CheckListItemEditModal";
 import CheckListItemAddModal from "./CheckListItemAddModal";
-import { useDeleteCheckListItem } from "../hooks/useCheckListItemMutations";
+import {
+  useDeleteCheckListItem,
+} from "../hooks/useCheckListItemMutations";
 import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import Button from "../../../components/Button";
 import ResultCard from "../../../components/ResultCard";
+import Tooltip from "../../../components/Tooltip";
 
 interface CheckListItemTreeNodeProps {
   setId: string;
@@ -29,6 +33,8 @@ interface CheckListItemTreeNodeProps {
   maxDepth?: number;
   autoExpand?: boolean;
   ambiguityFilter: AmbiguityFilter;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function CheckListItemTreeNode({
@@ -38,6 +44,8 @@ export default function CheckListItemTreeNode({
   maxDepth = 2,
   autoExpand = false,
   ambiguityFilter,
+  selectedIds,
+  onToggleSelect,
 }: CheckListItemTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < maxDepth || autoExpand);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -131,6 +139,16 @@ export default function CheckListItemTreeNode({
             variant={item.ambiguityReview && isEditable ? "error" : "default"}>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
+                {/* チェックボックス - リーフノードのみ */}
+                {!item.hasChildren && onToggleSelect && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.has(item.id) || false}
+                    onChange={() => onToggleSelect(item.id)}
+                    disabled={!isEditable}
+                    className="mr-3 h-4 w-4 rounded border-gray-300 text-aws-sea-blue-light focus:ring-aws-sea-blue-light disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                )}
                 {item.hasChildren && (
                   <button
                     onClick={toggleExpand}
@@ -143,8 +161,23 @@ export default function CheckListItemTreeNode({
                   </button>
                 )}
                 <div>
-                  <div className="flex items-center font-medium text-aws-squid-ink-light">
+                  <div className="flex items-center gap-2 font-medium text-aws-squid-ink-light">
                     {item.name}
+                    
+                    {/* ツール設定アイコン - 名前の厳密な右 */}
+                    {item.toolConfiguration && (
+                      <Tooltip content={item.toolConfiguration.name}>
+                        <a
+                          href={`/tool-configurations/${item.toolConfiguration.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray hover:text-aws-font-color-blue transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <HiCog className="h-4 w-4" />
+                        </a>
+                      </Tooltip>
+                    )}
                   </div>
                   {item.description && (
                     <p className="mt-1 text-sm text-aws-font-color-gray">
@@ -259,7 +292,7 @@ export default function CheckListItemTreeNode({
           />
         )}
 
-        {/* 子項目を表示（展開時のみ） */}
+        {/* 子項目を表示(展開時のみ) */}
         {isExpanded && item.hasChildren && (
           <div className="mt-2 space-y-2">
             {isLoadingChildren ? (
@@ -283,6 +316,8 @@ export default function CheckListItemTreeNode({
                   level={level + 1}
                   maxDepth={maxDepth}
                   ambiguityFilter={ambiguityFilter}
+                  selectedIds={selectedIds}
+                  onToggleSelect={onToggleSelect}
                 />
               ))
             )}

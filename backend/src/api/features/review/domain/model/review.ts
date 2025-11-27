@@ -52,7 +52,6 @@ export interface ReviewJobEntity {
   status: REVIEW_JOB_STATUS;
   checkListSetId: string;
   userId?: string;
-  mcpServerName?: string;
   documents: Array<{
     id: string;
     filename: string;
@@ -74,7 +73,6 @@ export interface ReviewJobSummary {
   updatedAt: Date;
   completedAt?: Date;
   userId?: string;
-  mcpServerName?: string;
   documents: Array<{
     id: string;
     filename: string;
@@ -104,7 +102,6 @@ export interface ReviewJobDetail {
     s3Path: string;
     fileType: REVIEW_FILE_TYPE;
   }>;
-  mcpServerName?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -129,11 +126,6 @@ export interface SourceReference {
     label: string;
     coordinates: [number, number, number, number]; // [x1, y1, x2, y2]
   };
-  // 外部情報源の情報
-  externalSources?: Array<{
-    mcpName?: string; // 使用したMCPツール名
-    description: string; // 情報源の詳細説明
-  }>;
 }
 
 export interface ReviewResultEntity {
@@ -145,12 +137,19 @@ export interface ReviewResultEntity {
   confidenceScore?: number;
   explanation?: string;
   shortExplanation?: string;
-  extractedText?: string;
+  extractedText?: string[];
   userComment?: string;
   userOverride: boolean;
   createdAt: Date;
   updatedAt: Date;
   sourceReferences?: SourceReference[];
+  externalSources?: Array<{
+    toolUseId: string;
+    toolName: string;
+    input?: any;
+    output?: string;
+    status?: "success" | "error" | "unknown";
+  }>;
   reviewMeta?: any;
   inputTokens?: number;
   outputTokens?: number;
@@ -163,6 +162,32 @@ export interface ReviewResultDetail extends ReviewResultEntity {
 }
 
 export const ReviewResultDomain = (() => {
+  const _parseJsonField = (value: any): any => {
+    if (!value) return undefined;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed === "") return undefined;
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return undefined;
+      }
+    }
+    return value;
+  };
+
+  const _parseExtractedText = (value: any): string[] | undefined => {
+    const parsed = _parseJsonField(value);
+    if (Array.isArray(parsed)) return parsed;
+
+    // 後方互換性: プレーンテキストを配列化
+    if (typeof value === "string" && value.trim() !== "") {
+      return [value.trim()];
+    }
+
+    return undefined;
+  };
+
   const _buildSourceReferencesFromImages = (
     usedImageIndexes: number[] | undefined,
     imageBuffers: Array<{
@@ -187,6 +212,52 @@ export const ReviewResultDomain = (() => {
   };
 
   return {
+    fromPrismaReviewResult: (prismaResult: any): ReviewResultEntity => {
+      return {
+        id: prismaResult.id,
+        reviewJobId: prismaResult.reviewJobId,
+        checkId: prismaResult.checkId,
+        status: prismaResult.status as REVIEW_RESULT_STATUS,
+        result: prismaResult.result as REVIEW_RESULT | undefined,
+        confidenceScore: prismaResult.confidenceScore ?? undefined,
+        explanation: prismaResult.explanation ?? undefined,
+        shortExplanation: prismaResult.shortExplanation ?? undefined,
+        extractedText: _parseExtractedText(prismaResult.extractedText),
+        userComment: prismaResult.userComment ?? undefined,
+        userOverride: prismaResult.userOverride,
+        createdAt: prismaResult.createdAt,
+        updatedAt: prismaResult.updatedAt,
+        reviewMeta: prismaResult.reviewMeta as any,
+        inputTokens: prismaResult.inputTokens ?? undefined,
+        outputTokens: prismaResult.outputTokens ?? undefined,
+        totalCost: prismaResult.totalCost
+          ? Number(prismaResult.totalCost)
+          : undefined,
+        sourceReferences: _parseJsonField(prismaResult.sourceReferences),
+        externalSources: _parseJsonField(prismaResult.externalSources),
+      };
+    },
+
+    fromPrismaReviewResultDetail: (
+      prismaResult: any,
+      hasChildren: boolean
+    ): ReviewResultDetail => {
+      const baseEntity =
+        ReviewResultDomain.fromPrismaReviewResult(prismaResult);
+
+      return {
+        ...baseEntity,
+        checkList: {
+          id: prismaResult.checkList.id,
+          setId: prismaResult.checkList.checkListSetId,
+          name: prismaResult.checkList.name,
+          description: prismaResult.checkList.description ?? undefined,
+          parentId: prismaResult.checkList.parentId ?? undefined,
+        },
+        hasChildren,
+      };
+    },
+
     fromOverrideRequest: (params: {
       current: ReviewResultDetail;
       result: REVIEW_RESULT;
@@ -214,8 +285,11 @@ export const ReviewResultDomain = (() => {
       reviewType: "PDF" | "IMAGE";
       verificationDetails?: {
         sourcesDetails: Array<{
-          description: string;
-          mcpName?: string;
+          toolUseId: string;
+          toolName: string;
+          input?: any;
+          output?: string;
+          status?: "success" | "error" | "unknown";
         }>;
       };
       reviewMeta?: any;
@@ -226,7 +300,7 @@ export const ReviewResultDomain = (() => {
       // タイプ固有フィールド
       typeSpecificData?: {
         // PDF固有データ
-        extractedText?: string;
+        extractedText?: string[];
 
         // 画像固有データ
         usedImageIndexes?: number[];
@@ -304,16 +378,6 @@ export const ReviewResultDomain = (() => {
         }
       }
 
-      // 外部情報源の追加（すべてのソース参照に共通）
-      if (
-        verificationDetails?.sourcesDetails &&
-        verificationDetails.sourcesDetails.length > 0
-      ) {
-        sourceReferences.forEach((ref) => {
-          ref.externalSources = verificationDetails.sourcesDetails;
-        });
-      }
-
       // 共通返却値
       const resultEntity: ReviewResultEntity = {
         ...current,
@@ -323,6 +387,7 @@ export const ReviewResultDomain = (() => {
         explanation,
         shortExplanation,
         sourceReferences,
+        externalSources: verificationDetails?.sourcesDetails || undefined,
         userOverride: false,
         updatedAt: new Date(),
         reviewMeta: params.reviewMeta,

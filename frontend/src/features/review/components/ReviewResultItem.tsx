@@ -25,6 +25,7 @@ import ImagePreview from "../../../components/ImagePreview";
 import ReviewItemCostBadge from "./ReviewItemCostBadge";
 import { useReviewItemCost } from "../hooks/useReviewItemCost";
 import ResultCard, { ResultCardVariant } from "../../../components/ResultCard";
+import ExternalSourceItem from "./ExternalSourceItem";
 
 interface ReviewResultItemProps {
   result: ReviewResultDetail;
@@ -312,14 +313,21 @@ export default function ReviewResultItem({
                   )}
 
                   {/* Display extracted text */}
-                  {result.extractedText && (
+                  {result.extractedText && result.extractedText.length > 0 && (
                     <div className="rounded border border-light-gray bg-aws-paper-light p-3 text-sm">
                       <p className="mb-1 font-medium text-aws-squid-ink-light">
                         {t("review.sourceText", "Source Text")}:
                       </p>
-                      <p className="whitespace-pre-wrap text-aws-font-color-gray">
-                        {result.extractedText}
-                      </p>
+                      <div className="space-y-2">
+                        {result.extractedText.map((citation, index) => (
+                          <div
+                            key={index}
+                            className="rounded border border-light-gray bg-white p-2 text-aws-font-color-gray"
+                          >
+                            {citation}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -364,33 +372,6 @@ export default function ReviewResultItem({
                                     boundingBox={reference.boundingBox} // Pass bounding box info
                                   />
                                 ) : null}
-                                {/* Display MCP information if available */}
-                                {reference.externalSources &&
-                                  reference.externalSources.length > 0 && (
-                                    <div className="mt-2 border-t border-light-gray pt-2">
-                                      <p className="text-xs font-medium text-aws-squid-ink-light">
-                                        {t(
-                                          "review.referenceSources",
-                                          "Reference Sources"
-                                        )}
-                                        :
-                                      </p>
-                                      {reference.externalSources.map(
-                                        (source: any, idx: number) => (
-                                          <div
-                                            key={idx}
-                                            className="mt-1 text-xs text-aws-font-color-gray">
-                                            {source.mcpName && (
-                                              <span className="font-medium">
-                                                {source.mcpName}:{" "}
-                                              </span>
-                                            )}
-                                            <span>{source.description}</span>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-                                  )}
                               </div>
                             );
                           })}
@@ -424,6 +405,23 @@ export default function ReviewResultItem({
                       )}
                     </div>
                   )}
+
+                  {/* External Sources - Review level */}
+                  {result.externalSources &&
+                    result.externalSources.length > 0 && (
+                      <div className="mt-4 border-t border-light-gray pt-4">
+                        <p className="mb-2 text-sm font-medium text-aws-squid-ink-light">
+                          {t("review.externalSources", "External Sources")}:
+                        </p>
+                        <div className="space-y-2">
+                          {result.externalSources.map(
+                            (source, idx: number) => (
+                              <ExternalSourceItem key={idx} source={source} />
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                   {/* User comments */}
                   {result.userComment && (

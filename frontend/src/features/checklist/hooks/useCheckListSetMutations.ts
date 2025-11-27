@@ -82,7 +82,11 @@ export function useDetectAmbiguity() {
     }));
 
     // 関連データを再取得
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
   };
 
   return { detectAmbiguity, status, error };

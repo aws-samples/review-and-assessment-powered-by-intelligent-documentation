@@ -24,7 +24,7 @@ export function useApiClient() {
 
   /** Mutation 用フック */
   function useMutation<T, P = any>(
-    method: "post" | "put" | "delete",
+    method: "post" | "put" | "patch" | "delete",
     url: string
   ) {
     const [status, setStatus] = useState<Status>("idle");
@@ -40,6 +40,8 @@ export function useApiClient() {
           res = await http.post<ApiResponse<T>>(endpoint, payload);
         } else if (method === "put") {
           res = await http.put<ApiResponse<T>>(endpoint, payload);
+        } else if (method === "patch") {
+          res = await http.patch<ApiResponse<T>>(endpoint, payload);
         } else {
           res = await http.delete<ApiResponse<T>>(endpoint);
         }

@@ -43,18 +43,25 @@ export function usePresignedDownloadUrl(
    * S3キーからpresigned URLを取得する
    */
   const getPresignedUrl = useCallback(
-    async (s3Key: string): Promise<string> => {
+    async (s3Key: string, bucketName?: string): Promise<string> => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // GETリクエストでURLを取得（http.getOnceを使用）
-        const queryParams = `?key=${encodeURIComponent(s3Key)}&expiresIn=${expiresIn}`;
+        const params = new URLSearchParams({
+          key: s3Key,
+          expiresIn: expiresIn.toString(),
+        });
+
+        if (bucketName) {
+          params.append("bucket", bucketName);
+        }
+
         const response = await http.getOnce<{
           success: boolean;
           data: { url: string };
           error?: string;
-        }>(`${endpoint}${queryParams}`);
+        }>(`${endpoint}?${params.toString()}`);
 
         if (!response.data.success) {
           throw new Error(response.data.error || "Failed to get presigned URL");

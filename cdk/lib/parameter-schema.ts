@@ -27,12 +27,12 @@ const parameterSchema = z.object({
   // AI モデル設定
   documentProcessingModelId: z
     .string()
-    .default("us.anthropic.claude-3-7-sonnet-20250219-v1:0")
+    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("ドキュメント処理に使用するAIモデルID"),
 
   imageReviewModelId: z
     .string()
-    .default("us.anthropic.claude-3-7-sonnet-20250219-v1:0")
+    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("画像レビューに使用するAIモデルID"),
 
   // 新しいパラメータを追加する場合はここに定義します
@@ -54,12 +54,6 @@ const parameterSchema = z.object({
 
   // Prismaマイグレーション設定
   autoMigrate: z.boolean().default(true), // デフォルトはtrue（自動マイグレーションを実行する）
-
-  // MCP Runtime設定
-  mcpAdmin: z
-    .boolean()
-    .default(false)
-    .describe("MCPランタイムLambda関数に管理者権限を付与するかどうか"),
 
   // Citation機能設定
   // Amazon Bedrock Citations API for PDF documents with Claude models
@@ -85,6 +79,12 @@ const parameterSchema = z.object({
     .describe(
       "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
     ),
+
+  // AgentCore Code Interpreter設定
+  enableCodeInterpreter: z
+    .boolean()
+    .default(true)
+    .describe("AgentCore Code Interpreterを有効にするかどうか"),
 });
 
 // パラメータの型定義（型安全性のため）
@@ -201,12 +201,6 @@ export function extractContextParameters(app: any): Record<string, any> {
   const autoMigrate = app.node.tryGetContext("rapid.autoMigrate");
   if (autoMigrate !== undefined) {
     params.autoMigrate = autoMigrate === "true" || autoMigrate === true;
-  }
-
-  // MCP Runtime管理者権限設定の取得
-  const mcpAdmin = app.node.tryGetContext("rapid.mcpAdmin");
-  if (mcpAdmin !== undefined) {
-    params.mcpAdmin = mcpAdmin === "true" || mcpAdmin === true;
   }
 
   // Map State並行処理設定の取得

@@ -70,7 +70,7 @@ It is strictly forbidden to output anything other than JSON. Do not use markdown
   "confidence": A number between 0 and 1 (confidence level),
   "explanation": "Explanation of the judgment",
   "shortExplanation": "Short summary of judgment (within 80 characters)",
-  "extractedText": "Relevant extracted text",
+  "extractedText": ["Relevant extracted text"],
   "pageNumber": Page number where the extracted text is found (integer starting from 1)
 }
 
@@ -90,7 +90,7 @@ Example 1 (high confidence pass):
   "confidence": 0.95,
   "explanation": "The contract clearly states the contractor's name, address, and contact information in Article 3. All required information is present and accurate.",
   "shortExplanation": "Pass because contractor information is clearly stated in Article 3 of the contract",
-  "extractedText": "Article 3 (Contractor Information) Contractor: John Smith, Address: 123 Main St...",
+  "extractedText": ["Article 3 (Contractor Information) Contractor: John Smith, Address: 123 Main St..."],
   "pageNumber": 2
 }
 
@@ -100,7 +100,7 @@ Example 2 (medium confidence fail):
   "confidence": 0.82,
   "explanation": "While the property location is mentioned in the contract, there is no mention of the property area. The check item requires the area to be specified.",
   "shortExplanation": "Fail because property area is not mentioned despite having property location",
-  "extractedText": "Property location: 1-1-1 Nishi-Shinjuku, Shinjuku-ku, Tokyo",
+  "extractedText": ["Property location: 1-1-1 Nishi-Shinjuku, Shinjuku-ku, Tokyo"],
   "pageNumber": 1
 }
 
@@ -110,7 +110,7 @@ Example 3 (low confidence pass):
   "confidence": 0.65,
   "explanation": "The contract mentions payment terms, but the specific payment date is ambiguous. However, it meets the minimum requirements.",
   "shortExplanation": "Pass as payment terms exist though payment date is ambiguous",
-  "extractedText": "Payment shall be made promptly after contract conclusion.",
+  "extractedText": ["Payment shall be made promptly after contract conclusion."],
   "pageNumber": 3
 }
 

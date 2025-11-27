@@ -71,10 +71,15 @@ export interface CheckListItemEntity {
   name: string;
   description?: string;
   ambiguityReview?: AmbiguityDetectionResult;
+  toolConfigurationId?: string;
 }
 
 export interface CheckListItemDetail extends CheckListItemEntity {
   hasChildren: boolean;
+  toolConfiguration?: {
+    id: string;
+    name: string;
+  };
 }
 
 export const CheckListSetDomain = {
@@ -176,6 +181,7 @@ export const CheckListItemDomain = {
       name: prismaItem.name,
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
+      toolConfigurationId: prismaItem.toolConfigurationId ?? undefined,
       ambiguityReview: prismaItem.ambiguityReview
         ? {
             suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
@@ -195,12 +201,38 @@ export const CheckListItemDomain = {
       checkListSetId: item.setId,
       parentId: item.parentId ?? null,
       documentId: null,
+      toolConfigurationId: item.toolConfigurationId ?? null,
       ambiguityReview: item.ambiguityReview
         ? {
             suggestions: item.ambiguityReview.suggestions,
             detectedAt: item.ambiguityReview.detectedAt.toISOString(),
           }
         : null,
+    };
+  },
+
+  fromPrismaCheckListItemWithDetail: (
+    prismaItem: CheckList & {
+      toolConfiguration?: { id: string; name: string } | null;
+    },
+    hasChildren: boolean
+  ): CheckListItemDetail => {
+    return {
+      id: prismaItem.id,
+      setId: prismaItem.checkListSetId,
+      name: prismaItem.name,
+      description: prismaItem.description ?? undefined,
+      parentId: prismaItem.parentId ?? undefined,
+      ambiguityReview: prismaItem.ambiguityReview
+        ? {
+            suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
+            detectedAt: new Date(
+              (prismaItem.ambiguityReview as any).detectedAt
+            ),
+          }
+        : undefined,
+      hasChildren,
+      toolConfiguration: prismaItem.toolConfiguration || undefined,
     };
   },
 };

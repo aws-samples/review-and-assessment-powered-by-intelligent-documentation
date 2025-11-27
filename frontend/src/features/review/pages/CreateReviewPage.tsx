@@ -7,7 +7,6 @@ import FormTextField from "../../../components/FormTextField";
 import FormFileUpload from "../../../components/FormFileUpload";
 import ChecklistSelector from "../components/ChecklistSelector";
 import ComparisonIndicator from "../components/ComparisonIndicator";
-import McpServerSelector from "../components/McpServerSelector";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
 import { useDocumentUpload } from "../../../hooks/useDocumentUpload";
 import { useChecklistSets } from "../../checklist/hooks/useCheckListSetQueries";
@@ -35,7 +34,6 @@ export const CreateReviewPage: React.FC = () => {
   const [fileType, setFileType] = useState<REVIEW_FILE_TYPE>(
     REVIEW_FILE_TYPE.PDF
   );
-  const [mcpServerName, setMcpServerName] = useState("");
   const [checklistPage, setChecklistPage] = useState(1);
   const [checklistLimit] = useState(5);
   const [errors, setErrors] = useState({
@@ -86,17 +84,10 @@ export const CreateReviewPage: React.FC = () => {
   // ファイルタイプ選択ハンドラ
   const handleFileTypeChange = (value: string) => {
     setFileType(value as REVIEW_FILE_TYPE);
-    // ファイルタイプが変更されたら選択済みファイルをクリア
     setSelectedFiles([]);
     clearUploadedDocuments();
   };
 
-  // MCP サーバー選択ハンドラ
-  const handleMcpServerChange = (serverName: string) => {
-    setMcpServerName(serverName);
-  };
-
-  // 入力値の変更ハンドラ
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "jobName") {
@@ -262,15 +253,12 @@ export const CreateReviewPage: React.FC = () => {
         fileType: fileType,
       }));
 
-      // 審査ジョブを作成
       await createReviewJob({
         name: jobName,
         checkListSetId: selectedChecklist.id,
         documents: documents,
-        mcpServerName: mcpServerName || undefined,
       });
 
-      // アップロード済みドキュメントリストをクリア
       clearUploadedDocuments();
 
       // 作成成功後、一覧ページに遷移
@@ -393,12 +381,6 @@ export const CreateReviewPage: React.FC = () => {
               )}
             </div>
           </div>
-
-          {/* MCP サーバー選択 */}
-          <McpServerSelector
-            onChange={handleMcpServerChange}
-            value={mcpServerName}
-          />
 
           <div className="mt-8 flex justify-end space-x-3">
             <Button outline to="/review">

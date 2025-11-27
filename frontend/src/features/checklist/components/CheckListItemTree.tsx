@@ -10,12 +10,16 @@ interface CheckListItemTreeProps {
   setId: string;
   maxDepth?: number;
   ambiguityFilter: AmbiguityFilter;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function CheckListItemTree({
   setId,
   maxDepth = 2,
   ambiguityFilter = AmbiguityFilter.ALL,
+  selectedIds,
+  onToggleSelect,
 }: CheckListItemTreeProps) {
   const {
     items: rootItems,
@@ -53,6 +57,8 @@ export default function CheckListItemTree({
           level={0}
           maxDepth={maxDepth}
           ambiguityFilter={ambiguityFilter}
+          selectedIds={selectedIds}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </div>

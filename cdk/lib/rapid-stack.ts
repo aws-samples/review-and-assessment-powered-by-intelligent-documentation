@@ -12,7 +12,6 @@ import { Api } from "./constructs/api";
 import { Auth } from "./constructs/auth";
 import { Frontend } from "./constructs/frontend";
 import { PrismaMigration } from "./constructs/prisma-migration";
-import { McpRuntime } from "./constructs/mcp-runtime/mcp-runtime";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
 import { Parameters } from "./parameter-schema";
 import { execSync } from "child_process";
@@ -109,12 +108,6 @@ export class RapidStack extends cdk.Stack {
     database.grantConnect(prismaMigration.securityGroup);
     database.grantSecretAccess(prismaMigration.migrationLambda);
 
-    // MCP Runner for MCP functionality
-    const mcpRuntime = new McpRuntime(this, "McpRuntime", {
-      timeout: cdk.Duration.minutes(15),
-      admin: props.parameters.mcpAdmin,
-    });
-
     // S3 Temp Storage for Step Functions large data handling
     const s3TempStorage = new S3TempStorage(this, "S3TempStorage", {
       accessLogBucket,
@@ -146,11 +139,11 @@ export class RapidStack extends cdk.Stack {
       logLevel: sfn.LogLevel.ALL,
       maxConcurrency: props.parameters.reviewMapConcurrency || 1,
       databaseConnection: database.connection,
-      McpRuntime: mcpRuntime,
       documentProcessingModelId: props.parameters.documentProcessingModelId,
       imageReviewModelId: props.parameters.imageReviewModelId,
       bedrockRegion: props.parameters.bedrockRegion,
       enableCitations: props.parameters.enableCitations,
+      enableCodeInterpreter: props.parameters.enableCodeInterpreter,
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）
@@ -276,6 +269,23 @@ export class RapidStack extends cdk.Stack {
     new cdk.CfnOutput(this, "LatestGitTag", {
       value: latestGitTag,
       description: "デプロイされたコードの最新Gitタグ",
+    });
+
+    // AgentCore Runtime test用のOutput
+    new cdk.CfnOutput(this, "TempBucketName", {
+      value: s3TempStorage.bucket.bucketName,
+    });
+    
+    new cdk.CfnOutput(this, "BedrockRegion", {
+      value: props.parameters.bedrockRegion,
+    });
+    
+    new cdk.CfnOutput(this, "DocumentProcessingModelId", {
+      value: props.parameters.documentProcessingModelId,
+    });
+    
+    new cdk.CfnOutput(this, "ImageReviewModelId", {
+      value: props.parameters.imageReviewModelId,
     });
 
     // Fix migrationLambda.functionArn

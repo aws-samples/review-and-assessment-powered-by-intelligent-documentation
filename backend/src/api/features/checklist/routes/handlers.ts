@@ -15,6 +15,7 @@ import {
   getCheckListItem,
   modifyCheckListItem,
   removeCheckListItem,
+  bulkAssignToolConfiguration,
 } from "../usecase/checklist-item";
 import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
 
@@ -388,5 +389,24 @@ export const detectAmbiguityHandler = async (
   reply.code(202).send({
     success: true,
     data: { message: "Ambiguity detection started" },
+  });
+};
+
+export const bulkAssignToolConfigurationHandler = async (
+  request: FastifyRequest<{
+    Body: {
+      checkIds: string[];
+      toolConfigurationId: string | null;
+    };
+  }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const updatedCount = await bulkAssignToolConfiguration({
+    checkIds: request.body.checkIds,
+    toolConfigurationId: request.body.toolConfigurationId,
+  });
+  reply.code(200).send({
+    success: true,
+    updatedCount,
   });
 };

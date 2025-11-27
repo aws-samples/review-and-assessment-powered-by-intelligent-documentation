@@ -21,7 +21,11 @@ export function useCreateCheckListItem(setId: string) {
   const createCheckListItem = async (body: CreateChecklistItemRequest) => {
     const res = await mutateAsync(body);
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
@@ -46,8 +50,11 @@ export function useUpdateCheckListItem(setId: string) {
       `/checklist-sets/${setId}/items/${itemId}`
     );
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
-    mutate(`/checklist-sets/${setId}/items/${itemId}`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
@@ -69,9 +76,42 @@ export function useDeleteCheckListItem(setId: string) {
       `/checklist-sets/${setId}/items/${itemId}`
     );
     // キャッシュ更新
-    mutate(`/checklist-sets/${setId}/items/hierarchy`);
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
     return res;
   };
 
   return { deleteCheckListItem, status, error };
+}
+
+/**
+ * 一括ツール設定の割り当て
+ */
+export function useBulkAssignToolConfiguration() {
+  const { mutateAsync, status, error } = useApiClient().useMutation<
+    { success: boolean; updatedCount: number },
+    { checkIds: string[]; toolConfigurationId: string | null }
+  >("patch", "/checklist-items/bulk/tool-configuration");
+
+  const bulkAssignToolConfiguration = async (
+    checkIds: string[],
+    toolConfigurationId: string | null
+  ) => {
+    const res = await mutateAsync(
+      { checkIds, toolConfigurationId },
+      "/checklist-items/bulk/tool-configuration"
+    );
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith("/checklist-sets/") &&
+        key.includes("/items")
+    );
+    return res;
+  };
+
+  return { bulkAssignToolConfiguration, status, error };
 }

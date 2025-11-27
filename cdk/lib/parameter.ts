@@ -61,9 +61,7 @@ export const parameters = {
   // デプロイ時に自動的にマイグレーションを実行するかどうか
   // ---------------------------------------------------
   // autoMigrate: true, // デフォルトはtrue（自動マイグレーションを実行する）
-  // MCP Runtime設定
-  mcpAdmin: true, // MCPランタイムLambda関数に管理者権限を付与する（デフォルト：false、本番環境では推奨されません）
-  
+
   // Citation機能設定
   // Amazon Bedrock Citations API for PDF documents with Claude models
   // Ref: https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/
@@ -74,4 +72,8 @@ export const parameters = {
   // ---------------------------------------------------
   // reviewMapConcurrency: 1, // レビュープロセッサのMap State並行処理数（デフォルト：1）
   // checklistInlineMapConcurrency: 1, // チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）
+
+  // AgentCore Code Interpreter設定
+  // ---------------------------------------------------
+  // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
 };

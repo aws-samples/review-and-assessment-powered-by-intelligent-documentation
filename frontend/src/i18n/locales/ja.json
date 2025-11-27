@@ -47,7 +47,8 @@
     "review": "審査",
     "menu": "メニュー",
     "settings": "プロンプト管理",
-    "checklistPrompt": "チェックリストプロンプト"
+    "checklistPrompt": "チェックリストプロンプト",
+    "toolConfiguration": "ツール設定"
   },
   "auth": {
     "signIn": "サインイン",
@@ -152,7 +153,11 @@
     "ambiguityDetectionError": "曖昧基準の再検知に失敗しました",
     "improvementSuggestions": "改善提案",
     "filterAll": "すべて",
-    "filterNeedsReview": "要確認"
+    "filterNeedsReview": "要確認",
+    "assignToolConfiguration": "ツール設定を割り当て",
+    "unassignToolConfiguration": "ツール設定の割り当てを解除",
+    "noToolConfigurationsFound": "ツール設定が見つかりません。先に作成してください。",
+    "createToolConfiguration": "ツール設定を作成"
   },
   "review": {
     "title": "審査ジョブ一覧",
@@ -240,7 +245,36 @@
     "mcpDisabledDescription": "標準の審査処理を使用します",
     "mcpEnabled": "MCP を利用する",
     "mcpEnabledDescription": "拡張機能を使った審査処理を利用します",
-    "noMcpServersAvailable": "利用可能な MCP サーバーがありません"
+    "noMcpServersAvailable": "利用可能な MCP サーバーがありません",
+    "externalSources": "AIの作業履歴",
+    "sources": {
+      "codeInterpreter": {
+        "title": "計算・分析プログラムの実行",
+        "input": "入力コード",
+        "output": "実行結果",
+        "executionError": "実行エラー",
+        "exitCode": "終了コード",
+        "tooltip": "AIエージェントが自律的に計算・分析プログラムを生成して実行します"
+      },
+      "knowledgeBase": {
+        "title": "外部ナレッジを検索",
+        "searchKeywords": "検索キーワード",
+        "results": "検索結果",
+        "page": "ページ",
+        "viewDocument": "文書を開く",
+        "loading": "読み込み中...",
+        "document": "ドキュメント",
+        "tooltip": "事前に登録された外部ナレッジベースから関連情報を検索し、審査の参考情報として活用します"
+      },
+      "generic": {
+        "title": "ツール実行",
+        "input": "入力",
+        "output": "出力",
+        "executionError": "実行エラー",
+        "exitCode": "終了コード",
+        "truncated": "切り詰められました"
+      }
+    }
   },
   "fileUploader": {
     "dropFiles": "ファイルをドロップしてください",
@@ -316,5 +350,47 @@
   "experimental": {
     "beta": "ベータ",
     "experimental": "実験的機能"
+  },
+  "toolConfiguration": {
+    "title": "ツール設定一覧",
+    "description": "チェックリスト項目のツール設定を管理します",
+    "create": "新規設定",
+    "name": "名前",
+    "namePlaceholder": "設定名を入力",
+    "nameRequired": "名前は必須です",
+    "description": "説明",
+    "descriptionPlaceholder": "説明を入力 (任意)",
+    "tools": "ツール",
+    "toolsRequired": "少なくとも1つのツールを有効にしてください",
+    "codeInterpreter": "Code Interpreter",
+    "codeInterpreterHelp": "AIが仕様書に記載された計算式などを自動的にコード化して実行します。複雑な計算や数値検証を自律的に行い、レビュー判定を支援します。",
+    "knowledgeBase": "Knowledge Base",
+    "knowledgeBaseHelp": "事前に登録した参照資料(規格書、ガイドライン等)から関連情報を検索します。レビュー対象文書と照合すべき基準を自動的に参照できます。",
+    "knowledgeBaseWarning": "注意: Knowledge Baseはこのアプリケーションと同一リージョン・同一AWSアカウントに存在する必要があります。",
+    "knowledgeBaseId": "Knowledge Base ID",
+    "dataSourceIds": "Data Source IDs (カンマ区切り、任意)",
+    "addKnowledgeBase": "Knowledge Baseを追加",
+    "remove": "削除",
+    "mcp": "MCP (Model Context Protocol)",
+    "mcpComingSoon": "近日公開",
+    "createTitle": "ツール設定の作成",
+    "createDescription": "チェックリスト項目のツールを設定します",
+    "detailsTitle": "ツール設定",
+    "detailsDescription": "ツール設定の詳細",
+    "backToList": "ツール設定一覧に戻る",
+    "notFound": "ツール設定が見つかりません",
+    "loadError": "ツール設定の取得に失敗しました",
+    "deleteConfirmation": "「{{name}}」を削除しますか?",
+    "deleteTitle": "確認",
+    "deleteButton": "削除",
+    "deleteError": "使用中のツール設定は削除できません",
+    "deleteSuccess": "ツール設定を削除しました",
+    "usage": "使用状況",
+    "usedBy": "{{count}}件で使用中",
+    "noConfigurations": "ツール設定が見つかりません",
+    "createSuccess": "ツール設定を作成しました",
+    "createError": "ツール設定の作成に失敗しました",
+    "updating": "更新中...",
+    "creating": "作成中..."
   }
 }
