@@ -11,6 +11,7 @@ This is an all-TypeScript project with the following structure:
 - frontend/ - React SPA with Tailwind CSS
   - package.json
 - review-item-processor/ - Review item assessment agent (project root level, NOT under backend/)
+  - **Python project: use `uv` for all package management and command execution**
 
 **IMPORTANT**: There is NO package.json in the root directory. Do NOT create one using npm init.
 
