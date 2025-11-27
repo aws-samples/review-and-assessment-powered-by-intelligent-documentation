@@ -123,7 +123,9 @@ export class ReviewProcessor extends Construct {
     const invokeAgentLambda = new lambda.Function(this, "InvokeAgentFunction", {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent")),
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent"), {
+        exclude: ["*.ts", "*.d.ts", "tsconfig.json", "node_modules"],
+      }),
       timeout: cdk.Duration.minutes(5),
       environment: {
         AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
