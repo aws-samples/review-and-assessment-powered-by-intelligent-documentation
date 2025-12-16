@@ -54,7 +54,7 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
   const defaultCutoff = new Date();
   defaultCutoff.setDate(defaultCutoff.getDate() - DEFAULT_LOOKBACK_DAYS);
 
-  // Find checklists with feedback, including their last summary update time
+  // Find checklists that have NEW feedback since last summary update
   const checklistsWithFeedback = await db.$queryRaw<ChecklistWithLastUpdate[]>`
     SELECT DISTINCT 
       rr.check_id,
@@ -63,9 +63,11 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
     JOIN check_lists cl ON rr.check_id = cl.check_id
     WHERE rr.user_override = true 
       AND rr.user_comment IS NOT NULL
+      AND (cl.feedback_summary_updated_at IS NULL 
+           OR rr.updated_at > cl.feedback_summary_updated_at)
   `;
 
-  console.log(`Found ${checklistsWithFeedback.length} checklists with feedback history`);
+  console.log(`Found ${checklistsWithFeedback.length} checklists with new feedback`);
 
   let processed = 0;
   let errors = 0;
