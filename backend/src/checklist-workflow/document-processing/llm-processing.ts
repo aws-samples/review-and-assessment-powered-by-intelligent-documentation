@@ -189,43 +189,76 @@ export async function processWithLLM({
   console.log(
     `[DEBUG] Final language used for checklist extraction: ${userLanguage}`
   );
+  console.log(`[DEBUG] Using model: ${MODEL_ID}`);
+  console.log(`[DEBUG] PDF size: ${pdfBytes.length} bytes`);
+
   const checklistExtractionPrompt = getChecklistExtractionPrompt(userLanguage);
-  const response = await bedrockClient.send(
-    new ConverseCommand({
-      modelId: MODEL_ID,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { text: checklistExtractionPrompt },
-            {
-              document: {
-                name: "ChecklistDocument",
-                format: "pdf",
-                source: {
-                  bytes: pdfBytes, // Actual PDF binary data
-                },
-                citations: { enabled: true }, // Enable citations for PDF image analysis (workaround for visual understanding)
-              },
-            },
-          ],
-        },
-      ],
-      // additionalModelRequestFields: {
-      //   thinking: {
-      //     type: "enabled",
-      //     budget_tokens: 4000, // Maximum tokens for inference
-      //   },
-      // },
-    })
+
+  // Determine citations setting based on model type
+  const isNovaModel = MODEL_ID.includes("nova");
+  const citationsConfig = isNovaModel
+    ? { enabled: false } // Disable citations for Nova models as they cause InternalServerException
+    : { enabled: true }; // Keep enabled for Other models for PDF image analysis workaround
+
+  console.log(
+    `[DEBUG] Citations enabled: ${citationsConfig.enabled} (Nova model: ${isNovaModel})`
   );
+
+  let response: any;
+
+  try {
+    response = await bedrockClient.send(
+      new ConverseCommand({
+        modelId: MODEL_ID,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { text: checklistExtractionPrompt },
+              {
+                document: {
+                  name: "ChecklistDocument",
+                  format: "pdf",
+                  source: {
+                    bytes: pdfBytes, // Actual PDF binary data
+                  },
+                  citations: citationsConfig,
+                },
+              },
+            ],
+          },
+        ],
+        // additionalModelRequestFields: {
+        //   thinking: {
+        //     type: "enabled",
+        //     budget_tokens: 4000, // Maximum tokens for inference
+        //   },
+        // },
+      })
+    );
+
+    console.log(`[DEBUG] Bedrock API call successful`);
+    console.log(
+      `[DEBUG] Response metadata:`,
+      JSON.stringify(response.$metadata, null, 2)
+    );
+  } catch (error: any) {
+    console.error(`[ERROR] Bedrock API call failed:`, error);
+    console.error(`[ERROR] Model ID: ${MODEL_ID}`);
+    console.error(`[ERROR] PDF size: ${pdfBytes.length} bytes`);
+    console.error(`[ERROR] Citations enabled: ${citationsConfig.enabled}`);
+    console.error(
+      `[ERROR] Error type: ${error?.constructor?.name || "Unknown"}`
+    );
+    throw error;
+  }
 
   // Extract text from response
   console.log(`Processing response from LLM...`);
   const outputMessage = response.output?.message;
   let llmResponse = "";
   if (outputMessage && outputMessage.content) {
-    outputMessage.content.forEach((block) => {
+    outputMessage.content.forEach((block: any) => {
       if ("text" in block) {
         llmResponse += block.text;
       }
@@ -266,76 +299,94 @@ export async function processWithLLM({
     }));
   } catch (error) {
     console.error(
-      `JSON parsing failed: ${error}\nLLM response: ${llmResponse}`
+      `[ERROR] JSON parsing failed: ${error}\nLLM response: ${llmResponse}`
     );
-    console.error("Starting retry process.");
+    console.error(`[ERROR] Starting retry process for model: ${MODEL_ID}`);
+
     // If JSON parsing fails, send error message to Bedrock for retry
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const retryResponse = await bedrockClient.send(
-      new ConverseCommand({
-        modelId: MODEL_ID,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                text: `${checklistExtractionPrompt}\n\nThe previous output could not be parsed as JSON. Error: ${errorMessage}\n\nPlease output in strict JSON array format.\n\nThis is page ${pageNumber} of the PDF file. Please extract the checklist.`,
-              },
-              {
-                document: {
-                  name: "ChecklistDocument",
-                  format: "pdf",
-                  source: {
-                    bytes: pdfBytes, // 実際のPDFバイナリデータ
-                  },
-                  citations: { enabled: true }, // Enable citations for PDF image analysis (workaround for visual understanding)
-                },
-              },
-            ],
-          },
-        ],
-        // additionalModelRequestFields: {
-        //   thinking: {
-        //     type: "enabled",
-        //     budget_tokens: 4000, // 推論に使用する最大トークン数
-        //   },
-        // },
-      })
-    );
 
-    // Extract text from retry response
-    const retryOutputMessage = retryResponse.output?.message;
-    let retryLlmResponse = "";
-    if (retryOutputMessage && retryOutputMessage.content) {
-      retryOutputMessage.content.forEach((block) => {
-        if ("text" in block) {
-          retryLlmResponse += block.text;
-        }
-      });
-    }
     try {
-      checklistItems = JSON.parse(retryLlmResponse);
-
-      // パース直後に各項目にIDを割り当て、数値型のIDを文字列に変換
-      checklistItems = checklistItems.map((item) => {
-        // 親IDを文字列に変換
-        const parent_id =
-          item.parent_id !== null && item.parent_id !== undefined
-            ? String(item.parent_id)
-            : null;
-
-        return {
-          ...item,
-          id: ulid(),
-          parent_id,
-        };
-      });
-    } catch (error) {
-      console.error(
-        `JSON parsing failed even after retry: ${error}\nLLM response: ${retryLlmResponse}`
+      const retryResponse = await bedrockClient.send(
+        new ConverseCommand({
+          modelId: MODEL_ID,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  text: `${checklistExtractionPrompt}\n\nThe previous output could not be parsed as JSON. Error: ${errorMessage}\n\nPlease output in strict JSON array format.\n\nThis is page ${pageNumber} of the PDF file. Please extract the checklist.`,
+                },
+                {
+                  document: {
+                    name: "ChecklistDocument",
+                    format: "pdf",
+                    source: {
+                      bytes: pdfBytes, // 実際のPDFバイナリデータ
+                    },
+                    citations: citationsConfig, // Use same citations config as initial request
+                  },
+                },
+              ],
+            },
+          ],
+          // additionalModelRequestFields: {
+          //   thinking: {
+          //     type: "enabled",
+          //     budget_tokens: 4000, // 推論に使用する最大トークン数
+          //   },
+          // },
+        })
       );
-      throw new Error("Invalid response from LLM.");
+
+      console.log(`[DEBUG] Retry Bedrock API call successful`);
+
+      // Extract text from retry response
+      const retryOutputMessage = retryResponse.output?.message;
+      let retryLlmResponse = "";
+      if (retryOutputMessage && retryOutputMessage.content) {
+        retryOutputMessage.content.forEach((block: any) => {
+          if ("text" in block) {
+            retryLlmResponse += block.text;
+          }
+        });
+      }
+
+      console.log(
+        `[DEBUG] Retry response length: ${retryLlmResponse.length} characters`
+      );
+
+      try {
+        checklistItems = JSON.parse(retryLlmResponse);
+        console.log(`[DEBUG] Retry JSON parsing successful`);
+      } catch (retryError) {
+        console.error(`[ERROR] Retry JSON parsing also failed: ${retryError}`);
+        console.error(`[ERROR] Retry LLM response: ${retryLlmResponse}`);
+        throw new Error(
+          `Both initial and retry JSON parsing failed. Original error: ${errorMessage}, Retry error: ${retryError}`
+        );
+      }
+    } catch (retryApiError) {
+      console.error(`[ERROR] Retry Bedrock API call failed: ${retryApiError}`);
+      throw new Error(
+        `Initial JSON parsing failed and retry API call also failed. Original error: ${errorMessage}, Retry API error: ${retryApiError}`
+      );
     }
+
+    // パース直後に各項目にIDを割り当て、数値型のIDを文字列に変換
+    checklistItems = checklistItems.map((item) => {
+      // 親IDを文字列に変換
+      const parent_id =
+        item.parent_id !== null && item.parent_id !== undefined
+          ? String(item.parent_id)
+          : null;
+
+      return {
+        ...item,
+        id: ulid(),
+        parent_id,
+      };
+    });
   }
 
   console.log(`Response from LLM: ${JSON.stringify(checklistItems, null, 2)}`);

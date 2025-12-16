@@ -182,6 +182,7 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
 - `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
+- `us.amazon.nova-2-omni-v1:0` (Amazon Nova 2 Omni)
 
 **重要な注意事項**:
 
@@ -194,8 +195,8 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 ```typescript
 // cdk/lib/parameter.ts
 export const parameters = {
-  documentProcessingModelId: "mistral.mistral-large-2407-v1:0", // Mistral Large 2
-  bedrockRegion: "ap-northeast-1", // 東京リージョン
+  documentProcessingModelId: "us.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet US
+  bedrockRegion: "us-west-2", // オレゴンリージョン
   // ...
 };
 ```
