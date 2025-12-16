@@ -7,6 +7,7 @@ import { Construct } from "constructs";
 import { ChecklistProcessor } from "./constructs/checklist-processor";
 import { ReviewProcessor } from "./constructs/review-processor";
 import { AmbiguityDetectionProcessor } from "./constructs/ambiguity-detection-processor";
+import { FeedbackAggregator } from "./constructs/feedback-aggregator";
 import { Database } from "./constructs/database";
 import { Api } from "./constructs/api";
 import { Auth } from "./constructs/auth";
@@ -164,6 +165,23 @@ export class RapidStack extends cdk.Stack {
         bedrockRegion: props.parameters.bedrockRegion,
       }
     );
+
+    // Feedback Aggregator (daily batch job for feedback summary generation)
+    const feedbackAggregator = new FeedbackAggregator(
+      this,
+      "FeedbackAggregator",
+      {
+        vpc,
+        databaseConnection: database.connection,
+        bedrockRegion: props.parameters.bedrockRegion,
+        aggregationDays: 7,
+        scheduleExpression: "cron(0 2 * * ? *)", // Daily at 2:00 AM UTC
+      }
+    );
+
+    // Grant database access to feedback aggregator
+    database.grantConnect(feedbackAggregator.securityGroup);
+    database.grantSecretAccess(feedbackAggregator.lambda);
 
     // API Gatewayとそれに紐づくLambda関数の作成
     const api = new Api(this, "Api", {
