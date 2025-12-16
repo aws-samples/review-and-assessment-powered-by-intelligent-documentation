@@ -72,6 +72,8 @@ export interface CheckListItemEntity {
   description?: string;
   ambiguityReview?: AmbiguityDetectionResult;
   toolConfigurationId?: string;
+  feedbackSummary?: string;
+  feedbackSummaryUpdatedAt?: Date;
 }
 
 export interface CheckListItemDetail extends CheckListItemEntity {
@@ -182,6 +184,8 @@ export const CheckListItemDomain = {
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
       toolConfigurationId: prismaItem.toolConfigurationId ?? undefined,
+      feedbackSummary: prismaItem.feedbackSummary ?? undefined,
+      feedbackSummaryUpdatedAt: prismaItem.feedbackSummaryUpdatedAt ?? undefined,
       ambiguityReview: prismaItem.ambiguityReview
         ? {
             suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
@@ -202,6 +206,8 @@ export const CheckListItemDomain = {
       parentId: item.parentId ?? null,
       documentId: null,
       toolConfigurationId: item.toolConfigurationId ?? null,
+      feedbackSummary: item.feedbackSummary ?? null,
+      feedbackSummaryUpdatedAt: item.feedbackSummaryUpdatedAt ?? null,
       ambiguityReview: item.ambiguityReview
         ? {
             suggestions: item.ambiguityReview.suggestions,
@@ -223,6 +229,8 @@ export const CheckListItemDomain = {
       name: prismaItem.name,
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
+      feedbackSummary: prismaItem.feedbackSummary ?? undefined,
+      feedbackSummaryUpdatedAt: prismaItem.feedbackSummaryUpdatedAt ?? undefined,
       ambiguityReview: prismaItem.ambiguityReview
         ? {
             suggestions: (prismaItem.ambiguityReview as any).suggestions || [],

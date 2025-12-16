@@ -591,12 +591,27 @@ When calling multiple independent tools, execute them in parallel. Only call too
 """
 
 
+def _build_feedback_section(feedback_summary: Optional[str]) -> str:
+    """Build feedback section for prompt if feedback summary exists"""
+    if not feedback_summary:
+        return ""
+    return f"""
+<historical_feedback>
+Based on previous user feedback for this check item:
+{feedback_summary}
+
+Consider this feedback when making your judgment, but base your decision on the actual document content.
+</historical_feedback>
+"""
+
+
 # Prompt generation functions
 def _get_document_review_prompt_legacy(
     language_name: str,
     check_name: str,
     check_description: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """Improved PDF document review prompt with dynamic tool section"""
 
@@ -610,6 +625,7 @@ def _get_document_review_prompt_legacy(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_section = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -617,7 +633,7 @@ def _get_document_review_prompt_legacy(
 **Name**: {check_name}
 **Description**: {check_description}
 </check_item>
-
+{feedback_section}
 <document_access>
 Use the file_read tool to open and inspect each attached file.
 </document_access>
@@ -654,6 +670,7 @@ def _get_document_review_prompt_with_citations(
     check_name: str,
     check_description: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """PDF document review prompt with citations in JSON array"""
 
@@ -667,6 +684,7 @@ def _get_document_review_prompt_with_citations(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_section = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -674,7 +692,7 @@ def _get_document_review_prompt_with_citations(
 **Name**: {check_name}
 **Description**: {check_description}
 </check_item>
-
+{feedback_section}
 <document_access>
 Documents are provided with citation support enabled. When you reference specific information from the documents, write your explanation in natural prose.
 </document_access>
@@ -726,15 +744,16 @@ def get_document_review_prompt(
     check_description: str,
     use_citations: bool = False,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """PDF document review prompt with optional citation support"""
     if use_citations:
         return _get_document_review_prompt_with_citations(
-            language_name, check_name, check_description, tool_config
+            language_name, check_name, check_description, tool_config, feedback_summary
         )
     else:
         return _get_document_review_prompt_legacy(
-            language_name, check_name, check_description, tool_config
+            language_name, check_name, check_description, tool_config, feedback_summary
         )
 
 
@@ -744,6 +763,7 @@ def get_image_review_prompt(
     check_description: str,
     model_id: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """Improved image review prompt with dynamic tool section"""
     is_nova = "amazon.nova" in model_id
@@ -776,6 +796,7 @@ def get_image_review_prompt(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_section = _build_feedback_section(feedback_summary)
 
     return f"""
 You are an AI assistant who reviews images.
@@ -784,7 +805,7 @@ Please review the provided image(s) based on the following check item.
 
 Check item: {check_name}
 Description: {check_description}
-
+{feedback_section}
 ## DOCUMENT ACCESS
 The actual files are attached. Use the *image_reader* tool to analyze them.
 
@@ -854,6 +875,7 @@ def process_review(
     language_name: str = "日本語",
     model_id: str = DOCUMENT_MODEL_ID,
     toolConfiguration: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Process a document review using Strands agent with local file reading.
@@ -861,6 +883,8 @@ def process_review(
     """
     logger.debug(f"Processing review for check: {check_name}")
     logger.debug(f"Tool configuration: {toolConfiguration}")
+    if feedback_summary:
+        logger.debug("Feedback summary available for this check")
 
     # Create temporary directory for downloaded files
     temp_dir = tempfile.mkdtemp()
@@ -936,7 +960,8 @@ def process_review(
             prompt = get_document_review_prompt(
                 language_name, check_name, check_description, 
                 use_citations=False,  # Will be determined by model
-                tool_config=toolConfiguration
+                tool_config=toolConfiguration,
+                feedback_summary=feedback_summary,
             )
             
             system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
@@ -956,7 +981,8 @@ def process_review(
             if has_images:
                 prompt = get_image_review_prompt(
                     language_name, check_name, check_description, 
-                    selected_model_id, toolConfiguration
+                    selected_model_id, toolConfiguration,
+                    feedback_summary=feedback_summary,
                 )
                 tools = [file_read, image_reader]
                 review_type = "IMAGE"
@@ -964,7 +990,8 @@ def process_review(
                 prompt = get_document_review_prompt(
                     language_name, check_name, check_description,
                     use_citations=False,
-                    tool_config=toolConfiguration
+                    tool_config=toolConfiguration,
+                    feedback_summary=feedback_summary,
                 )
                 tools = [file_read]
                 review_type = "PDF"

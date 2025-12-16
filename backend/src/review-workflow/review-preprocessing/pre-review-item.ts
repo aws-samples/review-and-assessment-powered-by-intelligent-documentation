@@ -105,6 +105,7 @@ export async function preReviewItemProcessor(
   return {
     checkName: checkList.name,
     checkDescription: checkList.description || "",
+    feedbackSummary: checkList.feedbackSummary || null,
     languageName: getLanguageName(userLanguage),
     documentPaths: documentsToProcess.map((doc) => doc.s3Path),
     documentIds: documentsToProcess.map((doc) => doc.id),

@@ -71,9 +71,12 @@ def handler(event, context):
         # The agent.py will automatically detect file types and select the appropriate model
         # Extract tool configuration if available
         tool_configuration = event.get("toolConfiguration")
+        feedback_summary = event.get("feedbackSummary")
         logger.debug(
             f"[DEBUG LAMBDA] Tool configuration: {json.dumps(tool_configuration)}"
         )
+        if feedback_summary:
+            logger.debug(f"[DEBUG LAMBDA] Feedback summary available for check")
 
         review_data = process_review(
             document_bucket=DOCUMENT_BUCKET,
@@ -83,6 +86,7 @@ def handler(event, context):
             language_name=language_name,
             model_id=DOCUMENT_MODEL_ID,  # Default model, will be overridden for images
             toolConfiguration=tool_configuration,
+            feedback_summary=feedback_summary,
         )
 
         # Return results to Step Functions - handle both PDF and image results
