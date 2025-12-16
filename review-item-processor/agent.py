@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
+from logger import logger
+from model_config import ModelConfig
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
@@ -16,62 +18,14 @@ from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
-from logger import logger
 
 
 class ReviewMetaTracker:
     """Class to track review metadata such as pricing and execution time."""
 
     def __init__(self, model_id: str):
-        self.model_id = model_id
-        self.pricing = self._get_model_pricing(model_id)
+        self.model = ModelConfig.create(model_id)
         self.start_time = time.time()
-
-    def _get_model_pricing(self, model_id: str) -> Dict[str, float]:
-        """Get pricing information for the specified model ID."""
-        pricing_table = {
-            "us.anthropic.claude-3-7-sonnet-20250219-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "global.anthropic.claude-sonnet-4-20250514-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "us.anthropic.claude-sonnet-4-20250514-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "eu.anthropic.claude-sonnet-4-20250514-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "apac.anthropic.claude-sonnet-4-20250514-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.003,
-                "output_per_1k": 0.015,
-            },
-            "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.0033,
-                "output_per_1k": 0.0165,
-            },
-            "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.0033,
-                "output_per_1k": 0.0165,
-            },
-            "jp.anthropic.claude-sonnet-4-5-20250929-v1:0": {
-                "input_per_1k": 0.0033,
-                "output_per_1k": 0.0165,
-            },
-            "us.amazon.nova-premier-v1:0": {
-                "input_per_1k": 0.0025,
-                "output_per_1k": 0.0125,
-            },
-        }
-        return pricing_table.get(model_id, {"input_per_1k": 0, "output_per_1k": 0})
 
     def get_review_meta(self, agent_result) -> Dict[str, Any]:
         """Extract review metadata from the agent result."""
@@ -88,18 +42,21 @@ class ReviewMetaTracker:
             f"Token usage from metrics: input={input_tokens}, output={output_tokens}, total={total_tokens}"
         )
 
-        input_cost = (input_tokens / 1000) * self.pricing["input_per_1k"]
-        output_cost = (output_tokens / 1000) * self.pricing["output_per_1k"]
+        input_cost = (input_tokens / 1000) * self.model.input_per_1k
+        output_cost = (output_tokens / 1000) * self.model.output_per_1k
         total_cost = input_cost + output_cost
 
         return {
-            "model_id": self.model_id,
+            "model_id": self.model.model_id,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "input_cost": input_cost,
             "output_cost": output_cost,
             "total_cost": total_cost,
-            "pricing": self.pricing,
+            "pricing": {
+                "input_per_1k": self.model.input_per_1k,
+                "output_per_1k": self.model.output_per_1k,
+            },
             "duration_seconds": round(duration, 2),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -151,34 +108,11 @@ BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
 # Tool text truncate length
 TOOL_TEXT_TRUNCATE_LENGTH = 500
-# Models that support prompt and tool caching
-# Base model IDs that support prompt and tool caching (without region prefixes)
-CACHE_SUPPORTED_BASE_MODELS = {
-    # Anthropic Claude models
-    "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    "anthropic.claude-3-5-sonnet-20240620-v1:0",
-    "anthropic.claude-3-5-haiku-20241022-v1:0",
-    "anthropic.claude-3-opus-20240229-v1:0",
-    "anthropic.claude-3-sonnet-20240229-v1:0",
-    "anthropic.claude-3-haiku-20240307-v1:0",
-    "anthropic.claude-sonnet-4-20250514-v1:0",
-    "anthropic.claude-sonnet-4-5-20250929-v1:0",
-    "anthropic.claude-opus-4-20250514-v1:0",
-    "anthropic.claude-3-7-sonnet-20250219-v1:0",
-    # # Amazon Nova models
-    # "amazon.nova-premier-v1:0",
-    # "amazon.nova-pro-v1:0",
-    # "amazon.nova-lite-v1:0",
-    # "amazon.nova-micro-v1:0",
-}
 
 
 def supports_caching(model_id: str) -> bool:
     """
     Check if the given model supports prompt and tool caching.
-
-    Handles both direct model IDs and cross-region inference profiles
-    (e.g., us.anthropic.claude-3-5-sonnet-20241022-v2:0, eu.amazon.nova-premier-v1:0).
 
     Args:
         model_id: Bedrock model ID to check
@@ -186,40 +120,34 @@ def supports_caching(model_id: str) -> bool:
     Returns:
         True if the model supports caching, False otherwise
     """
-    # First check if it's a direct model ID
-    if model_id in CACHE_SUPPORTED_BASE_MODELS:
-        return True
-
-    # Check if it's a cross-region inference profile
-    # Pattern: {region}.{model_id} where region is lowercase letters
-    import re
-
-    cross_region_pattern = re.compile(r"^[a-z]+\.")
-    match = cross_region_pattern.match(model_id)
-    if match:
-        # Extract the base model ID by removing the region prefix
-        prefix_end = match.end()
-        base_model_id = model_id[prefix_end:]
-        return base_model_id in CACHE_SUPPORTED_BASE_MODELS
-
-    # Model not supported
-    return False
+    model = ModelConfig.create(model_id)
+    return model.supports_caching
 
 
-CITATION_SUPPORTED_MODELS = {
-    "anthropic.claude-sonnet-4-20250514-v1:0",
-    "anthropic.claude-sonnet-4-5-20250929-v1:0",
-    "anthropic.claude-opus-4-20250514-v1:0",
-    "anthropic.claude-3-7-sonnet-20250219-v1:0",
-    "anthropic.claude-3-5-sonnet-20241022-v2:0",
-}
-
-
-def supports_citations(model_id: str) -> bool:
-    """Check if model supports Citations API"""
-    # Handle cross-region inference profiles (us.anthropic.xxx)
-    base_model = model_id.split(".", 1)[-1] if "." in model_id else model_id
-    return base_model in CITATION_SUPPORTED_MODELS
+def _should_use_document_block(
+    document_paths: list,
+    model_id: str,
+    has_images: bool
+) -> bool:
+    """
+    Determine if document block should be used.
+    
+    Document block: Embed PDF directly in request
+    File read tool: Use file_read tool with file paths
+    
+    Args:
+        document_paths: List of document paths
+        model_id: Bedrock model ID
+        has_images: Whether documents contain images
+        
+    Returns:
+        True to use document block, False to use file_read tool
+    """
+    if has_images:
+        return False
+    
+    model = ModelConfig.create(model_id)
+    return ENABLE_CITATIONS and model.supports_document_block
 
 
 def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
@@ -286,7 +214,7 @@ def list_tools_sync(client: MCPClient) -> List[Dict[str, Any]]:
 
 
 # Agent execution functions
-def _run_strands_agent_legacy(
+def _run_agent_with_file_read_tool(
     prompt: str,
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
@@ -307,7 +235,7 @@ def _run_strands_agent_legacy(
 
     # Add custom tools based on configuration
     custom_tools = create_custom_tools(toolConfiguration)
-    
+
     # Managed Integration: MCPClient passed directly to Agent
     # Agent handles lifecycle automatically
     tools = tools_to_use + custom_tools
@@ -317,7 +245,8 @@ def _run_strands_agent_legacy(
     logger.debug(f"Creating Strands agent with model: {model_id}")
 
     # Check if model supports caching
-    model_supports_cache = supports_caching(model_id)
+    model = ModelConfig.create(model_id)
+    model_supports_cache = model.supports_caching
     logger.debug(f"Model {model_id} caching support: {model_supports_cache}")
 
     # Configure BedrockModel with conditional caching
@@ -375,7 +304,7 @@ def _run_strands_agent_legacy(
     return result
 
 
-def _run_strands_agent_with_citations(
+def _run_agent_with_document_block(
     prompt: str,
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
@@ -383,23 +312,32 @@ def _run_strands_agent_with_citations(
     temperature: float = 0.0,
     toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Run Strands agent with citation support (PDF only)"""
-    logger.debug(f"Running Strands agent with citations for {len(file_paths)} files")
-    logger.debug(f"Tool configuration: {toolConfiguration}")
-
+    """
+    Run Strands agent with document block.
+    
+    Document block embeds PDF directly in the request.
+    Citations will be enabled only if model supports it.
+    """
+    
+    model = ModelConfig.create(model_id)
+    
+    logger.debug(
+        f"Running agent with document block: {len(file_paths)} files, "
+        f"citations.enabled={model.supports_citation}, model={model_id}"
+    )
+    
+    if not model.supports_citation:
+        logger.info(
+            f"Citations disabled for {model_id} "
+            f"(model supports document block but not citations)"
+        )
+    
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
-
-    # Add custom tools based on configuration
+    
     custom_tools = create_custom_tools(toolConfiguration)
     
-    # Managed Integration: MCPClient passed directly to Agent
-    # Agent handles lifecycle automatically
-    tools = custom_tools
-    logger.debug(f"Total tools available: {len(tools)}")
-
-    # Citation mode: document-based, file_read not required
-    # Prepare files in document format
+    # Prepare document blocks
     content = []
     for file_path in file_paths:
         try:
@@ -407,61 +345,59 @@ def _run_strands_agent_with_citations(
                 file_bytes = f.read()
         except Exception as e:
             logger.error(f"Failed to read file {file_path}: {e}")
-            continue  # Skip to next file
-
-        # Sanitize filename
+            continue
+        
         filename = os.path.basename(file_path)
         sanitized_name = sanitize_file_name(filename)
-
-        content.append(
-            {
-                "document": {
-                    "name": sanitized_name,
-                    "source": {"bytes": file_bytes},
-                    "format": "pdf",
-                    "citations": {"enabled": True},
-                }
+        
+        doc_block = {
+            "document": {
+                "name": sanitized_name,
+                "source": {"bytes": file_bytes},
+                "format": "pdf",
+                "citations": {"enabled": model.supports_citation},
             }
-        )
-
+        }
+        
+        content.append(doc_block)
+    
     content.append({"text": prompt})
-
-    # BedrockModel configuration
-    model_supports_cache = supports_caching(model_id)
+    
+    # Configure model
     bedrock_config = {
         "model_id": model_id,
         "region_name": BEDROCK_REGION,
         "temperature": temperature,
         "streaming": False,
     }
-    if model_supports_cache:
+    
+    if model.supports_caching:
         bedrock_config["cache_prompt"] = "default"
         bedrock_config["cache_tools"] = "default"
-
+    
     agent = Agent(
         model=BedrockModel(**bedrock_config),
-        tools=tools,
+        tools=custom_tools,
         system_prompt=system_prompt,
         hooks=[history_collector],
     )
-
-    # Execute agent
-    logger.debug("Executing agent with citation mode")
+    
+    logger.debug("Executing agent with document block")
     response = agent(content)
-
-    # Process citation-enabled response
-    result = _agent_message_to_dict_with_citations(response.message, response)
-
-    # Set tool usage history from hook
+    
+    result = _agent_message_to_dict(
+        response.message, 
+        response, 
+        use_citations=model.supports_citation
+    )
+    
     result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
-
-    # Add metadata
     review_meta = meta_tracker.get_review_meta(response)
     result["reviewMeta"] = review_meta
     result["inputTokens"] = review_meta["input_tokens"]
     result["outputTokens"] = review_meta["output_tokens"]
     result["totalCost"] = review_meta["total_cost"]
-
+    
     return result
 
 
@@ -510,32 +446,32 @@ def _extract_json_from_message(message: Any) -> Tuple[Optional[Dict[str, Any]], 
 def _extract_citations_text(message: Any) -> List[str]:
     """
     Extract citations from JSON response as array.
-    
+
     Note: This method parses citations from the JSON output instead of using
     citationsContent blocks because Strands Agent does not properly support
     citationsContent in non-streaming mode. The model generates <cite> tags
     instead of proper citation blocks when using the Citations API.
-    
+
     Workaround: We explicitly instruct the model to include citations as a
     JSON array field in the response, then parse and return them here.
-    
+
     Args:
         message: AgentResult.message containing JSON response
-        
+
     Returns:
         List[str]: Citations array, or empty list if none found
     """
     try:
         # Extract JSON from message
         parsed_json, _ = _extract_json_from_message(message)
-        
+
         if parsed_json and "citations" in parsed_json:
             citations = parsed_json["citations"]
             if citations and isinstance(citations, list):
                 return citations
     except Exception as e:
         logger.warning(f"Failed to extract citations from JSON: {e}")
-    
+
     # Return empty list if no citations found
     return []
 
@@ -618,7 +554,9 @@ def _build_tool_usage_section(
         tool_descriptions.append(
             "- **knowledge_base_query**: Search knowledge bases for regulations, standards, or reference information"
         )
-        use_cases.append("- Verify compliance with regulations/standards → Use knowledge_base_query")
+        use_cases.append(
+            "- Verify compliance with regulations/standards → Use knowledge_base_query"
+        )
 
     # MCP (future)
     mcp_config = tool_config.get("mcpConfig")
@@ -908,89 +846,6 @@ MUST BE IN {language_name}.
 
 
 # Main processing functions
-def _should_use_citations(document_paths: list, model_id: str, has_images: bool) -> bool:
-    """Determine if citations should be used based on files and model"""
-    # No citations for images
-    if has_images:
-        return False
-
-    # Check global citation flag and model support
-    return ENABLE_CITATIONS and supports_citations(model_id)
-
-
-def _process_review_with_citations(
-    document_bucket: str,
-    document_paths: list,
-    check_name: str,
-    check_description: str,
-    language_name: str = "日本語",
-    model_id: str = DOCUMENT_MODEL_ID,
-    local_file_paths: List[str] = None,
-    toolConfiguration: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Citation-enabled processing path"""
-    logger.debug("Using citation-enabled processing")
-
-    prompt = _get_document_review_prompt_with_citations(
-        language_name, check_name, check_description, toolConfiguration
-    )
-
-    system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-
-    result = _run_strands_agent_with_citations(
-        prompt=prompt,
-        file_paths=local_file_paths,
-        model_id=model_id,
-        system_prompt=system_prompt,
-        toolConfiguration=toolConfiguration,
-    )
-
-    result["reviewType"] = "PDF"
-    return result
-
-
-def _process_review_legacy(
-    document_bucket: str,
-    document_paths: list,
-    check_name: str,
-    check_description: str,
-    language_name: str = "日本語",
-    model_id: str = DOCUMENT_MODEL_ID,
-    local_file_paths: List[str] = None,
-    has_images: bool = False,
-    toolConfiguration: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Traditional file_read processing path"""
-    logger.debug("Using legacy file_read processing")
-
-    if has_images:
-        prompt = get_image_review_prompt(
-            language_name, check_name, check_description, model_id, toolConfiguration
-        )
-        tools = [file_read, image_reader]
-        review_type = "IMAGE"
-    else:
-        prompt = _get_document_review_prompt_legacy(
-            language_name, check_name, check_description, toolConfiguration
-        )
-        tools = [file_read]
-        review_type = "PDF"
-
-    system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-
-    result = _run_strands_agent_legacy(
-        prompt=prompt,
-        file_paths=local_file_paths,
-        model_id=model_id,
-        system_prompt=system_prompt,
-        base_tools=tools,
-        toolConfiguration=toolConfiguration,
-    )
-
-    result["reviewType"] = review_type
-    return result
-
-
 def process_review(
     document_bucket: str,
     document_paths: list,
@@ -1054,44 +909,78 @@ def process_review(
         local_file_paths = sanitized_file_paths
 
         # Select appropriate model based on file types
-        selected_model_id = IMAGE_MODEL_ID if has_images else DOCUMENT_MODEL_ID
+        # Use provided model_id, or fallback to defaults
+        if model_id:
+            selected_model_id = model_id
+        else:
+            selected_model_id = IMAGE_MODEL_ID if has_images else DOCUMENT_MODEL_ID
+        
         if has_images:
             logger.debug(f"Using image processing model: {selected_model_id}")
         else:
             logger.debug(f"Using document processing model: {selected_model_id}")
 
-        # Citation decision logic
-        use_citations = _should_use_citations(
+        # Processing method decision
+        use_document_block = _should_use_document_block(
             document_paths, selected_model_id, has_images
         )
-        logger.debug(f"Citation usage decision: {use_citations}")
+        logger.debug(
+            f"Processing method: "
+            f"{'document_block' if use_document_block else 'file_read_tool'}, "
+            f"model={selected_model_id}"
+        )
 
         # Dispatch to appropriate processing method
-        if use_citations:
-            result = _process_review_with_citations(
-                document_bucket,
-                document_paths,
-                check_name,
-                check_description,
-                language_name,
-                selected_model_id,
-                local_file_paths,
-                toolConfiguration,
+        if use_document_block:
+            # Document block path
+            prompt = get_document_review_prompt(
+                language_name, check_name, check_description, 
+                use_citations=False,  # Will be determined by model
+                tool_config=toolConfiguration
             )
-            logger.debug("Used citation-enabled processing")
+            
+            system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
+            
+            result = _run_agent_with_document_block(
+                prompt=prompt,
+                file_paths=local_file_paths,
+                model_id=selected_model_id,
+                system_prompt=system_prompt,
+                toolConfiguration=toolConfiguration,
+            )
+            result["reviewType"] = "PDF"
+            logger.debug("Used document block processing")
+            
         else:
-            result = _process_review_legacy(
-                document_bucket,
-                document_paths,
-                check_name,
-                check_description,
-                language_name,
-                selected_model_id,
-                local_file_paths,
-                has_images,
-                toolConfiguration,
+            # File read tool path
+            if has_images:
+                prompt = get_image_review_prompt(
+                    language_name, check_name, check_description, 
+                    selected_model_id, toolConfiguration
+                )
+                tools = [file_read, image_reader]
+                review_type = "IMAGE"
+            else:
+                prompt = get_document_review_prompt(
+                    language_name, check_name, check_description,
+                    use_citations=False,
+                    tool_config=toolConfiguration
+                )
+                tools = [file_read]
+                review_type = "PDF"
+            
+            system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
+            
+            result = _run_agent_with_file_read_tool(
+                prompt=prompt,
+                file_paths=local_file_paths,
+                model_id=selected_model_id,
+                system_prompt=system_prompt,
+                base_tools=tools,
+                toolConfiguration=toolConfiguration,
             )
-            logger.debug("Used legacy processing")
+            result["reviewType"] = review_type
+            logger.debug("Used file_read tool processing")
 
         # Ensure all required fields exist
         logger.debug("Validating result fields")

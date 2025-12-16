@@ -180,6 +180,7 @@ This application uses Strands agents with tools such as file reading, so you mus
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
 - `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
+- `us.amazon.nova-2-omni-v1:0` (Amazon Nova 2 Omni)
 
 **Important Notes**:
 
@@ -193,7 +194,7 @@ This application uses Strands agents with tools such as file reading, so you mus
 // cdk/lib/parameter.ts
 export const parameters = {
   documentProcessingModelId: "us.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet US
-  bedrockRegion: "us-west-2", // Tokyo region
+  bedrockRegion: "us-west-2", // Oregon region
   // ...
 };
 ```
