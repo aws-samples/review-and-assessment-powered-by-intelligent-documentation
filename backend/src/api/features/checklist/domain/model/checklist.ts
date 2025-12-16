@@ -185,7 +185,8 @@ export const CheckListItemDomain = {
       parentId: prismaItem.parentId ?? undefined,
       toolConfigurationId: prismaItem.toolConfigurationId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
-      feedbackSummaryUpdatedAt: prismaItem.feedbackSummaryUpdatedAt ?? undefined,
+      feedbackSummaryUpdatedAt:
+        prismaItem.feedbackSummaryUpdatedAt ?? undefined,
       ambiguityReview: prismaItem.ambiguityReview
         ? {
             suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
@@ -230,7 +231,8 @@ export const CheckListItemDomain = {
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
-      feedbackSummaryUpdatedAt: prismaItem.feedbackSummaryUpdatedAt ?? undefined,
+      feedbackSummaryUpdatedAt:
+        prismaItem.feedbackSummaryUpdatedAt ?? undefined,
       ambiguityReview: prismaItem.ambiguityReview
         ? {
             suggestions: (prismaItem.ambiguityReview as any).suggestions || [],

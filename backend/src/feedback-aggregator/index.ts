@@ -24,7 +24,8 @@ const DEFAULT_LOOKBACK_DAYS = parseInt(
   10
 );
 const MODEL_ID =
-  process.env.SUMMARY_MODEL_ID || "global.anthropic.claude-sonnet-4-20250514-v1:0";
+  process.env.SUMMARY_MODEL_ID ||
+  "global.anthropic.claude-sonnet-4-20250514-v1:0";
 const MAX_CONTEXT_TOKENS = parseInt(
   process.env.MAX_CONTEXT_TOKENS || "8000",
   10
@@ -45,7 +46,11 @@ interface ChecklistWithLastUpdate {
   last_update: Date | null;
 }
 
-export const handler = async (): Promise<{ processed: number; errors: number; skipped: number }> => {
+export const handler = async (): Promise<{
+  processed: number;
+  errors: number;
+  skipped: number;
+}> => {
   console.log("Starting feedback aggregation");
 
   const db = await getPrismaClient();
@@ -67,7 +72,9 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
            OR rr.updated_at > cl.feedback_summary_updated_at)
   `;
 
-  console.log(`Found ${checklistsWithFeedback.length} checklists with new feedback`);
+  console.log(
+    `Found ${checklistsWithFeedback.length} checklists with new feedback`
+  );
 
   let processed = 0;
   let errors = 0;
@@ -77,7 +84,7 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
     try {
       // Use last summary update time, or fall back to default lookback
       const cutoffDate = last_update || defaultCutoff;
-      
+
       const wasProcessed = await processChecklist(db, check_id, cutoffDate);
       if (wasProcessed) {
         processed++;
@@ -90,7 +97,9 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
     }
   }
 
-  console.log(`Completed: ${processed} processed, ${skipped} skipped (no new feedback), ${errors} errors`);
+  console.log(
+    `Completed: ${processed} processed, ${skipped} skipped (no new feedback), ${errors} errors`
+  );
   return { processed, errors, skipped };
 };
 
@@ -102,9 +111,9 @@ async function processChecklist(
   // Fetch checklist info including existing summary
   const checklist = await db.checkList.findUnique({
     where: { id: checkId },
-    select: { 
-      id: true, 
-      name: true, 
+    select: {
+      id: true,
+      name: true,
       description: true,
       feedbackSummary: true,
     },
@@ -183,12 +192,12 @@ function buildContext(
   const newFeedbackBudget = maxTokens * 0.5;
   const feedbackItems: string[] = [];
   let includedCount = 0;
-  
+
   for (const f of feedbacks) {
     const aiResult = f.result ? `AI judged: ${f.result}` : "AI result: unknown";
     const item = `[${aiResult}, User overrode] ${f.userComment}`;
     const itemTokens = estimateTokens(item);
-    
+
     if (currentTokens + itemTokens < newFeedbackBudget) {
       feedbackItems.push(item);
       currentTokens += itemTokens;
@@ -197,11 +206,13 @@ function buildContext(
       break;
     }
   }
-  
+
   if (includedCount < feedbacks.length) {
-    console.warn(`Token limit: included ${includedCount}/${feedbacks.length} new feedbacks`);
+    console.warn(
+      `Token limit: included ${includedCount}/${feedbacks.length} new feedbacks`
+    );
   }
-  
+
   const newFeedbackContext = `NEW User Feedback (${includedCount} items):\n${feedbackItems.join("\n---\n")}`;
   parts.push(newFeedbackContext);
 
@@ -210,7 +221,7 @@ function buildContext(
     const summaryBudget = maxTokens * 0.65; // 50% + 15%
     const prevSummaryContext = `Previous Summary:\n${previousSummary}`;
     const summaryTokens = estimateTokens(prevSummaryContext);
-    
+
     if (currentTokens + summaryTokens < summaryBudget) {
       parts.push(prevSummaryContext);
       currentTokens += summaryTokens;
@@ -218,7 +229,9 @@ function buildContext(
       // Truncate previous summary if too long
       const availableChars = (summaryBudget - currentTokens) * 4;
       if (availableChars > 100) {
-        parts.push(`Previous Summary:\n${previousSummary.substring(0, availableChars)}...`);
+        parts.push(
+          `Previous Summary:\n${previousSummary.substring(0, availableChars)}...`
+        );
         currentTokens = summaryBudget;
       }
     }
@@ -264,9 +277,9 @@ function isRetryableError(error: any): boolean {
     "ModelNotReadyException",
     "InternalServerException",
   ];
-  
+
   const retryableStatusCodes = [429, 500, 503];
-  
+
   return (
     retryableNames.includes(error.name) ||
     retryableStatusCodes.includes(error.$metadata?.httpStatusCode)
@@ -279,7 +292,7 @@ async function generateSummary(
   retryCount = 0
 ): Promise<string> {
   const MAX_RETRIES = 3;
-  
+
   // Different prompts for initial vs incremental updates
   const prompt = hasExistingSummary
     ? `You are updating a feedback summary for a document review checklist item.
@@ -330,7 +343,10 @@ Respond in the same language as the checklist description.`;
     // Handle context too large - reduce and retry
     if (error.name === "ValidationException" && context.length > 4000) {
       console.warn("Context too large, retrying with reduced context");
-      const reducedContext = context.substring(0, Math.floor(context.length * 0.6));
+      const reducedContext = context.substring(
+        0,
+        Math.floor(context.length * 0.6)
+      );
       return generateSummary(reducedContext, hasExistingSummary, retryCount);
     }
 
@@ -339,16 +355,18 @@ Respond in the same language as the checklist description.`;
       const baseDelay = Math.min(Math.pow(2, retryCount) * 1000, 60000);
       const jitter = Math.random() * 1000;
       const delay = baseDelay + jitter;
-      
+
       console.warn(
         `${error.name || "Error"} (HTTP ${error.$metadata?.httpStatusCode}), ` +
-        `retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
+          `retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
       return generateSummary(context, hasExistingSummary, retryCount + 1);
     }
 
-    console.error(`Failed to generate summary: ${error.name} - ${error.message}`);
+    console.error(
+      `Failed to generate summary: ${error.name} - ${error.message}`
+    );
     throw error;
   }
 }
