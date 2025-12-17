@@ -76,4 +76,12 @@ export const parameters = {
   // AgentCore Code Interpreter設定
   // ---------------------------------------------------
   // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
+
+  // Feedback Aggregator スケジュール設定
+  // EventBridge schedule expressionの形式で指定します
+  // 例: "cron(0 2 * * ? *)" - 毎日2:00 UTC
+  // 例: "rate(1 day)" - 1日ごと
+  // 例: "rate(12 hours)" - 12時間ごと
+  // ---------------------------------------------------
+  // feedbackAggregatorScheduleExpression: "cron(0 10 * * ? *)", // 毎日10:00 UTC
 };

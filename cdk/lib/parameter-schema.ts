@@ -85,6 +85,12 @@ const parameterSchema = z.object({
     .boolean()
     .default(true)
     .describe("AgentCore Code Interpreterを有効にするかどうか"),
+
+  // Feedback Aggregator スケジュール設定
+  feedbackAggregatorScheduleExpression: z
+    .string()
+    .default("cron(0 2 * * ? *)")
+    .describe("Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"),
 });
 
 // パラメータの型定義（型安全性のため）
@@ -224,6 +230,14 @@ export function extractContextParameters(app: any): Record<string, any> {
   const bedrockRegion = app.node.tryGetContext("rapid.bedrockRegion");
   if (bedrockRegion !== undefined) {
     params.bedrockRegion = bedrockRegion;
+  }
+
+  // Feedback Aggregator スケジュール設定の取得
+  const feedbackAggregatorScheduleExpression = app.node.tryGetContext(
+    "rapid.feedbackAggregatorScheduleExpression"
+  );
+  if (feedbackAggregatorScheduleExpression !== undefined) {
+    params.feedbackAggregatorScheduleExpression = feedbackAggregatorScheduleExpression;
   }
 
   return params;
