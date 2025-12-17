@@ -345,8 +345,6 @@ export const makePrismaCheckRepository = async (
         documentId: true,
         ambiguityReview: true,
         toolConfigurationId: true,
-        feedbackSummary: true,
-        feedbackSummaryUpdatedAt: true,
         toolConfiguration: {
           select: {
             id: true,
@@ -549,8 +547,6 @@ export const makePrismaCheckRepository = async (
         documentId: true,
         ambiguityReview: true,
         toolConfigurationId: true,
-        feedbackSummary: true,
-        feedbackSummaryUpdatedAt: true,
       },
     });
 

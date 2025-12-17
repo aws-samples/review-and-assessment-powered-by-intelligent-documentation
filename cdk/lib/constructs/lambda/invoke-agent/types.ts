@@ -6,7 +6,6 @@ export interface StepFunctionsInput {
     Payload: {
       checkName: string;
       checkDescription: string;
-      feedbackSummary: string | null;
       languageName: string;
       documentPaths: string[];
       documentIds: string[];
@@ -29,7 +28,6 @@ export interface AgentPayload {
   documentPaths: string[];
   checkName: string;
   checkDescription: string;
-  feedbackSummary: string | null;
   languageName: string;
   mcpServers: McpServerConfig[];
   toolConfiguration: any;
