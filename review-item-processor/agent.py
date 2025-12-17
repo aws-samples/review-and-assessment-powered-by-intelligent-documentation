@@ -596,12 +596,18 @@ def _build_feedback_section(feedback_summary: Optional[str]) -> str:
     if not feedback_summary:
         return ""
     return f"""
-<historical_feedback>
-Based on previous user feedback for this check item:
+<HISTORICAL_FEEDBACK>
+**CRITICAL - PAST REVIEWER FEEDBACK**: Previous reviewers provided the following feedback for this specific check item:
+
 {feedback_summary}
 
-Consider this feedback when making your judgment, but base your decision on the actual document content.
-</historical_feedback>
+**YOU MUST:**
+- Carefully consider this feedback when making your judgment
+- Pay special attention to the issues and patterns mentioned
+- Apply the lessons learned from previous reviews
+
+This feedback represents real-world review experience and should significantly influence your evaluation.
+</HISTORICAL_FEEDBACK>
 """
 
 
@@ -625,7 +631,7 @@ def _get_document_review_prompt_legacy(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_section = _build_feedback_section(feedback_summary)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -633,7 +639,7 @@ def _get_document_review_prompt_legacy(
 **Name**: {check_name}
 **Description**: {check_description}
 </check_item>
-{feedback_section}
+
 <document_access>
 Use the file_read tool to open and inspect each attached file.
 </document_access>
@@ -645,20 +651,29 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 {json_schema}
 <<JSON_END>>
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required information is not found in the documents or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "extractedText": "" (empty string)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 
-Confidence guidelines:
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required information is not found in the documents or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "extractedText": "" (empty string)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
+<confidence_guidelines>
 - 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence found in documents with some uncertainty
 - 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
 - 0.30-0.49: Insufficient evidence in documents to make a determination
+</confidence_guidelines>
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -684,7 +699,7 @@ def _get_document_review_prompt_with_citations(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_section = _build_feedback_section(feedback_summary)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -692,7 +707,7 @@ def _get_document_review_prompt_with_citations(
 **Name**: {check_name}
 **Description**: {check_description}
 </check_item>
-{feedback_section}
+
 <document_access>
 Documents are provided with citation support enabled. When you reference specific information from the documents, write your explanation in natural prose.
 </document_access>
@@ -717,20 +732,29 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 
 Write the explanation field as clear, flowing prose in {language_name}. Include relevant quotes in the citations array.
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required information is not found in the documents or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "citations": [] (empty array)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 
-Confidence guidelines:
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required information is not found in the documents or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "citations": [] (empty array)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
+<confidence_guidelines>
 - 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence found in documents with some uncertainty
 - 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
 - 0.30-0.49: Insufficient evidence in documents to make a determination
+</confidence_guidelines>
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -796,7 +820,7 @@ def get_image_review_prompt(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_section = _build_feedback_section(feedback_summary)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""
 You are an AI assistant who reviews images.
@@ -805,7 +829,7 @@ Please review the provided image(s) based on the following check item.
 
 Check item: {check_name}
 Description: {check_description}
-{feedback_section}
+
 ## DOCUMENT ACCESS
 The actual files are attached. Use the *image_reader* tool to analyze them.
 
@@ -843,14 +867,23 @@ relevant to the check item.** If you relied on just one image, the array must
 contain exactly that single index; an empty array means “none used”.
 
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided images and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required visual information is not found in the images or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required visual information was not found and describe what specific visual elements are missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "usedImageIndexes": [] (empty array)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_IMAGES_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided images and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_IMAGES_ONLY>
+
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required visual information is not found in the images or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required visual information was not found and describe what specific visual elements are missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "usedImageIndexes": [] (empty array)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
 Respond **only** in the following JSON format (no Markdown code fences):
 
 {{
