@@ -28,6 +28,7 @@ export const handler: Handler = async (event: StepFunctionsInput) => {
       documentPaths: event.preItemResult.Payload.documentPaths,
       checkName: event.preItemResult.Payload.checkName,
       checkDescription: event.preItemResult.Payload.checkDescription,
+      feedbackSummary: event.preItemResult.Payload.feedbackSummary,
       languageName: event.preItemResult.Payload.languageName,
       mcpServers: event.preItemResult.Payload.mcpServers,
       toolConfiguration: event.preItemResult.Payload.toolConfiguration,

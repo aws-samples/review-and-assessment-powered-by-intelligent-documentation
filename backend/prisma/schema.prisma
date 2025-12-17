@@ -62,20 +62,22 @@ model ToolConfiguration {
 }
 
 model CheckList {
-  id                  String             @id @map("check_id") @db.VarChar(26)
-  name                String             @db.VarChar(255)
-  description         String?            @db.Text
-  parentId            String?            @map("parent_id") @db.VarChar(26)
-  checkListSetId      String             @map("check_list_set_id") @db.VarChar(26)
-  documentId          String?            @map("document_id") @db.VarChar(26)
-  ambiguityReview     Json?              @map("ambiguity_review")
-  toolConfigurationId String?            @map("tool_configuration_id") @db.VarChar(26)
-  checkListSet        CheckListSet       @relation(fields: [checkListSetId], references: [id])
-  document            CheckListDocument? @relation(fields: [documentId], references: [id])
-  parent              CheckList?         @relation("CheckListToCheckList", fields: [parentId], references: [id])
-  children            CheckList[]        @relation("CheckListToCheckList")
-  reviewResults       ReviewResult[]
-  toolConfiguration   ToolConfiguration? @relation(fields: [toolConfigurationId], references: [id], onDelete: Restrict)
+  id                       String             @id @map("check_id") @db.VarChar(26)
+  name                     String             @db.VarChar(255)
+  description              String?            @db.Text
+  parentId                 String?            @map("parent_id") @db.VarChar(26)
+  checkListSetId           String             @map("check_list_set_id") @db.VarChar(26)
+  documentId               String?            @map("document_id") @db.VarChar(26)
+  ambiguityReview          Json?              @map("ambiguity_review")
+  toolConfigurationId      String?            @map("tool_configuration_id") @db.VarChar(26)
+  feedbackSummary          String?            @map("feedback_summary") @db.Text
+  feedbackSummaryUpdatedAt DateTime?          @map("feedback_summary_updated_at") @db.Timestamp(0)
+  checkListSet             CheckListSet       @relation(fields: [checkListSetId], references: [id])
+  document                 CheckListDocument? @relation(fields: [documentId], references: [id])
+  parent                   CheckList?         @relation("CheckListToCheckList", fields: [parentId], references: [id])
+  children                 CheckList[]        @relation("CheckListToCheckList")
+  reviewResults            ReviewResult[]
+  toolConfiguration        ToolConfiguration? @relation(fields: [toolConfigurationId], references: [id], onDelete: Restrict)
 
   /// `parentId` だけで検索するケース（直下の子チェック項目を取得）を高速化
   @@index([parentId], map: "idx_check_list_parent")

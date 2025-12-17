@@ -6,7 +6,8 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "preinstall": "cd ../backend && npm ci && npm run prisma:generate"
+    "preinstall": "cd ../backend && npm ci && npm run prisma:generate",
+    "postinstall": "cd lib/constructs/lambda/invoke-agent && npm ci && npm run build"
   },
   "devDependencies": {
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.312",

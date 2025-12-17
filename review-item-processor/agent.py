@@ -591,12 +591,33 @@ When calling multiple independent tools, execute them in parallel. Only call too
 """
 
 
+def _build_feedback_section(feedback_summary: Optional[str]) -> str:
+    """Build feedback section for prompt if feedback summary exists"""
+    if not feedback_summary:
+        return ""
+    return f"""
+<HISTORICAL_FEEDBACK>
+**CRITICAL - PAST REVIEWER FEEDBACK**: Previous reviewers provided the following feedback for this specific check item:
+
+{feedback_summary}
+
+**YOU MUST:**
+- Carefully consider this feedback when making your judgment
+- Pay special attention to the issues and patterns mentioned
+- Apply the lessons learned from previous reviews
+
+This feedback represents real-world review experience and should significantly influence your evaluation.
+</HISTORICAL_FEEDBACK>
+"""
+
+
 # Prompt generation functions
 def _get_document_review_prompt_legacy(
     language_name: str,
     check_name: str,
     check_description: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """Improved PDF document review prompt with dynamic tool section"""
 
@@ -610,6 +631,7 @@ def _get_document_review_prompt_legacy(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -629,20 +651,29 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 {json_schema}
 <<JSON_END>>
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required information is not found in the documents or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "extractedText": "" (empty string)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 
-Confidence guidelines:
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required information is not found in the documents or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "extractedText": "" (empty string)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
+<confidence_guidelines>
 - 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence found in documents with some uncertainty
 - 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
 - 0.30-0.49: Insufficient evidence in documents to make a determination
+</confidence_guidelines>
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -654,6 +685,7 @@ def _get_document_review_prompt_with_citations(
     check_name: str,
     check_description: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """PDF document review prompt with citations in JSON array"""
 
@@ -667,6 +699,7 @@ def _get_document_review_prompt_with_citations(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -699,20 +732,29 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 
 Write the explanation field as clear, flowing prose in {language_name}. Include relevant quotes in the citations array.
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided documents and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required information is not found in the documents or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "citations": [] (empty array)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 
-Confidence guidelines:
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required information is not found in the documents or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required information was not found and describe what specific information is missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "citations": [] (empty array)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
+<confidence_guidelines>
 - 0.90-1.00: Clear evidence found in documents, obvious compliance/non-compliance
 - 0.70-0.89: Relevant evidence found in documents with some uncertainty
 - 0.50-0.69: Ambiguous evidence found in documents, significant uncertainty
 - 0.30-0.49: Insufficient evidence in documents to make a determination
+</confidence_guidelines>
 
 Your response must be valid JSON within the markers. All field values must be in {language_name}.
 </output_requirements>
@@ -726,15 +768,16 @@ def get_document_review_prompt(
     check_description: str,
     use_citations: bool = False,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """PDF document review prompt with optional citation support"""
     if use_citations:
         return _get_document_review_prompt_with_citations(
-            language_name, check_name, check_description, tool_config
+            language_name, check_name, check_description, tool_config, feedback_summary
         )
     else:
         return _get_document_review_prompt_legacy(
-            language_name, check_name, check_description, tool_config
+            language_name, check_name, check_description, tool_config, feedback_summary
         )
 
 
@@ -744,6 +787,7 @@ def get_image_review_prompt(
     check_description: str,
     model_id: str,
     tool_config: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> str:
     """Improved image review prompt with dynamic tool section"""
     is_nova = "amazon.nova" in model_id
@@ -776,6 +820,7 @@ def get_image_review_prompt(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
+    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""
 You are an AI assistant who reviews images.
@@ -822,14 +867,23 @@ relevant to the check item.** If you relied on just one image, the array must
 contain exactly that single index; an empty array means “none used”.
 
 
-**CRITICAL RULES:**
-1. **Base your judgment ONLY on the provided images and information obtained through tools** - Do NOT use your pre-trained general knowledge or make assumptions
-2. **If the required visual information is not found in the images or through tool usage:**
-   - Set "result": "fail"
-   - Set "confidence": 0.40 (or lower if extremely uncertain)
-   - In "explanation", clearly state in {language_name} that the required visual information was not found and describe what specific visual elements are missing
-   - In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
-   - Set "usedImageIndexes": [] (empty array)
+<CRITICAL_RULES>
+{feedback_rule}
+<BASE_JUDGMENT_ON_IMAGES_ONLY>
+**CRITICAL**: Base your judgment ONLY on the provided images and information obtained through tools.
+Do NOT use your pre-trained general knowledge or make assumptions.
+</BASE_JUDGMENT_ON_IMAGES_ONLY>
+
+<INSUFFICIENT_INFORMATION_HANDLING>
+**If the required visual information is not found in the images or through tool usage:**
+- Set "result": "fail"
+- Set "confidence": 0.40 (or lower if extremely uncertain)
+- In "explanation", clearly state in {language_name} that the required visual information was not found and describe what specific visual elements are missing
+- In "shortExplanation", write the phrase for "insufficient evidence" in {language_name}
+- Set "usedImageIndexes": [] (empty array)
+</INSUFFICIENT_INFORMATION_HANDLING>
+</CRITICAL_RULES>
+
 Respond **only** in the following JSON format (no Markdown code fences):
 
 {{
@@ -854,6 +908,7 @@ def process_review(
     language_name: str = "日本語",
     model_id: str = DOCUMENT_MODEL_ID,
     toolConfiguration: Optional[Dict[str, Any]] = None,
+    feedback_summary: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Process a document review using Strands agent with local file reading.
@@ -861,6 +916,8 @@ def process_review(
     """
     logger.debug(f"Processing review for check: {check_name}")
     logger.debug(f"Tool configuration: {toolConfiguration}")
+    if feedback_summary:
+        logger.debug("Feedback summary available for this check")
 
     # Create temporary directory for downloaded files
     temp_dir = tempfile.mkdtemp()
@@ -936,7 +993,8 @@ def process_review(
             prompt = get_document_review_prompt(
                 language_name, check_name, check_description, 
                 use_citations=False,  # Will be determined by model
-                tool_config=toolConfiguration
+                tool_config=toolConfiguration,
+                feedback_summary=feedback_summary,
             )
             
             system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
@@ -956,7 +1014,8 @@ def process_review(
             if has_images:
                 prompt = get_image_review_prompt(
                     language_name, check_name, check_description, 
-                    selected_model_id, toolConfiguration
+                    selected_model_id, toolConfiguration,
+                    feedback_summary=feedback_summary,
                 )
                 tools = [file_read, image_reader]
                 review_type = "IMAGE"
@@ -964,7 +1023,8 @@ def process_review(
                 prompt = get_document_review_prompt(
                     language_name, check_name, check_description,
                     use_citations=False,
-                    tool_config=toolConfiguration
+                    tool_config=toolConfiguration,
+                    feedback_summary=feedback_summary,
                 )
                 tools = [file_read]
                 review_type = "PDF"
