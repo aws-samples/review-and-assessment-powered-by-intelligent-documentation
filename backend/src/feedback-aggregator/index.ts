@@ -1,9 +1,124 @@
+/**
+ * FEEDBACK AGGREGATOR - EXPERIMENTAL BETA FEATURE
+ * 
+ * This module aggregates user feedback on AI review results and generates summaries
+ * using Amazon Bedrock. It is implemented as a self-contained Lambda function rather
+ * than following the repository/use-case layer pattern because it is an experimental
+ * beta feature.
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │ EventBridge (Daily 2:00 UTC)                                    │
+ * └────────────────────┬────────────────────────────────────────────┘
+ *                      │ Trigger
+ *                      ▼
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │ Lambda: Feedback Aggregator                                     │
+ * │                                                                 │
+ * │  1. Query DB for checklists with new feedback                  │
+ * │     ├─ user_override = true                                    │
+ * │     ├─ user_comment IS NOT NULL                                │
+ * │     └─ updated_at > last_summary_update (or NULL for initial)  │
+ * │                                                                 │
+ * │  2. For each checklist:                                        │
+ * │     ├─ Fetch feedback (all if initial, new if incremental)     │
+ * │     │   └─ Initial run: max 100 feedbacks (memory limit)       │
+ * │     ├─ Build context with complete feedback blocks             │
+ * │     │   ├─ Reserve 200 tokens for system prompt                │
+ * │     │   ├─ Add checklist info (name, description)              │
+ * │     │   ├─ Add previous summary (if exists)                    │
+ * │     │   └─ Add feedback blocks until token budget (189.8k)     │
+ * │     │       Each block: userComment + extractedText + explanation │
+ * │     │       (no truncation, complete blocks only)              │
+ * │     ├─ Count tokens using Bedrock CountTokens API              │
+ * │     │   └─ Model: anthropic.claude-sonnet-4 (single-region)    │
+ * │     ├─ Generate summary via Bedrock InvokeModel                │
+ * │     │   └─ Model: global.anthropic.claude-sonnet-4 (cross-region) │
+ * │     └─ Update checklist.feedback_summary in DB                 │
+ * │                                                                 │
+ * │  3. Return processing statistics                               │
+ * └─────────────────────────────────────────────────────────────────┘
+ *                      │
+ *                      ▼
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │ Amazon Bedrock (Claude Sonnet 4)                                │
+ * │ - Analyzes feedback patterns                                    │
+ * │ - Generates actionable guidance for future reviews              │
+ * │ - Auto-retry via AWS SDK (max 3 attempts)                       │
+ * └─────────────────────────────────────────────────────────────────┘
+ * 
+ * INPUT DATA FLOW:
+ * 
+ * ReviewResult (DB) ──┐
+ *   ├─ userComment    │
+ *   ├─ extractedText  ├──> buildContext() ──> AI Prompt
+ *   ├─ explanation    │
+ *   └─ result         │
+ *                     │
+ * CheckList (DB) ─────┤
+ *   ├─ name           │
+ *   ├─ description    │
+ *   └─ feedbackSummary (previous) ──┘
+ * 
+ * OUTPUT:
+ * CheckList.feedbackSummary (updated)
+ * CheckList.feedbackSummaryUpdatedAt (timestamp)
+ * 
+ * TOKEN BUDGET:
+ * - Total: 190,000 tokens (95% of Claude Sonnet 4's 200k context)
+ * - System prompt: 200 tokens (reserved)
+ * - Available for context: 189,800 tokens
+ * 
+ * EXCEPTION TO ARCHITECTURE:
+ * - Database access: Uses Prisma directly (not through repository layer)
+ * - Bedrock client: Instantiated in this module (not through service layer)
+ * 
+ * @module feedback-aggregator
+ * @experimental
+ */
+
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
+  CountTokensCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import { PrismaClient } from "../../prisma/client";
 import { getDatabaseUrl } from "../utils/database";
+
+// ============================================================================
+// CONFIGURATION CONSTANTS
+// ============================================================================
+
+/** Default AI model for generating feedback summaries (cross-region inference) */
+const DEFAULT_SUMMARY_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0";
+
+/** Model ID for CountTokens API (must be single-region, no prefix) */
+const COUNT_TOKENS_MODEL_ID = "anthropic.claude-sonnet-4-20250514-v1:0";
+
+/** Maximum tokens to include in AI context (input limit) - 95% of Claude Sonnet 4's 200k context window */
+const DEFAULT_MAX_CONTEXT_TOKENS = 190000;
+
+/** Maximum tokens for AI summary output */
+const MAX_SUMMARY_OUTPUT_TOKENS = 500;
+
+/** Anthropic API version for Bedrock */
+const ANTHROPIC_VERSION = "bedrock-2023-05-31";
+
+/** Maximum retry attempts for Bedrock API calls (handled by AWS SDK) */
+const MAX_RETRIES = 3;
+
+/** Token budget reserved for system prompt instructions (estimated ~170 tokens, with safety margin) */
+const SYSTEM_PROMPT_TOKENS = 200;
+
+/** Maximum number of feedbacks to fetch for initial run (memory limit) */
+const MAX_INITIAL_FEEDBACKS = 100;
+
+// ============================================================================
+// RUNTIME CONFIGURATION
+// ============================================================================
+
+const modelId = process.env.SUMMARY_MODEL_ID || DEFAULT_SUMMARY_MODEL_ID;
+const maxContextTokens = parseInt(process.env.MAX_CONTEXT_TOKENS || String(DEFAULT_MAX_CONTEXT_TOKENS), 10);
 
 let prisma: PrismaClient | null = null;
 
@@ -17,21 +132,39 @@ async function getPrismaClient(): Promise<PrismaClient> {
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.BEDROCK_REGION || "us-west-2",
+  maxAttempts: MAX_RETRIES,
 });
 
-const DEFAULT_LOOKBACK_DAYS = parseInt(
-  process.env.FEEDBACK_AGGREGATION_DAYS || "7",
-  10
-);
-const MODEL_ID =
-  process.env.SUMMARY_MODEL_ID || "global.anthropic.claude-sonnet-4-20250514-v1:0";
-const MAX_CONTEXT_TOKENS = parseInt(
-  process.env.MAX_CONTEXT_TOKENS || "8000",
-  10
-);
+/**
+ * Count tokens using Bedrock CountTokens API
+ * @param text - Text content to count tokens for
+ * @returns Actual token count from Bedrock
+ */
+async function countTokens(text: string): Promise<number> {
+  try {
+    const body = JSON.stringify({
+      anthropic_version: ANTHROPIC_VERSION,
+      max_tokens: MAX_SUMMARY_OUTPUT_TOKENS,
+      messages: [{ role: "user", content: text }],
+    });
 
-// Rough token estimation (4 chars per token for mixed content)
-const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+    const response = await bedrockClient.send(
+      new CountTokensCommand({
+        modelId: COUNT_TOKENS_MODEL_ID,
+        input: {
+          invokeModel: {
+            body: new TextEncoder().encode(body),
+          },
+        },
+      })
+    );
+    return response.inputTokens || 0;
+  } catch (error) {
+    console.warn("Failed to count tokens via API, falling back to estimation:", error);
+    // Fallback to rough estimation if API fails
+    return Math.ceil(text.length / 4);
+  }
+}
 
 interface FeedbackData {
   userComment: string;
@@ -49,10 +182,6 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
   console.log("Starting feedback aggregation");
 
   const db = await getPrismaClient();
-
-  // Default fallback cutoff for checklists without previous summary
-  const defaultCutoff = new Date();
-  defaultCutoff.setDate(defaultCutoff.getDate() - DEFAULT_LOOKBACK_DAYS);
 
   // Find checklists that have NEW feedback since last summary update
   const checklistsWithFeedback = await db.$queryRaw<ChecklistWithLastUpdate[]>`
@@ -75,10 +204,7 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
 
   for (const { check_id, last_update } of checklistsWithFeedback) {
     try {
-      // Use last summary update time, or fall back to default lookback
-      const cutoffDate = last_update || defaultCutoff;
-      
-      const wasProcessed = await processChecklist(db, check_id, cutoffDate);
+      const wasProcessed = await processChecklist(db, check_id, last_update);
       if (wasProcessed) {
         processed++;
       } else {
@@ -87,6 +213,7 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
     } catch (error) {
       console.error(`Error processing checklist ${check_id}:`, error);
       errors++;
+      // Continue processing next checklist
     }
   }
 
@@ -97,7 +224,7 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
 async function processChecklist(
   db: PrismaClient,
   checkId: string,
-  cutoffDate: Date
+  lastUpdateDate: Date | null
 ): Promise<boolean> {
   // Fetch checklist info including existing summary
   const checklist = await db.checkList.findUnique({
@@ -115,13 +242,14 @@ async function processChecklist(
     return false;
   }
 
-  // Fetch NEW feedback since last update, ordered by most recent first
+  // Fetch feedback: all if initial run (null), or new ones since last update
   const feedbacks = await db.reviewResult.findMany({
     where: {
       checkId,
       userOverride: true,
       userComment: { not: null },
-      updatedAt: { gt: cutoffDate },
+      // Only filter by date if lastUpdateDate exists (incremental update)
+      ...(lastUpdateDate && { updatedAt: { gt: lastUpdateDate } }),
     },
     select: {
       userComment: true,
@@ -130,6 +258,8 @@ async function processChecklist(
       result: true,
     },
     orderBy: { updatedAt: "desc" },
+    // Limit to 100 for initial run to avoid Lambda memory issues
+    take: lastUpdateDate ? undefined : MAX_INITIAL_FEEDBACKS,
   });
 
   if (feedbacks.length === 0) {
@@ -137,149 +267,142 @@ async function processChecklist(
   }
 
   console.log(
-    `Processing ${feedbacks.length} new feedbacks for checklist: ${checklist.name}`
+    `Processing ${feedbacks.length} ${lastUpdateDate ? 'new' : 'total'} feedbacks for checklist: ${checklist.name}`
   );
 
-  // Build context with previous summary + new feedback
-  const context = buildContext(
-    checklist.name,
-    checklist.description || "",
-    checklist.feedbackSummary,
-    feedbacks as FeedbackData[]
-  );
+  try {
+    // Build context with previous summary + new feedback
+    const context = await buildContext(
+      checklist.name,
+      checklist.description || "",
+      checklist.feedbackSummary,
+      feedbacks as FeedbackData[]
+    );
 
-  // Generate summary
-  const summary = await generateSummary(context, !!checklist.feedbackSummary);
+    // Generate summary
+    const summary = await generateSummary(context, !!checklist.feedbackSummary);
 
-  // Update checklist
-  await db.checkList.update({
-    where: { id: checkId },
-    data: {
-      feedbackSummary: summary,
-      feedbackSummaryUpdatedAt: new Date(),
-    },
-  });
+    // Update checklist
+    await db.checkList.update({
+      where: { id: checkId },
+      data: {
+        feedbackSummary: summary,
+        feedbackSummaryUpdatedAt: new Date(),
+      },
+    });
 
-  console.log(`Updated feedback summary for checklist: ${checklist.name}`);
-  return true;
+    console.log(`Updated feedback summary for checklist: ${checklist.name}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to process checklist ${checkId}:`, error);
+    // Propagate error to handler for counting
+    throw error;
+  }
 }
 
-function buildContext(
+async function buildContext(
   checkName: string,
   checkDescription: string,
   previousSummary: string | null,
   feedbacks: FeedbackData[]
-): string {
-  const parts: string[] = [];
+): Promise<string> {
+  // Reserve tokens for system prompt
+  const maxTokens = maxContextTokens - SYSTEM_PROMPT_TOKENS;
   let currentTokens = 0;
-  const maxTokens = MAX_CONTEXT_TOKENS;
 
-  // Priority 1: Checklist info (always include)
+  // Step 1: Checklist info (required, no truncation)
   const checklistContext = `Checklist: ${checkName}\nDescription: ${checkDescription}`;
-  parts.push(checklistContext);
-  currentTokens += estimateTokens(checklistContext);
+  const checklistTokens = await countTokens(checklistContext);
+  currentTokens += checklistTokens;
 
-  // Priority 2: New user feedback (highest priority - 50% budget)
-  const newFeedbackBudget = maxTokens * 0.5;
-  const feedbackItems: string[] = [];
+  // Step 2: Previous summary (required if exists, no truncation)
+  let previousSummaryContext = "";
+  let summaryTokens = 0;
+  if (previousSummary) {
+    previousSummaryContext = `Previous Summary:\n${previousSummary}`;
+    summaryTokens = await countTokens(previousSummaryContext);
+    currentTokens += summaryTokens;
+  }
+
+  // Step 3: Add feedback blocks one by one in complete form
+  const feedbackBlocks: string[] = [];
   let includedCount = 0;
-  
-  for (const f of feedbacks) {
-    const aiResult = f.result ? `AI judged: ${f.result}` : "AI result: unknown";
-    const item = `[${aiResult}, User overrode] ${f.userComment}`;
-    const itemTokens = estimateTokens(item);
+
+  for (const feedback of feedbacks) {
+    // Build one feedback block (all elements required, no truncation)
+    const parts: string[] = [];
     
-    if (currentTokens + itemTokens < newFeedbackBudget) {
-      feedbackItems.push(item);
-      currentTokens += itemTokens;
-      includedCount++;
-    } else {
+    // userComment (required)
+    const aiResult = feedback.result ? `AI judged: ${feedback.result}` : "AI result: unknown";
+    parts.push(`[${aiResult}, User overrode] ${feedback.userComment}`);
+
+    // extractedText (required if exists)
+    if (feedback.extractedText) {
+      parts.push(`Document excerpt: ${feedback.extractedText}`);
+    }
+
+    // explanation (required if exists)
+    if (feedback.explanation) {
+      parts.push(`AI reasoning: ${feedback.explanation}`);
+    }
+
+    const feedbackBlock = parts.join("\n");
+    const feedbackTokens = await countTokens(feedbackBlock);
+
+    // Check token budget
+    if (currentTokens + feedbackTokens > maxTokens) {
+      console.warn(
+        `Token budget exceeded: included ${includedCount}/${feedbacks.length} feedbacks ` +
+        `(used ${currentTokens}/${maxTokens} tokens, next feedback needs ${feedbackTokens} tokens)`
+      );
       break;
     }
+
+    feedbackBlocks.push(feedbackBlock);
+    currentTokens += feedbackTokens;
+    includedCount++;
   }
+
+  // Error handling: at least one feedback is required
+  if (includedCount === 0) {
+    const firstFeedbackTokens = feedbacks.length > 0 
+      ? await countTokens(feedbacks[0].userComment || "")
+      : 0;
+    throw new Error(
+      `Cannot fit any feedback within token budget. ` +
+      `Checklist: ${checklistTokens} tokens, ` +
+      `Previous summary: ${summaryTokens} tokens, ` +
+      `First feedback: ${firstFeedbackTokens} tokens (comment only), ` +
+      `Available budget: ${maxTokens} tokens`
+    );
+  }
+
+  // Build final context
+  const contextParts = [checklistContext];
   
-  if (includedCount < feedbacks.length) {
-    console.warn(`Token limit: included ${includedCount}/${feedbacks.length} new feedbacks`);
-  }
-  
-  const newFeedbackContext = `NEW User Feedback (${includedCount} items):\n${feedbackItems.join("\n---\n")}`;
-  parts.push(newFeedbackContext);
-
-  // Priority 3: Previous summary (if exists - 15% budget)
-  if (previousSummary) {
-    const summaryBudget = maxTokens * 0.65; // 50% + 15%
-    const prevSummaryContext = `Previous Summary:\n${previousSummary}`;
-    const summaryTokens = estimateTokens(prevSummaryContext);
-    
-    if (currentTokens + summaryTokens < summaryBudget) {
-      parts.push(prevSummaryContext);
-      currentTokens += summaryTokens;
-    } else {
-      // Truncate previous summary if too long
-      const availableChars = (summaryBudget - currentTokens) * 4;
-      if (availableChars > 100) {
-        parts.push(`Previous Summary:\n${previousSummary.substring(0, availableChars)}...`);
-        currentTokens = summaryBudget;
-      }
-    }
+  if (previousSummaryContext) {
+    contextParts.push(previousSummaryContext);
   }
 
-  // Priority 4: extracted_text from new feedback (up to 80%)
-  for (const feedback of feedbacks.slice(0, includedCount)) {
-    if (feedback.extractedText && currentTokens < maxTokens * 0.8) {
-      const text = `Document excerpt: ${feedback.extractedText.substring(0, 500)}`;
-      const tokens = estimateTokens(text);
-      if (currentTokens + tokens < maxTokens * 0.8) {
-        parts.push(text);
-        currentTokens += tokens;
-      } else {
-        break;
-      }
-    }
-  }
-
-  // Priority 5: explanation from new feedback (up to 90%)
-  for (const feedback of feedbacks.slice(0, includedCount)) {
-    if (feedback.explanation && currentTokens < maxTokens * 0.9) {
-      const exp = `AI reasoning: ${feedback.explanation.substring(0, 300)}`;
-      const tokens = estimateTokens(exp);
-      if (currentTokens + tokens < maxTokens * 0.9) {
-        parts.push(exp);
-        currentTokens += tokens;
-      } else {
-        break;
-      }
-    }
-  }
-
-  console.log(`Built context with ~${currentTokens} estimated tokens`);
-  return parts.join("\n\n");
-}
-
-// Retryable error types from official Bedrock documentation
-function isRetryableError(error: any): boolean {
-  const retryableNames = [
-    "ThrottlingException",
-    "ServiceUnavailableException",
-    "ModelNotReadyException",
-    "InternalServerException",
-  ];
-  
-  const retryableStatusCodes = [429, 500, 503];
-  
-  return (
-    retryableNames.includes(error.name) ||
-    retryableStatusCodes.includes(error.$metadata?.httpStatusCode)
+  contextParts.push(
+    `NEW User Feedback (${includedCount} items):\n${feedbackBlocks.join("\n---\n")}`
   );
+
+  const finalContext = contextParts.join("\n\n");
+
+  console.log(
+    `Built context: ${includedCount}/${feedbacks.length} feedbacks, ` +
+    `${currentTokens} tokens (${Math.round((currentTokens / maxTokens) * 100)}% of budget), ` +
+    `system prompt reserved: ${SYSTEM_PROMPT_TOKENS} tokens`
+  );
+
+  return finalContext;
 }
 
 async function generateSummary(
   context: string,
-  hasExistingSummary: boolean,
-  retryCount = 0
+  hasExistingSummary: boolean
 ): Promise<string> {
-  const MAX_RETRIES = 3;
-  
   // Different prompts for initial vs incremental updates
   const prompt = hasExistingSummary
     ? `You are updating a feedback summary for a document review checklist item.
@@ -311,44 +434,26 @@ OUTPUT: A concise 2-3 sentence summary that captures:
 Respond in the same language as the checklist description.`;
 
   try {
+    const body = JSON.stringify({
+      anthropic_version: ANTHROPIC_VERSION,
+      max_tokens: MAX_SUMMARY_OUTPUT_TOKENS,
+      messages: [{ role: "user", content: prompt }],
+    });
+
     const response = await bedrockClient.send(
       new InvokeModelCommand({
-        modelId: MODEL_ID,
+        modelId,
         contentType: "application/json",
         accept: "application/json",
-        body: JSON.stringify({
-          anthropic_version: "bedrock-2023-05-31",
-          max_tokens: 500,
-          messages: [{ role: "user", content: prompt }],
-        }),
+        body: new TextEncoder().encode(body),
       })
     );
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     return responseBody.content[0].text;
   } catch (error: any) {
-    // Handle context too large - reduce and retry
-    if (error.name === "ValidationException" && context.length > 4000) {
-      console.warn("Context too large, retrying with reduced context");
-      const reducedContext = context.substring(0, Math.floor(context.length * 0.6));
-      return generateSummary(reducedContext, hasExistingSummary, retryCount);
-    }
-
-    // Exponential backoff for retryable errors
-    if (isRetryableError(error) && retryCount < MAX_RETRIES) {
-      const baseDelay = Math.min(Math.pow(2, retryCount) * 1000, 60000);
-      const jitter = Math.random() * 1000;
-      const delay = baseDelay + jitter;
-      
-      console.warn(
-        `${error.name || "Error"} (HTTP ${error.$metadata?.httpStatusCode}), ` +
-        `retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return generateSummary(context, hasExistingSummary, retryCount + 1);
-    }
-
-    console.error(`Failed to generate summary: ${error.name} - ${error.message}`);
+    // AWS SDK already retried
+    console.error(`Failed to generate summary after retries: ${error.name} - ${error.message}`);
     throw error;
   }
 }
