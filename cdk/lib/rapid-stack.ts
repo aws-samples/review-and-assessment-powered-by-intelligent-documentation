@@ -175,7 +175,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
         aggregationDays: 7,
-        scheduleExpression: "cron(0 2 * * ? *)", // Daily at 2:00 AM UTC
+        scheduleExpression: props.parameters.feedbackAggregatorScheduleExpression,
       }
     );
 

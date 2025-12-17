@@ -1,11 +1,11 @@
 /**
  * FEEDBACK AGGREGATOR - EXPERIMENTAL BETA FEATURE
- * 
+ *
  * This module aggregates user feedback on AI review results and generates summaries
  * using Amazon Bedrock. It is implemented as a self-contained Lambda function rather
  * than following the repository/use-case layer pattern because it is an experimental
  * beta feature.
- * 
+ *
  * ARCHITECTURE OVERVIEW:
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ EventBridge (Daily 2:00 UTC)                                    │
@@ -46,9 +46,9 @@
  * │ - Generates actionable guidance for future reviews              │
  * │ - Auto-retry via AWS SDK (max 3 attempts)                       │
  * └─────────────────────────────────────────────────────────────────┘
- * 
+ *
  * INPUT DATA FLOW:
- * 
+ *
  * ReviewResult (DB) ──┐
  *   ├─ userComment    │
  *   ├─ extractedText  ├──> buildContext() ──> AI Prompt
@@ -59,20 +59,20 @@
  *   ├─ name           │
  *   ├─ description    │
  *   └─ feedbackSummary (previous) ──┘
- * 
+ *
  * OUTPUT:
  * CheckList.feedbackSummary (updated)
  * CheckList.feedbackSummaryUpdatedAt (timestamp)
- * 
+ *
  * TOKEN BUDGET:
  * - Total: 190,000 tokens (95% of Claude Sonnet 4's 200k context)
  * - System prompt: 200 tokens (reserved)
  * - Available for context: 189,800 tokens
- * 
+ *
  * EXCEPTION TO ARCHITECTURE:
  * - Database access: Uses Prisma directly (not through repository layer)
  * - Bedrock client: Instantiated in this module (not through service layer)
- * 
+ *
  * @module feedback-aggregator
  * @experimental
  */
@@ -90,7 +90,8 @@ import { getDatabaseUrl } from "../utils/database";
 // ============================================================================
 
 /** Default AI model for generating feedback summaries (cross-region inference) */
-const DEFAULT_SUMMARY_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0";
+const DEFAULT_SUMMARY_MODEL_ID =
+  "global.anthropic.claude-sonnet-4-20250514-v1:0";
 
 /** Model ID for CountTokens API (must be single-region, no prefix) */
 const COUNT_TOKENS_MODEL_ID = "anthropic.claude-sonnet-4-20250514-v1:0";
@@ -118,7 +119,10 @@ const MAX_INITIAL_FEEDBACKS = 100;
 // ============================================================================
 
 const modelId = process.env.SUMMARY_MODEL_ID || DEFAULT_SUMMARY_MODEL_ID;
-const maxContextTokens = parseInt(process.env.MAX_CONTEXT_TOKENS || String(DEFAULT_MAX_CONTEXT_TOKENS), 10);
+const maxContextTokens = parseInt(
+  process.env.MAX_CONTEXT_TOKENS || String(DEFAULT_MAX_CONTEXT_TOKENS),
+  10
+);
 
 let prisma: PrismaClient | null = null;
 
@@ -160,7 +164,10 @@ async function countTokens(text: string): Promise<number> {
     );
     return response.inputTokens || 0;
   } catch (error) {
-    console.warn("Failed to count tokens via API, falling back to estimation:", error);
+    console.warn(
+      "Failed to count tokens via API, falling back to estimation:",
+      error
+    );
     // Fallback to rough estimation if API fails
     return Math.ceil(text.length / 4);
   }
@@ -178,7 +185,11 @@ interface ChecklistWithLastUpdate {
   last_update: Date | null;
 }
 
-export const handler = async (): Promise<{ processed: number; errors: number; skipped: number }> => {
+export const handler = async (): Promise<{
+  processed: number;
+  errors: number;
+  skipped: number;
+}> => {
   console.log("Starting feedback aggregation");
 
   const db = await getPrismaClient();
@@ -196,7 +207,9 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
            OR rr.updated_at > cl.feedback_summary_updated_at)
   `;
 
-  console.log(`Found ${checklistsWithFeedback.length} checklists with new feedback`);
+  console.log(
+    `Found ${checklistsWithFeedback.length} checklists with new feedback`
+  );
 
   let processed = 0;
   let errors = 0;
@@ -217,7 +230,9 @@ export const handler = async (): Promise<{ processed: number; errors: number; sk
     }
   }
 
-  console.log(`Completed: ${processed} processed, ${skipped} skipped (no new feedback), ${errors} errors`);
+  console.log(
+    `Completed: ${processed} processed, ${skipped} skipped (no new feedback), ${errors} errors`
+  );
   return { processed, errors, skipped };
 };
 
@@ -229,9 +244,9 @@ async function processChecklist(
   // Fetch checklist info including existing summary
   const checklist = await db.checkList.findUnique({
     where: { id: checkId },
-    select: { 
-      id: true, 
-      name: true, 
+    select: {
+      id: true,
+      name: true,
       description: true,
       feedbackSummary: true,
     },
@@ -267,7 +282,7 @@ async function processChecklist(
   }
 
   console.log(
-    `Processing ${feedbacks.length} ${lastUpdateDate ? 'new' : 'total'} feedbacks for checklist: ${checklist.name}`
+    `Processing ${feedbacks.length} ${lastUpdateDate ? "new" : "total"} feedbacks for checklist: ${checklist.name}`
   );
 
   try {
@@ -331,9 +346,11 @@ async function buildContext(
   for (const feedback of feedbacks) {
     // Build one feedback block (all elements required, no truncation)
     const parts: string[] = [];
-    
+
     // userComment (required)
-    const aiResult = feedback.result ? `AI judged: ${feedback.result}` : "AI result: unknown";
+    const aiResult = feedback.result
+      ? `AI judged: ${feedback.result}`
+      : "AI result: unknown";
     parts.push(`[${aiResult}, User overrode] ${feedback.userComment}`);
 
     // extractedText (required if exists)
@@ -353,7 +370,7 @@ async function buildContext(
     if (currentTokens + feedbackTokens > maxTokens) {
       console.warn(
         `Token budget exceeded: included ${includedCount}/${feedbacks.length} feedbacks ` +
-        `(used ${currentTokens}/${maxTokens} tokens, next feedback needs ${feedbackTokens} tokens)`
+          `(used ${currentTokens}/${maxTokens} tokens, next feedback needs ${feedbackTokens} tokens)`
       );
       break;
     }
@@ -365,21 +382,22 @@ async function buildContext(
 
   // Error handling: at least one feedback is required
   if (includedCount === 0) {
-    const firstFeedbackTokens = feedbacks.length > 0 
-      ? await countTokens(feedbacks[0].userComment || "")
-      : 0;
+    const firstFeedbackTokens =
+      feedbacks.length > 0
+        ? await countTokens(feedbacks[0].userComment || "")
+        : 0;
     throw new Error(
       `Cannot fit any feedback within token budget. ` +
-      `Checklist: ${checklistTokens} tokens, ` +
-      `Previous summary: ${summaryTokens} tokens, ` +
-      `First feedback: ${firstFeedbackTokens} tokens (comment only), ` +
-      `Available budget: ${maxTokens} tokens`
+        `Checklist: ${checklistTokens} tokens, ` +
+        `Previous summary: ${summaryTokens} tokens, ` +
+        `First feedback: ${firstFeedbackTokens} tokens (comment only), ` +
+        `Available budget: ${maxTokens} tokens`
     );
   }
 
   // Build final context
   const contextParts = [checklistContext];
-  
+
   if (previousSummaryContext) {
     contextParts.push(previousSummaryContext);
   }
@@ -392,8 +410,8 @@ async function buildContext(
 
   console.log(
     `Built context: ${includedCount}/${feedbacks.length} feedbacks, ` +
-    `${currentTokens} tokens (${Math.round((currentTokens / maxTokens) * 100)}% of budget), ` +
-    `system prompt reserved: ${SYSTEM_PROMPT_TOKENS} tokens`
+      `${currentTokens} tokens (${Math.round((currentTokens / maxTokens) * 100)}% of budget), ` +
+      `system prompt reserved: ${SYSTEM_PROMPT_TOKENS} tokens`
   );
 
   return finalContext;
@@ -453,7 +471,9 @@ Respond in the same language as the checklist description.`;
     return responseBody.content[0].text;
   } catch (error: any) {
     // AWS SDK already retried
-    console.error(`Failed to generate summary after retries: ${error.name} - ${error.message}`);
+    console.error(
+      `Failed to generate summary after retries: ${error.name} - ${error.message}`
+    );
     throw error;
   }
 }

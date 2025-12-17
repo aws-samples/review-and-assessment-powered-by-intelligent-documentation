@@ -2,8 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
+import * as scheduler from "aws-cdk-lib/aws-scheduler";
+import * as schedulerTargets from "aws-cdk-lib/aws-scheduler-targets";
 import * as path from "path";
 import { Construct } from "constructs";
 import { DockerPrismaFunction } from "./docker-prisma-function";
@@ -73,12 +73,11 @@ export class FeedbackAggregator extends Construct {
       })
     );
 
-    // EventBridge rule for scheduled execution
-    const rule = new events.Rule(this, "ScheduleRule", {
-      schedule: events.Schedule.expression(scheduleExpression),
+    // EventBridge Scheduler for scheduled execution
+    new scheduler.Schedule(this, "FeedbackAggregatorSchedule", {
+      schedule: scheduler.ScheduleExpression.expression(scheduleExpression),
+      target: new schedulerTargets.LambdaInvoke(this.lambda, {}),
       description: "Daily feedback summary aggregation",
     });
-
-    rule.addTarget(new targets.LambdaFunction(this.lambda));
   }
 }

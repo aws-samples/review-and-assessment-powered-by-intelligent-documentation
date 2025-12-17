@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@aws-sdk/client-bedrock-agentcore": "^3.0.0",
     "@types/aws-lambda": "^8.10.0"
