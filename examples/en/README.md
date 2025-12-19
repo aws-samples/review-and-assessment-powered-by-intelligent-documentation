@@ -9,6 +9,7 @@ This directory contains practical examples for RAPID (Review & Assessment Powere
 **Overview**: A use case for house makers to verify consistency between customer requirements recorded in meeting minutes and building floor plans.
 
 **Included Files**:
+
 - Checklist: Customer Meeting Minutes (PDF)
 - Review Document: Building Floor Plan (PNG image)
 
@@ -19,10 +20,31 @@ This directory contains practical examples for RAPID (Review & Assessment Powere
 **Overview**: A use case for IT departments to verify that internal approval requests meet company policies and approval standards.
 
 **Included Files**:
+
 - Checklist: Internal Approval Request Checklist (PDF)
 - Review Document: Internal Approval Request (PDF)
 
 **Application**: Check required items in approval requests and verify the appropriateness of approval processes, strengthening internal governance and improving operational efficiency.
+
+### Use Case 005: Sustainability Assessment (Energy Efficiency Compliance)
+
+**Overview**: A use case for sustainability teams to verify that equipment specifications meet energy efficiency standards and industry regulations such as ASHRAE 90.1 and IEC 60034-30-1.
+
+**Included Files**:
+
+- Checklist: Energy Efficiency Compliance Verification (PDF)
+- Review Document: Equipment Specifications (PDF)
+- Knowledge Base Sources: Technical calculation documents for HVAC, lighting systems, motor efficiency, and building envelope thermal performance (to be uploaded to a separate Bedrock Knowledge Base)
+
+**Setup Instructions**:
+
+1. Create a Bedrock Knowledge Base in your AWS account and upload the knowledge base sources (HVAC, lighting, motor, building envelope calculation documents)
+2. Configure the tool configuration in RAPID to reference your Knowledge Base ID and enable code interpreter
+3. Upload the checklist to RAPID
+4. After checklist creation, assign the tool configuration to checklist items in the checklist detail interface
+5. Execute the review
+
+**Application**: Demonstrates Bedrock Knowledge Base search combined with code interpreter calculations to assess compliance with ambiguous sustainability criteria. The system performs automated standard lookups and compliance calculations for data-driven sustainability decisions.
 
 ## How to Use
 
