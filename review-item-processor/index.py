@@ -37,6 +37,17 @@ def handler(event, context):
     }
     """
     logger.info(f"[Strands MCP] Received event: {json.dumps(event)}")
+    
+    # Log session and trace information from context
+    session_id = getattr(context, 'session_id', 'N/A')
+    request_headers = getattr(context, 'request_headers', {})
+    trace_id = request_headers.get('X-Amzn-Trace-Id', 'N/A')
+    
+    logger.info(f"AgentCore Session ID: {session_id}")
+    logger.info(f"X-Amzn-Trace-Id: {trace_id}")
+    logger.info(f"reviewJobId: {event.get('reviewJobId', 'N/A')}")
+    logger.info(f"reviewResultId: {event.get('reviewResultId', 'N/A')}")
+    logger.info(f"checkId: {event.get('checkId', 'N/A')}")
 
     # Check required environment variables
     required_vars = ["DOCUMENT_BUCKET", "BEDROCK_REGION"]
