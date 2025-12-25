@@ -68,7 +68,7 @@ export const createChecklistSetHandler = async (
 ): Promise<void> => {
   await createChecklistSet({
     req: request.body,
-    userId: request.user?.sub,
+    userId: request.user?.userId,
   });
 
   reply.code(200).send({
@@ -87,6 +87,8 @@ export const deleteChecklistSetHandler = async (
   const { checklistSetId } = request.params;
   await removeChecklistSet({
     checkListSetId: checklistSetId,
+    // 所有者チェックを usecase に委譲するため request.user を渡す
+    user: request.user,
   });
   reply.code(200).send({
     success: true,
@@ -108,6 +110,8 @@ export const duplicateChecklistSetHandler = async (
     sourceCheckListSetId: checklistSetId,
     newName: name,
     newDescription: description,
+    // 新規作成物の所有者を設定するためにユーザーIDを渡す
+    userId: request.user?.userId,
   });
 
   reply.code(200).send({
@@ -147,12 +151,16 @@ export const getAllChecklistSetsHandler = async (
   const validSortFields = ["id", "name", "description", "createdAt"];
   const validSortBy = validSortFields.includes(sortBy) ? sortBy : "id";
 
+  // 管理者は全件、それ以外は自分の所有物のみを取得する
+  const ownerUserId = request.user?.isAdmin ? undefined : request.user?.userId;
+
   const result = await getAllChecklistSets({
     status,
     page: pageNum,
     limit: limitNum,
     sortBy: validSortBy,
     sortOrder,
+    ownerUserId,
   });
 
   reply.code(200).send({
@@ -238,6 +246,7 @@ export async function getChecklistItemsHandler(
       parentId: parentId,
       includeAllChildren: includeAllChildren === "true",
       ambiguityFilter: parsedAmbiguityFilter,
+      user: request.user,
     });
 
     reply.code(200).send({
@@ -263,6 +272,8 @@ export const getChecklistSetByIdHandler = async (
 
   const detail = await getChecklistSetById({
     checkListSetId: setId,
+    // 所有者チェックを usecase に委譲するため request.user を渡す
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -278,6 +289,7 @@ export const getChecklistItemHandler = async (
   const { itemId } = request.params;
   const detail = await getCheckListItem({
     itemId,
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -311,6 +323,7 @@ export const createChecklistItemHandler = async (
       Params: request.params,
       Body: request.body,
     },
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -343,6 +356,7 @@ export const updateChecklistItemHandler = async (
       Params: { setId, itemId },
       Body: { name, description, resolveAmbiguity },
     },
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -359,6 +373,7 @@ export const deleteChecklistItemHandler = async (
   await removeCheckListItem({
     setId,
     itemId,
+    user: request.user,
   });
   reply.code(200).send({
     success: true,
@@ -371,7 +386,7 @@ export const detectAmbiguityHandler = async (
   reply: FastifyReply
 ): Promise<void> => {
   const { setId } = request.params;
-  const userId = request.user?.sub;
+  const userId = request.user?.userId;
 
   if (!userId) {
     reply.code(401).send({
@@ -384,6 +399,7 @@ export const detectAmbiguityHandler = async (
   await startAmbiguityDetection({
     checkListSetId: setId,
     userId,
+    user: request.user,
   });
 
   reply.code(202).send({
@@ -404,6 +420,7 @@ export const bulkAssignToolConfigurationHandler = async (
   const updatedCount = await bulkAssignToolConfiguration({
     checkIds: request.body.checkIds,
     toolConfigurationId: request.body.toolConfigurationId,
+    user: request.user,
   });
   reply.code(200).send({
     success: true,

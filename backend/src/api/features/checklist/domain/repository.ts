@@ -5,6 +5,8 @@ import {
   CheckListItemDetail,
   CheckListSetSummary,
   CheckListSetEntity,
+  ChecklistDocumentEntity,
+  PrismaCheckList,
   CHECK_LIST_STATUS,
   CheckListSetDetailModel,
   CheckListItemDomain,
@@ -16,6 +18,7 @@ import { PaginatedResponse } from "../../../common/types";
 export interface CheckRepository {
   storeCheckListSet(params: {
     checkListSet: CheckListSetEntity;
+    ownerUserId?: string;
   }): Promise<void>;
   deleteCheckListSetById(params: { checkListSetId: string }): Promise<void>;
   findAllCheckListSets(params: {
@@ -24,6 +27,7 @@ export interface CheckRepository {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
     status?: CHECK_LIST_STATUS;
+    ownerUserId?: string;
   }): Promise<PaginatedResponse<CheckListSetSummary>>;
   findCheckListItems(
     setId: string,
@@ -66,8 +70,9 @@ export const makePrismaCheckRepository = async (
 
   const storeCheckListSet = async (params: {
     checkListSet: CheckListSetEntity;
+    ownerUserId?: string;
   }): Promise<void> => {
-    const { checkListSet } = params;
+    const { checkListSet, ownerUserId } = params;
     const { id, name, description, documents, createdAt } = checkListSet;
 
     await client.checkListSet.create({
@@ -77,13 +82,18 @@ export const makePrismaCheckRepository = async (
         description,
         createdAt: createdAt,
         documents: {
-          create: documents.map((doc) => ({
+          create: documents.map((doc: ChecklistDocumentEntity) => ({
             id: doc.id,
             filename: doc.filename,
-            s3Path: doc.s3Key,
+            // Prisma schema の s3Path は非 null の string なので、
+            // ドメイン側で s3Path があればそれを優先、なければ s3Key を代替として使い、
+            // それでもなければ空文字を代入して型を満たす（データ整合上は本来あり得ないはず）。
+            s3Path: doc.s3Path ?? doc.s3Key ?? "",
             fileType: doc.fileType,
             uploadDate: doc.uploadDate,
             status: doc.status,
+            // ownerUserId が渡された場合はドキュメント側に userId として保存する
+            userId: ownerUserId ?? undefined,
           })),
         },
       },
@@ -106,8 +116,8 @@ export const makePrismaCheckRepository = async (
 
       // 2. チェックリスト項目を階層的に削除：最下層から上へ
       // すべてのノードが削除されるまで繰り返す
-      let deletedCount = 0;
-      do {
+      let deletedCount = 1;
+      while (deletedCount > 0) {
         // リーフノード（子を持たないノード）を検索して削除
         const childParentIds = await tx.checkList.findMany({
           where: {
@@ -118,7 +128,7 @@ export const makePrismaCheckRepository = async (
         });
 
         const parentIdsToExclude = childParentIds
-          .map((r) => r.parentId)
+          .map((r: { parentId: string | null }) => r.parentId)
           .filter(Boolean) as string[];
 
         const result = await tx.checkList.deleteMany({
@@ -135,10 +145,7 @@ export const makePrismaCheckRepository = async (
         console.log(
           `[Repository] Deleted ${deletedCount} leaf nodes from check list`
         );
-
-        // もう削除するノードがなくなったら終了
-        if (deletedCount === 0) break;
-      } while (true);
+      }
 
       // 3. ReviewDocument を削除
       await tx.reviewDocument.deleteMany({
@@ -172,6 +179,24 @@ export const makePrismaCheckRepository = async (
     });
   };
 
+  type DBCheckListSet = {
+    id: string;
+    name: string;
+    description?: string | null;
+    createdAt: Date;
+    documents: Array<{
+      id: string;
+      filename: string;
+      s3Path: string;
+      fileType: string;
+      uploadDate: Date;
+      status: string;
+      errorDetail?: string | null;
+      userId?: string | null;
+    }>;
+    _count: { reviewJobs: number };
+  };
+
   const findAllCheckListSets = async (
     params: {
       page?: number;
@@ -179,6 +204,7 @@ export const makePrismaCheckRepository = async (
       sortBy?: string;
       sortOrder?: "asc" | "desc";
       status?: CHECK_LIST_STATUS;
+      ownerUserId?: string;
     } = {}
   ): Promise<PaginatedResponse<CheckListSetSummary>> => {
     const {
@@ -187,9 +213,10 @@ export const makePrismaCheckRepository = async (
       sortBy = "id",
       sortOrder = "desc",
       status,
+      ownerUserId,
     } = params;
     // ステータスフィルタリングのためのサブクエリを準備
-    let whereCondition = {};
+    let whereCondition: Record<string, any> = {};
 
     console.log(
       `[Repository] findAllCheckListSets - requested status: ${status || "all"}`
@@ -207,14 +234,6 @@ export const makePrismaCheckRepository = async (
           };
           console.log("[Repository] Using completed filter condition");
           break;
-        case "processing":
-          whereCondition = {
-            documents: {
-              some: { status: "processing" },
-            },
-          };
-          console.log("[Repository] Using processing filter condition");
-          break;
         case "pending":
           whereCondition = {
             documents: {
@@ -226,6 +245,15 @@ export const makePrismaCheckRepository = async (
       }
     }
 
+    // ownerUserId が指定されている場合は作成者（documents.userId）でフィルタする
+    if (ownerUserId) {
+      // 既存の whereCondition と組み合わせる
+      whereCondition = {
+        AND: [whereCondition, { documents: { some: { userId: ownerUserId } } }],
+      };
+      console.log(`[Repository] Applying owner filter: ${ownerUserId}`);
+    }
+
     // ページネーション用のクエリを並列実行
     const [sets, total] = await Promise.all([
       client.checkListSet.findMany({
@@ -235,7 +263,7 @@ export const makePrismaCheckRepository = async (
           name: true,
           description: true,
           createdAt: true,
-          // ドキュメントの詳細情報を取得
+          // ドキュメントの詳細情報を取得（userId を含める）
           documents: {
             select: {
               id: true,
@@ -245,6 +273,7 @@ export const makePrismaCheckRepository = async (
               uploadDate: true,
               status: true,
               errorDetail: true,
+              userId: true,
             },
           },
           _count: { select: { reviewJobs: true } },
@@ -258,8 +287,10 @@ export const makePrismaCheckRepository = async (
       }),
     ]);
 
-    const mappedSets = sets.map((s) => {
-      const statuses = s.documents.map((d) => d.status as CHECK_LIST_STATUS);
+    const mappedSets = (sets as DBCheckListSet[]).map((s) => {
+      const statuses = (s.documents || []).map(
+        (d) => d.status as CHECK_LIST_STATUS
+      );
 
       let processingStatus: CHECK_LIST_STATUS;
       if (statuses.length === 0) {
@@ -291,6 +322,7 @@ export const makePrismaCheckRepository = async (
           uploadDate: doc.uploadDate,
           status: doc.status as CHECK_LIST_STATUS,
           errorDetail: doc.errorDetail || undefined,
+          userId: doc.userId || undefined,
         })),
       };
     });
@@ -364,7 +396,7 @@ export const makePrismaCheckRepository = async (
     }
 
     // 子要素の有無を一括確認
-    const itemIds = items.map((item) => item.id);
+    const itemIds = (items as Array<{ id: string }>).map((item) => item.id);
 
     console.log(`[Repository] Checking for children of itemIds:`, itemIds);
 
@@ -384,7 +416,9 @@ export const makePrismaCheckRepository = async (
 
     // 子を持つ親IDのセットを作成
     const parentsWithChildren = new Set(
-      childItems.map((child) => child.parentId)
+      childItems.map(
+        (child: { parentId: string | null }) => child.parentId as string
+      )
     );
 
     console.log(
@@ -393,7 +427,13 @@ export const makePrismaCheckRepository = async (
     );
 
     // 結果を新しいモデル形式に変換して返す
-    const mappedItems = items.map((item) =>
+    const mappedItems = (
+      items as Array<
+        PrismaCheckList & {
+          toolConfiguration?: { id: string; name: string } | null;
+        }
+      >
+    ).map((item) =>
       CheckListItemDomain.fromPrismaCheckListItemWithDetail(
         item,
         parentsWithChildren.has(item.id)
@@ -402,7 +442,7 @@ export const makePrismaCheckRepository = async (
 
     console.log(
       `[Repository] Final items with hasChildren:`,
-      mappedItems.map((i) => ({
+      mappedItems.map((i: CheckListItemDetail) => ({
         id: i.id,
         hasChildren: i.hasChildren,
       }))
@@ -445,18 +485,22 @@ export const makePrismaCheckRepository = async (
 
     // Calculate processing status from documents
     const statuses = checkListSet.documents.map(
-      (d) => d.status as CHECK_LIST_STATUS
+      (d: any) => d.status as CHECK_LIST_STATUS
     );
     let processingStatus: CHECK_LIST_STATUS;
     if (statuses.length === 0) {
       processingStatus = CHECK_LIST_STATUS.PENDING;
-    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.PROCESSING)) {
+    } else if (
+      statuses.some((st: any) => st === CHECK_LIST_STATUS.PROCESSING)
+    ) {
       processingStatus = CHECK_LIST_STATUS.PROCESSING;
-    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.DETECTING)) {
+    } else if (statuses.some((st: any) => st === CHECK_LIST_STATUS.DETECTING)) {
       processingStatus = CHECK_LIST_STATUS.DETECTING;
-    } else if (statuses.every((st) => st === CHECK_LIST_STATUS.COMPLETED)) {
+    } else if (
+      statuses.every((st: any) => st === CHECK_LIST_STATUS.COMPLETED)
+    ) {
       processingStatus = CHECK_LIST_STATUS.COMPLETED;
-    } else if (statuses.some((st) => st === CHECK_LIST_STATUS.FAILED)) {
+    } else if (statuses.some((st: any) => st === CHECK_LIST_STATUS.FAILED)) {
       processingStatus = CHECK_LIST_STATUS.FAILED;
     } else {
       processingStatus = CHECK_LIST_STATUS.PENDING;
@@ -466,7 +510,7 @@ export const makePrismaCheckRepository = async (
       id: checkListSet.id,
       name: checkListSet.name,
       description: checkListSet.description ?? "",
-      documents: checkListSet.documents.map((doc) => ({
+      documents: checkListSet.documents.map((doc: any) => ({
         id: doc.id,
         filename: doc.filename,
         s3Key: doc.s3Path,
@@ -474,6 +518,7 @@ export const makePrismaCheckRepository = async (
         uploadDate: doc.uploadDate,
         status: doc.status as CHECK_LIST_STATUS,
         errorDetail: doc.errorDetail || undefined,
+        userId: doc.userId || undefined,
       })),
       processingStatus,
       isEditable,

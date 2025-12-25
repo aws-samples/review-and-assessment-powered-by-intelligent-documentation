@@ -4,7 +4,18 @@ import {
   CreateChecklistSetRequest,
 } from "../../routes/handlers";
 import { ParsedChecklistItem } from "../../../../../checklist-workflow/common/types";
-import type { CheckList } from "../../../../../../prisma/client";
+export type PrismaCheckList = {
+  id: string;
+  checkListSetId: string;
+  name: string;
+  description?: string | null;
+  parentId?: string | null;
+  toolConfigurationId?: string | null;
+  feedbackSummary?: string | null;
+  feedbackSummaryUpdatedAt?: Date | null;
+  ambiguityReview?: any | null;
+  documentId?: string | null;
+};
 
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
@@ -57,11 +68,15 @@ export interface CheckListSetDetailModel {
 export interface ChecklistDocumentEntity {
   id: string;
   filename: string;
-  s3Key: string;
+  // DB側は s3Path カラムを使っているが、ドメインでは s3Key も参照される箇所があるため
+  // 両方を許容する（optional）ことで型不整合を解消する。
+  s3Key?: string;
+  s3Path?: string;
   fileType: string;
   uploadDate: Date;
   status: CHECK_LIST_STATUS;
   errorDetail?: string;
+  userId?: string;
 }
 
 export interface CheckListItemEntity {
@@ -176,7 +191,9 @@ export const CheckListItemDomain = {
     };
   },
 
-  fromPrismaCheckListItem: (prismaItem: CheckList): CheckListItemEntity => {
+  fromPrismaCheckListItem: (
+    prismaItem: PrismaCheckList
+  ): CheckListItemEntity => {
     return {
       id: prismaItem.id,
       setId: prismaItem.checkListSetId,
@@ -187,18 +204,20 @@ export const CheckListItemDomain = {
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
       feedbackSummaryUpdatedAt:
         prismaItem.feedbackSummaryUpdatedAt ?? undefined,
-      ambiguityReview: prismaItem.ambiguityReview
-        ? {
-            suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
-            detectedAt: new Date(
-              (prismaItem.ambiguityReview as any).detectedAt
-            ),
-          }
-        : undefined,
+      ambiguityReview: (() => {
+        const ar = prismaItem.ambiguityReview as unknown;
+        if (!ar) return undefined;
+        // ambiguityReview のスキーマは DB 側で柔軟に扱われているため暫定的に unknown として扱い、
+        // 必要なプロパティを安全に取り出す（存在しない場合はデフォルトを使う）
+        const suggestions = (ar as any).suggestions ?? [];
+        const detectedAtRaw = (ar as any).detectedAt;
+        const detectedAt = detectedAtRaw ? new Date(detectedAtRaw) : new Date();
+        return { suggestions, detectedAt } as AmbiguityDetectionResult;
+      })(),
     };
   },
 
-  toPrismaCheckListItem: (item: CheckListItemEntity): CheckList => {
+  toPrismaCheckListItem: (item: CheckListItemEntity): PrismaCheckList => {
     return {
       id: item.id,
       name: item.name,
@@ -219,7 +238,7 @@ export const CheckListItemDomain = {
   },
 
   fromPrismaCheckListItemWithDetail: (
-    prismaItem: CheckList & {
+    prismaItem: PrismaCheckList & {
       toolConfiguration?: { id: string; name: string } | null;
     },
     hasChildren: boolean
@@ -233,14 +252,14 @@ export const CheckListItemDomain = {
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
       feedbackSummaryUpdatedAt:
         prismaItem.feedbackSummaryUpdatedAt ?? undefined,
-      ambiguityReview: prismaItem.ambiguityReview
-        ? {
-            suggestions: (prismaItem.ambiguityReview as any).suggestions || [],
-            detectedAt: new Date(
-              (prismaItem.ambiguityReview as any).detectedAt
-            ),
-          }
-        : undefined,
+      ambiguityReview: (() => {
+        const ar = prismaItem.ambiguityReview as unknown;
+        if (!ar) return undefined;
+        const suggestions = (ar as any).suggestions ?? [];
+        const detectedAtRaw = (ar as any).detectedAt;
+        const detectedAt = detectedAtRaw ? new Date(detectedAtRaw) : new Date();
+        return { suggestions, detectedAt } as AmbiguityDetectionResult;
+      })(),
       hasChildren,
       toolConfiguration: prismaItem.toolConfiguration || undefined,
     };

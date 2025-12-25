@@ -9,7 +9,7 @@ export const getUserPreferenceHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> => {
-  const userId = request.user?.sub;
+  const userId = request.user?.userId;
 
   if (!userId) {
     return reply.code(401).send({
@@ -42,7 +42,7 @@ export const updateLanguageHandler = async (
   request: FastifyRequest<{ Body: UpdateLanguageRequest }>,
   reply: FastifyReply
 ): Promise<void> => {
-  const userId = request.user?.sub;
+  const userId = request.user?.userId;
 
   if (!userId) {
     return reply.code(401).send({

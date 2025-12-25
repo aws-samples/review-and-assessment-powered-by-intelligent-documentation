@@ -22,6 +22,8 @@ export interface ReviewJobRepository {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
     status?: string;
+    // ownerUserId が指定された場合、そのユーザのジョブのみ返す（管理者は未指定）
+    ownerUserId?: string;
   }): Promise<PaginatedResponse<ReviewJobSummary>>;
   findReviewJobById(params: { reviewJobId: string }): Promise<ReviewJobDetail>;
   createReviewJob(params: ReviewJobEntity): Promise<void>;
@@ -51,6 +53,7 @@ export const makePrismaReviewJobRepository = async (
       sortBy?: string;
       sortOrder?: "asc" | "desc";
       status?: string;
+      ownerUserId?: string;
     } = {}
   ): Promise<PaginatedResponse<ReviewJobSummary>> => {
     const {
@@ -62,9 +65,13 @@ export const makePrismaReviewJobRepository = async (
     } = params;
 
     // WHERE条件を構築
-    const whereCondition: any = {};
+    const whereCondition: { status?: string; userId?: string } = {};
     if (status) {
       whereCondition.status = status;
+    }
+    // ownerUserId が指定されている場合はそのユーザのジョブに限定する
+    if (params.ownerUserId) {
+      whereCondition.userId = params.ownerUserId;
     }
 
     // ページネーション用のクエリを並列実行
@@ -208,6 +215,7 @@ export const makePrismaReviewJobRepository = async (
         s3Path: doc.s3Path,
         fileType: doc.fileType as REVIEW_FILE_TYPE,
       })),
+      userId: job.userId || undefined,
       createdAt: job.createdAt,
       updatedAt: job.updatedAt,
       completedAt: job.completedAt || undefined,
