@@ -80,7 +80,7 @@ const parameterSchema = z.object({
     ),
 
   // Review queue processor settings
-  reviewMaxConcurrency: z
+  maxReviewExecutions: z
     .number()
     .int()
     .min(1)
@@ -88,16 +88,16 @@ const parameterSchema = z.object({
     .describe("Review queue processor max concurrent Step Functions executions"),
 
   reviewQueueMaxQueueCountMs: z
-  reviewQueueLogLevel: z
-    .string()
-    .default("WARNING")
-    .describe("Review queue lambda log level"),
-
     .number()
     .int()
     .min(1000)
     .default(86_400_000)
     .describe("Review queue max wait time in ms before error handling"),
+
+  reviewQueueLogLevel: z
+    .string()
+    .default("WARNING")
+    .describe("Review queue lambda log level"),
 
   // AgentCore Code Interpreter設定
   enableCodeInterpreter: z
@@ -245,19 +245,23 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  const reviewMaxConcurrency = app.node.tryGetContext("rapid.reviewMaxConcurrency");
-  if (reviewMaxConcurrency !== undefined) {
-    params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
+  const maxReviewExecutions = app.node.tryGetContext("rapid.maxReviewExecutions");
+  if (maxReviewExecutions !== undefined) {
+    params.maxReviewExecutions = Number(maxReviewExecutions);
   }
 
-  const reviewQueueMaxQueueCountMs = app.node.tryGetContext("rapid.reviewQueueMaxQueueCountMs");
+  const reviewQueueMaxQueueCountMs = app.node.tryGetContext(
+    "rapid.reviewQueueMaxQueueCountMs"
+  );
   if (reviewQueueMaxQueueCountMs !== undefined) {
-  const reviewQueueLogLevel = app.node.tryGetContext("rapid.reviewQueueLogLevel");
+    params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
+  }
+
+  const reviewQueueLogLevel = app.node.tryGetContext(
+    "rapid.reviewQueueLogLevel"
+  );
   if (reviewQueueLogLevel !== undefined) {
     params.reviewQueueLogLevel = reviewQueueLogLevel;
-  }
-
-    params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
   }
 
   // Bedrock設定
