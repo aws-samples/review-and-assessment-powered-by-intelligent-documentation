@@ -239,6 +239,7 @@ export class RapidStack extends cdk.Stack {
     // SQS permissions for API Lambda
     ambiguityProcessor.queue.grantSendMessages(api.apiLambda);
     reviewQueueProcessor.queue.grantSendMessages(api.apiLambda);
+    reviewQueueProcessor.queue.grant(api.apiLambda, "sqs:GetQueueAttributes");
 
     // S3バケットアクセス権限の付与
     documentBucket.grantReadWrite(api.apiLambda);

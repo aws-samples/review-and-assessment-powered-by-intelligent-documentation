@@ -10,7 +10,7 @@ export const computeGlobalConcurrency = async (): Promise<{
 }> => {
   logger.info("computeGlobalConcurrency called");
   // グローバル同時実行数チェック（SQSキュー深さ確認）
-  const queueUrl = process.env.REVIEW_SQS_URL;
+  const queueUrl = process.env.REVIEW_QUEUE_URL || process.env.REVIEW_SQS_URL;
   const globalLimit = Number(process.env.REVIEW_GLOBAL_CONCURRENCY_LIMIT ?? 0);
 
   if (queueUrl && globalLimit > 0) {
