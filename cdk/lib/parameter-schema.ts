@@ -80,7 +80,7 @@ const parameterSchema = z.object({
     ),
 
   // Review queue processor settings
-  maxReviewExecutions: z
+  reviewMaxConcurrency: z
     .number()
     .int()
     .min(1)
@@ -88,6 +88,11 @@ const parameterSchema = z.object({
     .describe("Review queue processor max concurrent Step Functions executions"),
 
   reviewQueueMaxQueueCountMs: z
+  reviewQueueLogLevel: z
+    .string()
+    .default("WARNING")
+    .describe("Review queue lambda log level"),
+
     .number()
     .int()
     .min(1000)
@@ -240,13 +245,18 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  const maxReviewExecutions = app.node.tryGetContext("rapid.maxReviewExecutions");
-  if (maxReviewExecutions !== undefined) {
-    params.maxReviewExecutions = Number(maxReviewExecutions);
+  const reviewMaxConcurrency = app.node.tryGetContext("rapid.reviewMaxConcurrency");
+  if (reviewMaxConcurrency !== undefined) {
+    params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
   }
 
   const reviewQueueMaxQueueCountMs = app.node.tryGetContext("rapid.reviewQueueMaxQueueCountMs");
   if (reviewQueueMaxQueueCountMs !== undefined) {
+  const reviewQueueLogLevel = app.node.tryGetContext("rapid.reviewQueueLogLevel");
+  if (reviewQueueLogLevel !== undefined) {
+    params.reviewQueueLogLevel = reviewQueueLogLevel;
+  }
+
     params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
   }
 

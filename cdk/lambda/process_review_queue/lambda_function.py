@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'WARNING'))
 
 # 既定値とキュー設定定数
-DEFAULT_MAX_REVIEW_EXECUTIONS = 10
+DEFAULT_REVIEW_MAX_CONCURRENCY = 2
 DEFAULT_MAX_QUEUE_COUNT_MS = 86_400_000  # 24h
 SQS_WAIT_TIME_SECONDS = 0
 MILLISECONDS_IN_SECOND = 1000
@@ -18,8 +18,8 @@ MILLISECONDS_IN_SECOND = 1000
 # 環境変数から取得する定数
 STATE_MACHINE_ARN = os.environ['STATE_MACHINE_ARN']
 SQS_QUEUE_URL = os.environ['QUEUE_URL']
-MAX_REVIEW_EXECUTIONS = int(os.environ.get(
-    'MAX_REVIEW_EXECUTIONS', str(DEFAULT_MAX_REVIEW_EXECUTIONS)))
+REVIEW_MAX_CONCURRENCY = int(os.environ.get(
+    'REVIEW_MAX_CONCURRENCY', str(DEFAULT_REVIEW_MAX_CONCURRENCY)))
 MAX_QUEUE_COUNT = int(os.environ.get(
     'MAX_QUEUE_COUNT', str(DEFAULT_MAX_QUEUE_COUNT_MS)))
 ERROR_LAMBDA_NAME = os.environ['ERROR_LAMBDA_NAME']
@@ -40,7 +40,7 @@ def lambda_handler(event, context):
     """
 
     running_count = get_running_executions_count()
-    available_slots = MAX_REVIEW_EXECUTIONS - running_count
+    available_slots = REVIEW_MAX_CONCURRENCY - running_count
 
     logger.info('実行中: %d, 空き枠: %d', running_count, available_slots)
 
@@ -74,14 +74,14 @@ def get_running_executions_count():
     """実行中のStepFunction数を取得"""
     try:
         response = sfn_client.list_executions(
-            stateMachineArn=STATE_MACHINE_ARN, statusFilter='RUNNING', maxResults=MAX_REVIEW_EXECUTIONS + 1
+            stateMachineArn=STATE_MACHINE_ARN, statusFilter='RUNNING', maxResults=REVIEW_MAX_CONCURRENCY + 1
         )
         return len(response.get('executions', []))
     except ClientError:
         error_message = {
             'state_machine_arn': STATE_MACHINE_ARN,
             'status_filter': 'RUNNING',
-            'max_results': MAX_REVIEW_EXECUTIONS + 1,
+            'max_results': REVIEW_MAX_CONCURRENCY + 1,
         }
         err_msg = 'ListExecutions APIエラー: ' + \
             json.dumps(error_message, ensure_ascii=False, indent=2)
