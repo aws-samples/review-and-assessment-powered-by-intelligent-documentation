@@ -80,12 +80,23 @@ const parameterSchema = z.object({
     ),
 
   // Review queue processor settings
+  reviewMaxConcurrency: z
+    .number()
+    .int()
+    .min(1)
+    .default(2)
+    .describe(
+      "Review queue processor max concurrent Step Functions executions"
+    ),
+
   maxReviewExecutions: z
     .number()
     .int()
     .min(1)
     .default(10)
-    .describe("Review queue processor max concurrent Step Functions executions"),
+    .describe(
+      "Review queue processor max concurrent Step Functions executions"
+    ),
 
   reviewQueueMaxQueueCountMs: z
     .number()
@@ -109,7 +120,9 @@ const parameterSchema = z.object({
   feedbackAggregatorScheduleExpression: z
     .string()
     .default("cron(0 2 * * ? *)")
-    .describe("Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"),
+    .describe(
+      "Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"
+    ),
 });
 
 // パラメータの型定義（型安全性のため）
@@ -245,9 +258,18 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  const maxReviewExecutions = app.node.tryGetContext("rapid.maxReviewExecutions");
+  const maxReviewExecutions = app.node.tryGetContext(
+    "rapid.maxReviewExecutions"
+  );
   if (maxReviewExecutions !== undefined) {
     params.maxReviewExecutions = Number(maxReviewExecutions);
+  }
+
+  const reviewMaxConcurrency = app.node.tryGetContext(
+    "rapid.reviewMaxConcurrency"
+  );
+  if (reviewMaxConcurrency !== undefined) {
+    params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
   }
 
   const reviewQueueMaxQueueCountMs = app.node.tryGetContext(
@@ -275,7 +297,8 @@ export function extractContextParameters(app: any): Record<string, any> {
     "rapid.feedbackAggregatorScheduleExpression"
   );
   if (feedbackAggregatorScheduleExpression !== undefined) {
-    params.feedbackAggregatorScheduleExpression = feedbackAggregatorScheduleExpression;
+    params.feedbackAggregatorScheduleExpression =
+      feedbackAggregatorScheduleExpression;
   }
 
   return params;
