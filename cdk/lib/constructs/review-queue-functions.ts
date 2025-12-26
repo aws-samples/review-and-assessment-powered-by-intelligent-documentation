@@ -58,7 +58,7 @@ export class ReviewQueueProcessor extends Construct {
     // レビューキューを処理する Python Lambda 関数の作成
     this.lambdaFunction = new lambda.Function(this, "PythonFunction", {
       // ランタイム設定
-      runtime: lambda.Runtime.PYTHON_3_13,
+      runtime: lambda.Runtime.PYTHON_3_14,
       handler: "lambda_function.lambda_handler",
       code: lambda.Code.fromAsset(
         path.join(__dirname, "../../lambda/process_review_queue")
