@@ -162,14 +162,15 @@ export class RapidStack extends cdk.Stack {
       {
         environment: {
           STATE_MACHINE_ARN: reviewProcessor.stateMachine.stateMachineArn,
-          MAX_REVIEW_EXECUTIONS: props.parameters.maxReviewExecutions.toString(),
-          MAX_QUEUE_COUNT: props.parameters.reviewQueueMaxQueueCountMs.toString(),
+          MAX_REVIEW_EXECUTIONS:
+            props.parameters.maxReviewExecutions.toString(),
+          MAX_QUEUE_COUNT:
+            props.parameters.reviewQueueMaxQueueCountMs.toString(),
           ERROR_LAMBDA_NAME: reviewProcessor.reviewLambda.functionName,
 
           // キュー管理のLambdaはWARNINGをデフォルトとする
           // LOG_LEVEL: props.parameters.logLevel,
         },
-        lambdaLogRetentionDays: props.parameters.lambdaLogRetentionDays,
       }
     );
 
