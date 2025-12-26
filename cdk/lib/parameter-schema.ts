@@ -18,7 +18,6 @@ const parameterSchema = z.object({
       "8000:0000:0000:0000:0000:0000:0000:0000/1",
     ]), // デフォルトはすべてのIPv6を許可
 
-  // Bedrock設定
   bedrockRegion: z
     .string()
     .default("us-west-2")
@@ -79,6 +78,21 @@ const parameterSchema = z.object({
     .describe(
       "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
     ),
+
+  // Review queue processor settings
+  maxReviewExecutions: z
+    .number()
+    .int()
+    .min(1)
+    .default(10)
+    .describe("Review queue processor max concurrent Step Functions executions"),
+
+  reviewQueueMaxQueueCountMs: z
+    .number()
+    .int()
+    .min(1000)
+    .default(86_400_000)
+    .describe("Review queue max wait time in ms before error handling"),
 
   // AgentCore Code Interpreter設定
   enableCodeInterpreter: z
@@ -226,7 +240,17 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  // Bedrockリージョン設定の取得
+  const maxReviewExecutions = app.node.tryGetContext("rapid.maxReviewExecutions");
+  if (maxReviewExecutions !== undefined) {
+    params.maxReviewExecutions = Number(maxReviewExecutions);
+  }
+
+  const reviewQueueMaxQueueCountMs = app.node.tryGetContext("rapid.reviewQueueMaxQueueCountMs");
+  if (reviewQueueMaxQueueCountMs !== undefined) {
+    params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
+  }
+
+  // Bedrock設定
   const bedrockRegion = app.node.tryGetContext("rapid.bedrockRegion");
   if (bedrockRegion !== undefined) {
     params.bedrockRegion = bedrockRegion;

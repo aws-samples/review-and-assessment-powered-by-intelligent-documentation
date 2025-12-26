@@ -25,7 +25,6 @@ import {
   ApplicationError,
   FileSizeExceededError,
 } from "../../../core/errors/application-errors";
-import { startStateMachineExecution } from "../../../core/sfn";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
 
@@ -156,29 +155,21 @@ export const createReviewJob = async (params: {
 
   await reviewJobRepo.createReviewJob(reviewJob);
 
-  // 親レビュー処理キューへメッセージ送信
-  const parentQueueUrl = process.env.REVIEW_QUEUE_URL;
-  if (!parentQueueUrl) {
+  // レビュー処理キューへメッセージ送信
+  const queueUrl = process.env.REVIEW_QUEUE_URL;
+  if (!queueUrl) {
     const error = new ApplicationError("REVIEW_QUEUE_URL is not defined");
     throw error;
   }
-  
-  const { messageId } = await sendMessage(
-  parentQueueUrl,
-  {
-    jobs: reviewJobIdUserPairs,
-    mail_to: mailTo,
-    mail_from: process.env.MAIL_FROM,
-    mail_subject: mailSubject,
-    mail_body: mailBody,
-    error_mail_subject: errorMailSubject,
-    error_mail_body: errorMailBody,
-  },
 
-  // 先頭の審査IDで実行順序を保証する
-  reviewJobIdUserPairs[0].reviewJobId
+  await sendMessage(
+    queueUrl,
+    {
+      reviewJobId: reviewJob.id,
+      userId: reviewJob.userId,
+    },
+    reviewJob.id
   );
-
 };
 
 export const removeReviewJob = async (params: {

@@ -24,12 +24,14 @@ export function getSqsClient(): SQSClient {
  */
 export async function sendMessage(
   queueUrl: string,
-  messageBody: Record<string, any>
+  messageBody: Record<string, any>,
+  messageGroupId?: string
 ): Promise<void> {
   const client = getSqsClient();
   const command = new SendMessageCommand({
     QueueUrl: queueUrl,
     MessageBody: JSON.stringify(messageBody),
+    ...(messageGroupId ? { MessageGroupId: messageGroupId } : {}),
   });
 
   const response = await client.send(command);

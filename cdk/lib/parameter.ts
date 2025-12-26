@@ -73,6 +73,10 @@ export const parameters = {
   // ---------------------------------------------------
   // reviewMapConcurrency: 1, // レビュープロセッサのMap State並行処理数（デフォルト：1）
   // checklistInlineMapConcurrency: 1, // チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）
+  // Review queue processor settings
+  // (If not set here, defaults from parameter-schema.ts are used.)
+  // maxReviewExecutions: 10, // Max concurrent Step Functions executions
+  // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
   // AgentCore Code Interpreter設定
   // ---------------------------------------------------
   // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
