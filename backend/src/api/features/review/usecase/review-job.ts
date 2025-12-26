@@ -14,6 +14,7 @@ import {
   getReviewDocumentKey,
   getReviewImageKey,
 } from "../../../../checklist-workflow/common/storage-paths";
+import { sendMessage } from "../../../core/sqs";
 import { CreateReviewJobRequest } from "../routes/handlers";
 import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
 import {
@@ -102,7 +103,7 @@ export const getReviewImagesPresignedUrl = async (params: {
 };
 
 export const createReviewJob = async (params: {
-  requestBody: CreateReviewJobRequest;
+  requestBody: CreateReviewJobRequest & { userId: string; userName?: string };
   deps?: {
     checkRepo?: CheckRepository;
     reviewJobRepo?: ReviewJobRepository;
@@ -155,18 +156,29 @@ export const createReviewJob = async (params: {
 
   await reviewJobRepo.createReviewJob(reviewJob);
 
-  const stateMachineArn = process.env.REVIEW_PROCESSING_STATE_MACHINE_ARN;
-  if (!stateMachineArn) {
-    throw new ApplicationError(
-      "REVIEW_PROCESSING_STATE_MACHINE_ARN is not defined"
-    );
+  // 親レビュー処理キューへメッセージ送信
+  const parentQueueUrl = process.env.REVIEW_QUEUE_URL;
+  if (!parentQueueUrl) {
+    const error = new ApplicationError("REVIEW_QUEUE_URL is not defined");
+    throw error;
   }
+  
+  const { messageId } = await sendMessage(
+  parentQueueUrl,
+  {
+    jobs: reviewJobIdUserPairs,
+    mail_to: mailTo,
+    mail_from: process.env.MAIL_FROM,
+    mail_subject: mailSubject,
+    mail_body: mailBody,
+    error_mail_subject: errorMailSubject,
+    error_mail_body: errorMailBody,
+  },
 
-  // Invoke the state machine with file type information and userId for language preferences
-  await startStateMachineExecution(stateMachineArn, {
-    reviewJobId: reviewJob.id,
-    userId: params.requestBody.userId,
-  });
+  // 先頭の審査IDで実行順序を保証する
+  reviewJobIdUserPairs[0].reviewJobId
+  );
+
 };
 
 export const removeReviewJob = async (params: {

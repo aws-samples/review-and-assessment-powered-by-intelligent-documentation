@@ -14,6 +14,7 @@ import {
   getReviewResults,
 } from "../usecase/review-result";
 import { getDocumentDownloadUrl } from "../usecase/document";
+import { computeGlobalConcurrency } from "../usecase/concurrency";
 
 export const getAllReviewJobsHandler = async (
   request: FastifyRequest<{
@@ -141,6 +142,18 @@ export const createReviewJobHandler = async (
   request: FastifyRequest<{ Body: CreateReviewJobRequest }>,
   reply: FastifyReply
 ): Promise<void> => {
+  // グローバル同時実行数チェック（SQSキュー深さ確認）
+  const { isLimit } = await computeGlobalConcurrency();
+  if (isLimit) {
+    reply.code(429).send({
+      success: false,
+      error: "System is busy",
+      code: "REVIEW_GLOBAL_CONCURRENCY_EXCEEDED",
+      data: {},
+    });
+    return;
+  }
+
   await createReviewJob({
     requestBody: {
       ...request.body,
