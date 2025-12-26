@@ -157,7 +157,7 @@ export const createReviewJobHandler = async (
   await createReviewJob({
     requestBody: {
       ...request.body,
-      userId: request.user?.sub,
+      userId: request.user?.sub ? request.user?.sub : "",
     },
   });
   reply.code(201).send({
