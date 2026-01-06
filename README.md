@@ -211,6 +211,28 @@ To configure these, directly edit the `cdk/lib/parameter.ts` file.
 > For production environments, it is strongly recommended to set `cognitoSelfSignUpEnabled: false` to disable self-signup. Leaving self-signup enabled allows anyone to register an account, which may pose a security risk.
 > By default, the `autoMigrate` parameter is set to `true`, which automatically runs database migrations during deployment. For production environments or environments containing important data, consider setting this parameter to `false` and controlling migrations manually.
 
+## Pricing
+
+This solution uses Amazon Bedrock's pay-per-use pricing model. Since Bedrock usage constitutes the majority of costs, the estimates below focus on Bedrock pricing.
+
+### Budget-Friendly Lightweight Model (Claude Haiku 4.5, etc.)
+- **Context Window**: 200K tokens
+- **Processable Pages (Estimate)**: ~80-85 pages
+- **Cost Example (80 pages)**: ~$0.28
+
+### High-Accuracy Large-Capacity Model (Claude Opus 4.5, etc.)
+- **Context Window**: 1M tokens
+- **Processable Pages (Estimate)**: ~430 pages
+- **Cost Example (400 pages)**: ~$5.75
+
+> [!Important]
+> - The above are basic processing estimates. **Please test with your sample documents to determine actual costs**
+> - Amazon Bedrock Converse API has a 4.5MB file size limit
+> - **Checklist items configured with agent features using extensions (Knowledge Base, Code Interpreter, etc.) may incur up to 10x higher costs due to context window expansion**
+> - Detailed pricing and token usage can be viewed in the review results screen
+
+For the latest pricing information, please visit the [Amazon Bedrock Pricing page](https://aws.amazon.com/bedrock/pricing/).
+
 ## Developer Information
 
 - [Developer Guide](./docs/en/developer-guide.md): Technical specifications, architecture, development environment setup
