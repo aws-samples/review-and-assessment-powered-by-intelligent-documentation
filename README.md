@@ -213,22 +213,22 @@ To configure these, directly edit the `cdk/lib/parameter.ts` file.
 
 ## Pricing
 
-This solution uses Amazon Bedrock's pay-per-use pricing model. Since Bedrock usage constitutes the majority of costs, the estimates below focus on Bedrock pricing.
+This solution incurs infrastructure fixed costs (~$5/day, ~$150/month for NAT Gateway and Aurora Serverless v2) plus Bedrock usage costs based on document processing volume.
 
-### Budget-Friendly Lightweight Model (Claude Haiku 4.5, etc.)
-- **Context Window**: 200K tokens
-- **Processable Pages (Estimate)**: ~80-85 pages
+### Bedrock Usage Costs (Pay-per-use)
+
+#### Budget-Friendly Lightweight Model (Claude Haiku 4.5, etc.)
+- **Processable Pages**: ~80-85 pages
 - **Cost Example (80 pages)**: ~$0.28
 
-### High-Accuracy Large-Capacity Model (Claude Opus 4.5, etc.)
-- **Context Window**: 1M tokens
-- **Processable Pages (Estimate)**: ~430 pages
+#### High-Accuracy Large-Capacity Model (Claude Opus 4.5, etc.)
+- **Processable Pages**: ~430 pages
 - **Cost Example (400 pages)**: ~$5.75
 
 > [!Important]
-> - The above are basic processing estimates. **Please test with your sample documents to determine actual costs**
+> - **Please test with your sample documents to determine actual costs**
 > - Amazon Bedrock Converse API has a 4.5MB file size limit
-> - **Checklist items configured with agent features using extensions (Knowledge Base, Code Interpreter, etc.) may incur up to 10x higher costs due to context window expansion**
+> - **Checklist items with agent features (Knowledge Base, Code Interpreter, etc.) may incur up to 10x higher costs**
 > - Detailed pricing and token usage can be viewed in the review results screen
 
 For the latest pricing information, please visit the [Amazon Bedrock Pricing page](https://aws.amazon.com/bedrock/pricing/).
