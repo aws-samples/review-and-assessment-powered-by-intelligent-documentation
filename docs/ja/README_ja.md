@@ -229,9 +229,10 @@ export const parameters = {
 
 > [!Important]
 > - **実際のコストは、サンプルドキュメントでテストして確認してください**
+>   - **コスト要因**: テキスト量、画像数・サイズ、チェックリスト項目数により大きく変動（ページ数は目安のみ）
+>   - **エージェント機能**（Knowledge Base、Code Interpreterなど）を持つ項目は最大10倍のコスト
+>   - 詳細な料金とトークン使用量は、レビュー結果画面で確認できます
 > - Amazon Bedrock Converse APIには4.5MBのファイルサイズ制限があります
-> - **拡張機能（Knowledge Base、Code Interpreterなど）を使用するエージェント機能は最大10倍のコストが発生する可能性があります**
-> - 詳細な料金とトークン使用量は、レビュー結果画面で確認できます
 
 最新の料金情報については、[Amazon Bedrock料金ページ](https://aws.amazon.com/jp/bedrock/pricing/)をご覧ください。
 

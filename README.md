@@ -227,9 +227,10 @@ This solution incurs infrastructure fixed costs (~$5/day, ~$150/month for NAT Ga
 
 > [!Important]
 > - **Please test with your sample documents to determine actual costs**
+>   - **Cost factors**: Text volume, image count/size, checklist items vary significantly (page count is rough estimate only)
+>   - **Agent features** (Knowledge Base, Code Interpreter, etc.) may incur up to 10x higher costs
+>   - Detailed pricing and token usage can be viewed in the review results screen
 > - Amazon Bedrock Converse API has a 4.5MB file size limit
-> - **Checklist items with agent features (Knowledge Base, Code Interpreter, etc.) may incur up to 10x higher costs**
-> - Detailed pricing and token usage can be viewed in the review results screen
 
 For the latest pricing information, please visit the [Amazon Bedrock Pricing page](https://aws.amazon.com/bedrock/pricing/).
 
