@@ -276,6 +276,29 @@
           "imagePath": "/examples/images/use_case_006_ja/knowledge_006_ja.jpg"
         }
       ]
+    },
+    {
+      "id": "use_case_007_ja",
+      "name": "不動産DD（国交省MCP活用）",
+      "tags": ["real-estate", "corporate-finance"],
+      "description": "国交省MCPを活用した不動産デューデリジェンス審査。洪水浸水想定区域や土砂災害警戒区域などの災害リスク、建築基準法の道路要件などを確認",
+      "hasKnowledgeBase": false,
+      "files": [
+        {
+          "id": "checklist_007_ja",
+          "name": "不動産DD審査チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9007_%E5%9B%BD%E4%BA%A4%E7%9C%81MCP%E4%B8%8D%E5%8B%95%E7%94%A3DD%E5%AF%A9%E6%9F%BB/01_%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88_%E4%B8%8D%E5%8B%95%E7%94%A3DD%E5%AF%A9%E6%9F%BB/%E4%B8%8D%E5%8B%95%E7%94%A3DD%E5%AF%A9%E6%9F%BB%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88.pdf",
+          "imagePath": "/examples/images/use_case_007_ja/checklist_007_ja.jpg"
+        },
+        {
+          "id": "review_007_ja",
+          "name": "物件概要調査書.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9007_%E5%9B%BD%E4%BA%A4%E7%9C%81MCP%E4%B8%8D%E5%8B%95%E7%94%A3DD%E5%AF%A9%E6%9F%BB/02_%E5%AF%A9%E6%9F%BB%E5%AF%BE%E8%B1%A1%E6%9B%B8%E9%A1%9E_%E7%89%A9%E4%BB%B6%E6%A6%82%E8%A6%81%E8%AA%BF%E6%9F%BB%E6%9B%B8/%E7%89%A9%E4%BB%B6%E6%A6%82%E8%A6%81%E8%AA%BF%E6%9F%BB%E6%9B%B8.pdf",
+          "imagePath": "/examples/images/use_case_007_ja/review_007_ja.jpg"
+        }
+      ]
     }
   ]
 }

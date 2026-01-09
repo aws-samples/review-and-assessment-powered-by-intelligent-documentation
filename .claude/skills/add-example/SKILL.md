@@ -25,11 +25,12 @@ Use this skill when:
 
 Before starting, ensure you have:
 
-- [ ] Use case files from contributor (PDF, PNG, TXT, etc.)
+- [ ] Use case files from contributor (PDF, PNG, TXT, etc.) OR readiness to create documents from scratch
 - [ ] Use case metadata: name, description, category
 - [ ] Local development environment running
 - [ ] Python (latest stable version) with uv package manager installed
-- [ ] Thumbnail generation dependencies (see Phase 6)
+- [ ] Thumbnail generation dependencies (see Phase 7)
+- [ ] (Optional) Node.js installed if creating documents from HTML (see Phase 2)
 
 ---
 
@@ -48,13 +49,159 @@ Ask the user for the following information:
   - `sustainability`
   - `corporate-governance`
 - **Language**: `en` or `ja`
-- **Files provided** with their types:
+- **Do you already have document files to add?** (yes/no)
+  - Supported formats: PDF, TXT, MD, HTML, DOC, DOCX, CSV, XLS, XLSX
+  - If YES: Continue with file information below
+  - If NO: Proceed to Phase 2 (Create Documents from HTML)
+- **Files provided** (if yes above) with their types:
   - `checklist`: Checklist files
   - `review`: Documents to be reviewed
   - `knowledge`: Knowledge base/reference materials
-- **Location** of files provided by contributor
+- **Location** of files provided by contributor (if yes above)
+- **Content requirements** (if no above):
+  - What type of documents needed? (checklist, review, knowledge base, etc.)
+  - Content requirements for each document
+  - Any specific styling requirements
 
-### Phase 2: Prepare Files in Repository
+### Phase 2: Create Documents from HTML (Optional)
+
+**When to skip**: User already has document files (answered "yes" in Phase 1)
+
+**When to use**: User does not have documents and needs to create them from scratch
+
+**Prerequisites**:
+- Node.js installed
+- Internet connection (for Playwright download)
+- Content requirements gathered in Phase 1
+
+**Workflow Overview**:
+1. Create working directory in project root
+2. Create HTML files based on user requirements (interactive with user)
+3. Convert HTML to PDF using skill script
+4. Verify generated PDFs
+5. Continue to Phase 3 (Prepare Files) with generated PDFs
+
+**Steps**:
+
+1. **Create working directory** in project root:
+
+   ```bash
+   mkdir -p temp-example-{use_case_number}
+   ```
+
+   Replace `{use_case_number}` with next use case number (e.g., 007).
+
+2. **Create HTML files** in working directory based on user requirements:
+
+   Use Write tool to create HTML files in `temp-example-{use_case_number}/`:
+   - `checklist.html` - for checklist documents
+   - `review.html` - for documents to review
+   - `knowledge_N.html` - for knowledge base files
+
+   **Important HTML structure**:
+   ```html
+   <!DOCTYPE html>
+   <html lang="ja">
+   <head>
+     <meta charset="UTF-8">
+     <title>Document Title</title>
+     <style>
+       @page {
+         size: A4;
+         margin: 15mm;
+       }
+       body {
+         font-family: "游ゴシック体", YuGothic, "游ゴシック", "Yu Gothic",
+                      "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+         font-size: 11pt;
+         line-height: 1.5;
+       }
+     </style>
+   </head>
+   <body>
+     <!-- Content here -->
+   </body>
+   </html>
+   ```
+
+3. **Install dependencies** (first time only in skill directory):
+
+   ```bash
+   cd .claude/skills/add-example
+   npm install
+   npx playwright install chromium
+   cd ../../..  # back to project root
+   ```
+
+4. **Run conversion script** from project root:
+
+   ```bash
+   node .claude/skills/add-example/scripts/convert_html_to_pdf.js \
+     temp-example-{use_case_number}/checklist.html \
+     temp-example-{use_case_number}/checklist.pdf \
+     temp-example-{use_case_number}/review.html \
+     temp-example-{use_case_number}/review.pdf
+   ```
+
+   **Format**: `node script.js <html1> <pdf1> <html2> <pdf2> ...`
+
+   Expected output:
+   ```
+   ✓ Created: temp-example-007/checklist.pdf
+   ✓ Created: temp-example-007/review.pdf
+   ```
+
+5. **Verify PDFs**:
+
+   ```bash
+   ls -lh temp-example-{use_case_number}/*.pdf
+   ```
+
+   Check:
+   - [ ] All PDFs generated
+   - [ ] File sizes reasonable (< 1MB each)
+   - [ ] PDFs open correctly (Preview/Adobe Reader)
+   - [ ] Japanese text renders correctly
+
+6. **Add to .gitignore** (if not already):
+
+   ```bash
+   echo "temp-example-*/" >> .gitignore
+   ```
+
+7. **Continue to Phase 3** (Prepare Files) with generated PDFs
+
+**Important Notes**:
+
+- Working directory persists until user confirms completion
+- Allows easy re-generation if adjustments needed
+- HTML files remain available for reference
+- Can be deleted after PR merge
+
+**HTML Requirements for Best Results**:
+
+```css
+/* Include in <style> tag for Japanese support */
+body {
+  font-family: "游ゴシック体", YuGothic, "游ゴシック", "Yu Gothic",
+               "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+
+/* A4 page settings */
+@page {
+  size: A4;
+  margin: 15mm;
+}
+```
+
+**Troubleshooting**:
+
+- **Chromium install fails**: Check disk space and internet connection
+- **Japanese fonts missing**: Add font-family CSS as shown above
+- **PDF too large**: Optimize images in HTML or reduce resolution
+- **Layout breaks**: Test HTML dimensions match A4 (210mm × 297mm)
+
+### Phase 3: Prepare Files in Repository (formerly Phase 2)
 
 1. Read `frontend/src/features/examples/data/examples-metadata.json`
 2. Determine next available use case number:
@@ -68,7 +215,7 @@ Ask the user for the following information:
 5. Organize by type if needed (subdirectories for knowledge base)
 6. Use descriptive filenames
 
-### Phase 3: Generate GitHub URLs
+### Phase 4: Generate GitHub URLs (formerly Phase 3)
 
 For each file, construct the raw GitHub URL:
 
@@ -83,7 +230,7 @@ https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-i
 - Use JavaScript: `encodeURIComponent(filename)`
 - Example: `ユースケース001` → `%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9001`
 
-### Phase 4: Update Metadata
+### Phase 5: Update Metadata (formerly Phase 4)
 
 Edit `frontend/src/features/examples/data/examples-metadata.json`:
 
@@ -117,7 +264,7 @@ Edit `frontend/src/features/examples/data/examples-metadata.json`:
 3. Set `hasKnowledgeBase: true` only if knowledge files are included
 4. Ensure JSON syntax is valid (commas, brackets)
 
-### Phase 5: Update Translations (if needed)
+### Phase 6: Update Translations (if needed) (formerly Phase 5)
 
 **Only if introducing NEW tags:**
 
@@ -142,7 +289,7 @@ Edit `frontend/src/features/examples/data/examples-metadata.json`:
 - Translation key: `examples.tagNewTag` (camelCase with prefix)
 - Format: Split by "-", capitalize each word, join, prefix with `examples.tag`
 
-### Phase 6: Generate Thumbnails
+### Phase 7: Generate Thumbnails (formerly Phase 6)
 
 After adding files and updating metadata, generate optimized images for the UI using the thumbnail generation script.
 
@@ -265,7 +412,7 @@ The script generates:
 - **Action**: Review script output for specific error messages
 - **Action**: Re-run script (it will skip already-processed files)
 
-### Phase 7: Local Testing (Optional)
+### Phase 8: Local Testing (Optional) (formerly Phase 7)
 
 To verify the changes locally:
 
@@ -313,10 +460,16 @@ examples/
 
 ## Success Criteria
 
+✅ **Documents created** (if Phase 2 was used):
+
+- HTML files created in temp working directory
+- PDFs generated successfully using skill script
+- Working directory added to .gitignore
+
 ✅ **Files added to repository**:
 
 - Folder created in correct language directory under `examples/`
-- All files copied from contributor
+- All files copied from contributor OR generated PDFs from Phase 2
 - Filenames are descriptive and properly formatted
 
 ✅ **Metadata updated**:
@@ -428,6 +581,11 @@ The skill prepares all necessary files and updates. Next steps:
 
 This skill modifies the following files:
 
+- **Scripts** (permanent):
+  - `.claude/skills/add-example/scripts/convert_html_to_pdf.js` - HTML to PDF converter
+  - `.claude/skills/add-example/package.json` - Node.js dependencies for scripts
+- **Working directory** (temporary, if Phase 2 used): `temp-example-{NNN}/`
 - **New directory and files** in `examples/{language}/`
 - **Metadata**: `frontend/src/features/examples/data/examples-metadata.json`
 - **Translations** (if new tags): `frontend/src/i18n/locales/{en,ja}.json`
+- **Generated images**: `frontend/public/examples/images/{example_id}/`

@@ -6,7 +6,8 @@ export type ExampleTag =
   | "it-department"
   | "manufacturing"
   | "sustainability"
-  | "corporate-governance";
+  | "corporate-governance"
+  | "corporate-finance";
 
 /**
  * ファイルの種類

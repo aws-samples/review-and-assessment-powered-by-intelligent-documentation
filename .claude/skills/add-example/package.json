@@ -1,0 +1,12 @@
+{
+  "name": "add-example-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for add-example skill (thumbnails + HTML→PDF)",
+  "private": true,
+  "dependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "scripts": {
+    "convert-html": "node scripts/convert_html_to_pdf.js"
+  }
+}
