@@ -1,0 +1,281 @@
+{
+  "en": [
+    {
+      "id": "use_case_001",
+      "name": "House Maker Meeting Minutes",
+      "tags": ["real-estate"],
+      "description": "Verify consistency between customer requirements recorded in meeting minutes and building floor plans",
+      "files": [
+        {
+          "id": "checklist_001",
+          "name": "check_list_meeting_minutes.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_001_house_maker_meeting_minutes/check_list_meeting_minutes.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_001/checklist_001_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_001/checklist_001_preview.jpg",
+          "imagePath": "/examples/images/use_case_001/checklist_001.jpg"
+        },
+        {
+          "id": "review_001",
+          "name": "review_document_floor_plan.png",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_001_house_maker_meeting_minutes/review_document_floor_plan.png",
+          "thumbnailPath": "/examples/thumbnails/use_case_001/review_001_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_001/review_001_preview.jpg",
+          "imagePath": "/examples/images/use_case_001/review_001.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_004",
+      "name": "Internal Approval Request",
+      "tags": ["it-department", "corporate-governance"],
+      "description": "Verify that internal approval requests meet company policies and approval standards",
+      "files": [
+        {
+          "id": "checklist_004",
+          "name": "check_list_internal_approval.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_004_internal_approval_request/check_list_internal_approval.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_004/checklist_004_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_004/checklist_004_preview.jpg",
+          "imagePath": "/examples/images/use_case_004/checklist_004.jpg"
+        },
+        {
+          "id": "review_004",
+          "name": "review_document_internal_approval_request.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_004_internal_approval_request/review_document_internal_approval_request.pdf",
+          "imagePath": "/examples/images/use_case_004/review_004.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_005",
+      "name": "Sustainability Assessment",
+      "tags": ["manufacturing", "sustainability"],
+      "description": "Verify that equipment specifications meet energy efficiency standards and industry regulations",
+      "hasKnowledgeBase": true,
+      "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/en#use-case-005-sustainability-assessment-energy-efficiency-compliance",
+      "files": [
+        {
+          "id": "checklist_005",
+          "name": "check_list_energy_efficiency_compliance.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/check_list_energy_efficiency_compliance.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/checklist_005_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/checklist_005_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/checklist_005.jpg"
+        },
+        {
+          "id": "review_005",
+          "name": "review_document_equipment_specifications.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/review_document_equipment_specifications.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/review_005_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/review_005_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/review_005.jpg"
+        },
+        {
+          "id": "knowledge_005_1",
+          "name": "hvac_calculations.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/knowledge_base_sources/hvac_calculations.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/knowledge_005_1_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/knowledge_005_1_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/knowledge_005_1.jpg"
+        },
+        {
+          "id": "knowledge_005_2",
+          "name": "lighting_system_calculations.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/knowledge_base_sources/lighting_system_calculations.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/knowledge_005_2_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/knowledge_005_2_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/knowledge_005_2.jpg"
+        },
+        {
+          "id": "knowledge_005_3",
+          "name": "motor_efficiency_calculations.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/knowledge_base_sources/motor_efficiency_calculations.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/knowledge_005_3_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/knowledge_005_3_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/knowledge_005_3.jpg"
+        },
+        {
+          "id": "knowledge_005_4",
+          "name": "building_envelope_thermal_calculations.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/en/use_case_005_sustainability_assessment/knowledge_base_sources/building_envelope_thermal_calculations.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005/knowledge_005_4_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005/knowledge_005_4_preview.jpg",
+          "imagePath": "/examples/images/use_case_005/knowledge_005_4.jpg"
+        }
+      ]
+    }
+  ],
+  "ja": [
+    {
+      "id": "use_case_001_ja",
+      "name": "ハウスメーカー商談",
+      "tags": ["real-estate"],
+      "description": "顧客商談議事録と建物間取り図の整合性を確認",
+      "files": [
+        {
+          "id": "checklist_001_ja",
+          "name": "商談議事録01.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9001_%E3%83%8F%E3%82%A6%E3%82%B9%E3%83%A1%E3%83%BC%E3%82%AB%E3%83%BC%E5%95%86%E8%AB%87%EF%BC%88%E8%AD%B0%E4%BA%8B%E9%8C%B2%E3%81%A8%E5%9B%B3%E9%9D%A2%E9%96%93%E3%81%AE%E6%95%B4%E5%90%88%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%EF%BC%89/01.%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88_%E9%A1%A7%E5%AE%A2%E5%95%86%E8%AB%87%E8%AD%B0%E4%BA%8B%E9%8C%B2/%E5%95%86%E8%AB%87%E8%AD%B0%E4%BA%8B%E9%8C%B201.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_001_ja/checklist_001_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_001_ja/checklist_001_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_001_ja/checklist_001_ja.jpg"
+        },
+        {
+          "id": "review_001_ja",
+          "name": "マンション_3LDK.png",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9001_%E3%83%8F%E3%82%A6%E3%82%B9%E3%83%A1%E3%83%BC%E3%82%AB%E3%83%BC%E5%95%86%E8%AB%87%EF%BC%88%E8%AD%B0%E4%BA%8B%E9%8C%B2%E3%81%A8%E5%9B%B3%E9%9D%A2%E9%96%93%E3%81%AE%E6%95%B4%E5%90%88%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%EF%BC%89/02.%E5%AF%A9%E6%9F%BB%E5%AF%BE%E8%B1%A1_%E5%BB%BA%E7%89%A9%E9%96%93%E5%8F%96%E3%82%8A%E5%9B%B3/%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%B3_3LDK.png",
+          "thumbnailPath": "/examples/thumbnails/use_case_001_ja/review_001_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_001_ja/review_001_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_001_ja/review_001_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_002_ja",
+      "name": "不動産仲介_重要事項説明書",
+      "tags": ["real-estate"],
+      "description": "重要事項説明書が業界基準を満たしているかを確認",
+      "files": [
+        {
+          "id": "checklist_002_ja",
+          "name": "重要事項説明書_簡易チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9002_%E4%B8%8D%E5%8B%95%E7%94%A3%E4%BB%B2%E4%BB%8B_%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E8%AA%AC%E6%98%8E%E6%9B%B8/01_%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88_%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E8%AA%AC%E6%98%8E%E6%9B%B8_%E7%B0%A1%E6%98%93%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88/%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E8%AA%AC%E6%98%8E%E6%9B%B8_%E7%B0%A1%E6%98%93%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_002_ja/checklist_002_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_002_ja/checklist_002_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_002_ja/checklist_002_ja.jpg"
+        },
+        {
+          "id": "review_002_ja",
+          "name": "記入中_重説20250608.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9002_%E4%B8%8D%E5%8B%95%E7%94%A3%E4%BB%B2%E4%BB%8B_%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E8%AA%AC%E6%98%8E%E6%9B%B8/02_%E5%AF%A9%E6%9F%BB%E5%AF%BE%E8%B1%A1%E6%9B%B8%E9%A1%9E_%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E8%AA%AC%E6%98%8E%E6%9B%B8/%E8%A8%98%E5%85%A5%E4%B8%AD_%E9%87%8D%E8%AA%AC20250608.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_002_ja/review_002_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_002_ja/review_002_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_002_ja/review_002_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_003_ja",
+      "name": "車庫申請",
+      "tags": ["corporate-governance"],
+      "description": "車庫証明申請書の記載内容が要件を満たしているかを確認",
+      "files": [
+        {
+          "id": "checklist_003_ja",
+          "name": "チェック項目.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9003_%E8%BB%8A%E5%BA%AB%E7%94%B3%E8%AB%8B/%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E9%A0%85%E7%9B%AE.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_003_ja/checklist_003_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_003_ja/checklist_003_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_003_ja/checklist_003_ja.jpg"
+        },
+        {
+          "id": "review_003_ja",
+          "name": "申請書例.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9003_%E8%BB%8A%E5%BA%AB%E7%94%B3%E8%AB%8B/%E7%94%B3%E8%AB%8B%E6%9B%B8%E4%BE%8B.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_003_ja/review_003_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_003_ja/review_003_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_003_ja/review_003_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_004_ja",
+      "name": "社内稟議（IT部門）",
+      "tags": ["it-department", "corporate-governance"],
+      "description": "社内稟議書が社内規定や承認基準を満たしているかを確認",
+      "files": [
+        {
+          "id": "checklist_004_ja",
+          "name": "社内稟議書チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9004_%E7%A4%BE%E5%86%85%E7%A8%9F%E8%AD%B0%EF%BC%88IT%E9%83%A8%E9%96%80%EF%BC%89/%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88/%E7%A4%BE%E5%86%85%E7%A8%9F%E8%AD%B0%E6%9B%B8%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88.pdf",
+          "imagePath": "/examples/images/use_case_004_ja/checklist_004_ja.jpg"
+        },
+        {
+          "id": "review_004_ja",
+          "name": "社内稟議依頼.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9004_%E7%A4%BE%E5%86%85%E7%A8%9F%E8%AD%B0%EF%BC%88IT%E9%83%A8%E9%96%80%EF%BC%89/%E5%AF%A9%E6%9F%BB%E5%AF%BE%E8%B1%A1%E6%9B%B8%E9%A1%9E/%E7%A4%BE%E5%86%85%E7%A8%9F%E8%AD%B0%E4%BE%9D%E9%A0%BC.pdf",
+          "imagePath": "/examples/images/use_case_004_ja/review_004_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_005_ja",
+      "name": "社内文書（製造部門）",
+      "tags": ["manufacturing"],
+      "description": "作業手順書が社内の文書作成要領に従っているかを確認",
+      "files": [
+        {
+          "id": "checklist_005_ja",
+          "name": "製造部門作業手順書作成要領.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9005_%E7%A4%BE%E5%86%85%E6%96%87%E6%9B%B8%EF%BC%88%E8%A3%BD%E9%80%A0%E9%83%A8%E9%96%80%EF%BC%89/%E8%A3%BD%E9%80%A0%E9%83%A8%E9%96%80%E4%BD%9C%E6%A5%AD%E6%89%8B%E9%A0%86%E6%9B%B8%E4%BD%9C%E6%88%90%E8%A6%81%E9%A0%98.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005_ja/checklist_005_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005_ja/checklist_005_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_005_ja/checklist_005_ja.jpg"
+        },
+        {
+          "id": "review_005_ja",
+          "name": "作業手順書.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9005_%E7%A4%BE%E5%86%85%E6%96%87%E6%9B%B8%EF%BC%88%E8%A3%BD%E9%80%A0%E9%83%A8%E9%96%80%EF%BC%89/%E4%BD%9C%E6%A5%AD%E6%89%8B%E9%A0%86%E6%9B%B8.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_005_ja/review_005_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_005_ja/review_005_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_005_ja/review_005_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_006_ja",
+      "name": "見積書（購買部門）",
+      "tags": ["corporate-governance"],
+      "description": "見積書の記載項目と料金の妥当性を確認",
+      "hasKnowledgeBase": true,
+      "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-006見積書購買部門",
+      "files": [
+        {
+          "id": "checklist_006_ja",
+          "name": "見積書チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9006_%E8%A6%8B%E7%A9%8D%E6%9B%B8%EF%BC%88%E8%B3%BC%E8%B2%B7%E9%83%A8%E9%96%80%EF%BC%89/%E8%A6%8B%E7%A9%8D%E6%9B%B8%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_006_ja/checklist_006_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_006_ja/checklist_006_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_006_ja/checklist_006_ja.jpg"
+        },
+        {
+          "id": "review_006_ja",
+          "name": "見積書.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9006_%E8%A6%8B%E7%A9%8D%E6%9B%B8%EF%BC%88%E8%B3%BC%E8%B2%B7%E9%83%A8%E9%96%80%EF%BC%89/%E8%A6%8B%E7%A9%8D%E6%9B%B8.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_006_ja/review_006_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_006_ja/review_006_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_006_ja/review_006_ja.jpg"
+        },
+        {
+          "id": "knowledge_006_ja",
+          "name": "見積書に関するルール集（ナレッジ）.txt",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9006_%E8%A6%8B%E7%A9%8D%E6%9B%B8%EF%BC%88%E8%B3%BC%E8%B2%B7%E9%83%A8%E9%96%80%EF%BC%89/%E8%A6%8B%E7%A9%8D%E6%9B%B8%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E3%83%AB%E3%83%BC%E3%83%AB%E9%9B%86%EF%BC%88%E3%83%8A%E3%83%AC%E3%83%83%E3%82%B8%EF%BC%89.txt",
+          "imagePath": "/examples/images/use_case_006_ja/knowledge_006_ja.jpg"
+        }
+      ]
+    }
+  ]
+}

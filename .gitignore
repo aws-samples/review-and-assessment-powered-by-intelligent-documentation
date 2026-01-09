@@ -7,3 +7,4 @@ dist
 gitlab.md
 memory-bank/
 .serena
+.venv
