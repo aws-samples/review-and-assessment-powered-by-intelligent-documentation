@@ -3,9 +3,7 @@
     {
       "id": "use_case_001",
       "name": "House Maker Meeting Minutes",
-      "tags": [
-        "real-estate"
-      ],
+      "tags": ["real-estate"],
       "description": "Verify consistency between customer requirements recorded in meeting minutes and building floor plans",
       "files": [
         {
@@ -31,10 +29,7 @@
     {
       "id": "use_case_004",
       "name": "Internal Approval Request",
-      "tags": [
-        "it-department",
-        "corporate-governance"
-      ],
+      "tags": ["it-department", "corporate-governance"],
       "description": "Verify that internal approval requests meet company policies and approval standards",
       "files": [
         {
@@ -58,10 +53,7 @@
     {
       "id": "use_case_005",
       "name": "Sustainability Assessment",
-      "tags": [
-        "manufacturing",
-        "sustainability"
-      ],
+      "tags": ["manufacturing", "sustainability"],
       "description": "Verify that equipment specifications meet energy efficiency standards and industry regulations",
       "hasKnowledgeBase": true,
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/en#use-case-005-sustainability-assessment-energy-efficiency-compliance",
@@ -127,9 +119,7 @@
     {
       "id": "use_case_001_ja",
       "name": "ハウスメーカー商談",
-      "tags": [
-        "real-estate"
-      ],
+      "tags": ["real-estate"],
       "description": "顧客商談議事録と建物間取り図の整合性を確認",
       "files": [
         {
@@ -155,9 +145,7 @@
     {
       "id": "use_case_002_ja",
       "name": "不動産仲介_重要事項説明書",
-      "tags": [
-        "real-estate"
-      ],
+      "tags": ["real-estate"],
       "description": "重要事項説明書が業界基準を満たしているかを確認",
       "files": [
         {
@@ -183,9 +171,7 @@
     {
       "id": "use_case_003_ja",
       "name": "車庫申請",
-      "tags": [
-        "corporate-governance"
-      ],
+      "tags": ["corporate-governance"],
       "description": "車庫証明申請書の記載内容が要件を満たしているかを確認",
       "files": [
         {
@@ -211,10 +197,7 @@
     {
       "id": "use_case_004_ja",
       "name": "社内稟議（IT部門）",
-      "tags": [
-        "it-department",
-        "corporate-governance"
-      ],
+      "tags": ["it-department", "corporate-governance"],
       "description": "社内稟議書が社内規定や承認基準を満たしているかを確認",
       "files": [
         {
@@ -236,9 +219,7 @@
     {
       "id": "use_case_005_ja",
       "name": "社内文書（製造部門）",
-      "tags": [
-        "manufacturing"
-      ],
+      "tags": ["manufacturing"],
       "description": "作業手順書が社内の文書作成要領に従っているかを確認",
       "files": [
         {
@@ -264,9 +245,7 @@
     {
       "id": "use_case_006_ja",
       "name": "見積書（購買部門）",
-      "tags": [
-        "corporate-governance"
-      ],
+      "tags": ["corporate-governance"],
       "description": "見積書の記載項目と料金の妥当性を確認",
       "hasKnowledgeBase": true,
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-006見積書購買部門",
