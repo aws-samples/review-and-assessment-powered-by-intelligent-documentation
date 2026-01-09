@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useChecklistSets } from "../hooks/useCheckListSetQueries";
 import {
@@ -14,6 +14,8 @@ import Pagination from "../../../components/Pagination";
 import { HiCheck } from "react-icons/hi";
 import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
+import { OnboardingModal } from "../../examples";
+import { useLocalStorage } from "../../../hooks/useLocalStorage";
 
 /**
  * チェックリスト一覧ページ
@@ -22,6 +24,7 @@ export function CheckListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const { t } = useTranslation();
 
@@ -34,6 +37,13 @@ export function CheckListPage() {
     useState<string>("");
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+
+  // オンボーディングモーダル用の状態
+  const [onboardingCompleted, setOnboardingCompleted] = useLocalStorage<boolean>(
+    "onboarding_completed",
+    false
+  );
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
   const {
     items: checkListSets,
@@ -61,6 +71,21 @@ export function CheckListPage() {
     // 新規作成後に一覧画面に戻ってきた場合など、locationが変わった時にデータを再取得
     refetch();
   }, [location, refetch]);
+
+  // オンボーディングモーダルの表示制御
+  useEffect(() => {
+    // 開発用: クエリパラメータで強制表示
+    const showOnboardingParam = searchParams.get("showOnboarding");
+    if (showOnboardingParam === "true") {
+      setShowOnboardingModal(true);
+      return;
+    }
+
+    // 通常の表示条件: オンボーディングが完了していない場合かつチェックリストが0件の場合
+    if (!onboardingCompleted && !isLoading && checkListSets?.length === 0) {
+      setShowOnboardingModal(true);
+    }
+  }, [onboardingCompleted, isLoading, checkListSets, searchParams]);
 
   // チェックリストセットの削除処理
   const handleDelete = async (id: string, name: string) => {
@@ -111,6 +136,28 @@ export function CheckListPage() {
     }
   };
 
+  // オンボーディングモーダルの「今後表示しない」処理
+  const handleDontShowAgain = () => {
+    setOnboardingCompleted(true);
+    // クエリパラメータを削除
+    const showOnboardingParam = searchParams.get("showOnboarding");
+    if (showOnboardingParam === "true") {
+      searchParams.delete("showOnboarding");
+      setSearchParams(searchParams);
+    }
+  };
+
+  // オンボーディングモーダルを閉じる処理
+  const handleCloseOnboarding = () => {
+    setShowOnboardingModal(false);
+    // クエリパラメータを削除
+    const showOnboardingParam = searchParams.get("showOnboarding");
+    if (showOnboardingParam === "true") {
+      searchParams.delete("showOnboarding");
+      setSearchParams(searchParams);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -157,6 +204,13 @@ export function CheckListPage() {
           isLoading={duplicateStatus === "loading"}
         />
       )}
+
+      {/* オンボーディングモーダル */}
+      <OnboardingModal
+        isOpen={showOnboardingModal}
+        onClose={handleCloseOnboarding}
+        onDontShowAgain={handleDontShowAgain}
+      />
     </div>
   );
 }

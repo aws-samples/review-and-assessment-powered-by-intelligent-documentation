@@ -16,6 +16,7 @@ import {
   CreateToolConfigurationPage,
   ToolConfigurationDetailPage,
 } from "./features/tool-configuration";
+import { ExamplesPage } from "./features/examples";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -67,6 +68,8 @@ function App() {
                   <Route path="review" element={<ReviewListPage />} />
                   <Route path="review/create" element={<CreateReviewPage />} />
                   <Route path="review/:id" element={<ReviewDetailPage />} />
+
+                  <Route path="examples" element={<ExamplesPage />} />
 
                   <Route
                     path="tool-configurations"

@@ -288,6 +288,7 @@ export const useChecklistMutations = () => {
 2. **SWR for Data Fetching**: Use hooks with SWR for automatic caching and revalidation
 3. **Component Reuse**: Check `src/components/` before creating new UI elements
 4. **Type Safety**: Define types for all API requests and responses
+5. **UI/CSS Design**: For component selection, color semantics, and styling patterns, use `/ui-css-patterns` skill
 
 ## Plan Template
 
@@ -315,7 +316,7 @@ export const useChecklistMutations = () => {
 2. Backend use case layer
 3. Backend routes layer
 4. Frontend hooks
-5. Frontend components
+5. Frontend components (check `/ui-css-patterns` skill for styling guidance)
 
 ## Verification
 - Run `/build-and-format` skill

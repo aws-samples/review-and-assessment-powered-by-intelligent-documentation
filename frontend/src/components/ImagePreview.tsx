@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { usePresignedDownloadUrl } from "../hooks/usePresignedDownloadUrl";
 import Spinner from "./Spinner";
 import Modal from "./Modal";
@@ -23,6 +24,7 @@ export default function ImagePreview({
   thumbnailHeight = 100,
   boundingBox,
 }: ImagePreviewProps) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -110,7 +112,7 @@ export default function ImagePreview({
   }
 
   if (error) {
-    return <div className="text-red-500">画像のURLの取得に失敗しました</div>;
+    return <div className="text-red-500">{t("imagePreview.failedToGetUrl")}</div>;
   }
 
   if (!url) {
@@ -141,7 +143,7 @@ export default function ImagePreview({
             }`}
           >
             <HiZoomIn className="text-white h-6 w-6" />
-            <span className="text-white text-xs mt-1">拡大表示</span>
+            <span className="text-white text-xs mt-1">{t("imagePreview.zoomView")}</span>
           </div>
         </div>
       </div>
@@ -172,7 +174,7 @@ export default function ImagePreview({
                       size="sm"
                       icon={<HiZoomIn className="h-4 w-4" />}
                     >
-                      拡大
+                      {t("imagePreview.zoomIn")}
                     </Button>
                     <Button
                       onClick={() => zoomOut()}
@@ -180,7 +182,7 @@ export default function ImagePreview({
                       size="sm"
                       icon={<HiZoomOut className="h-4 w-4" />}
                     >
-                      縮小
+                      {t("imagePreview.zoomOut")}
                     </Button>
                     <Button
                       onClick={() => resetTransform()}
@@ -188,7 +190,7 @@ export default function ImagePreview({
                       size="sm"
                       icon={<FiRefreshCw className="h-4 w-4" />}
                     >
-                      リセット
+                      {t("imagePreview.reset")}
                     </Button>
                   </div>
                   <div className="w-full flex justify-center">
@@ -210,7 +212,7 @@ export default function ImagePreview({
             </TransformWrapper>
           </div>
           <div className="mt-4 flex justify-end">
-            <Button onClick={() => setIsModalOpen(false)}>閉じる</Button>
+            <Button onClick={() => setIsModalOpen(false)}>{t("common.close")}</Button>
           </div>
         </Modal>
       )}

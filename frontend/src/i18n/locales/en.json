@@ -36,6 +36,14 @@
     "documentUrlError": "Failed to get document URL",
     "pageNumber": "(Page {{page}})"
   },
+  "imagePreview": {
+    "zoomView": "Zoom View",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "reset": "Reset",
+    "download": "Download",
+    "failedToGetUrl": "Failed to get image URL"
+  },
   "pagination": {
     "showing": "Showing",
     "to": "to",
@@ -45,6 +53,7 @@
   "sidebar": {
     "checklist": "Checklist",
     "review": "Review",
+    "examples": "Examples",
     "menu": "Menu",
     "settings": "Prompt Management",
     "checklistPrompt": "Checklist Prompt",
@@ -392,5 +401,38 @@
     "createError": "Failed to create tool configuration",
     "updating": "Updating...",
     "creating": "Creating..."
+  },
+  "examples": {
+    "title": "Example Use Cases",
+    "description": "Download ready-to-use industry-specific examples",
+    "filterByTags": "Filter by tags:",
+    "clearFilters": "Clear all filters",
+    "tagRealEstate": "Real Estate",
+    "tagItDepartment": "IT Department",
+    "tagManufacturing": "Manufacturing",
+    "tagSustainability": "Sustainability",
+    "tagCorporateGovernance": "Corporate Governance",
+    "viewFiles": "View Files",
+    "hideFiles": "Hide Files",
+    "downloadFile": "Download",
+    "fileCount": "{{count}} files",
+    "hasKnowledgeBase": "Setup needed",
+    "hasKnowledgeBaseTooltip": "This example uses external reference materials (knowledge base). Please refer to the setup instructions on GitHub.",
+    "setupInstructions": "View instructions",
+    "checklistFiles": "Checklist Files",
+    "reviewDocuments": "Review Documents",
+    "knowledgeBase": "Knowledge Base",
+    "openDocument": "Open Document",
+    "emptyState": "No examples match your selected tags",
+    "showMore": "+{{count}} more",
+    "showLess": "Show less",
+    "onboarding": {
+      "title": "Welcome to RAPID 🚀",
+      "primaryMessage": "Start immediately with open-source samples showing concrete industrial use cases",
+      "industriesLabel": "Available across various industry categories:",
+      "valueProposition": "Skip the document preparation step. Download and try real examples right now to experience the full power of RAPID.",
+      "exploreExamples": "Explore Examples",
+      "dontShowAgain": "Don't show this again"
+    }
   }
 }
