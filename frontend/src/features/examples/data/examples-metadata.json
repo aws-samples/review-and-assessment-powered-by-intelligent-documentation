@@ -3,7 +3,9 @@
     {
       "id": "use_case_001",
       "name": "House Maker Meeting Minutes",
-      "tags": ["real-estate"],
+      "tags": [
+        "real-estate"
+      ],
       "description": "Verify consistency between customer requirements recorded in meeting minutes and building floor plans",
       "files": [
         {
@@ -29,7 +31,10 @@
     {
       "id": "use_case_004",
       "name": "Internal Approval Request",
-      "tags": ["it-department", "corporate-governance"],
+      "tags": [
+        "it-department",
+        "corporate-governance"
+      ],
       "description": "Verify that internal approval requests meet company policies and approval standards",
       "files": [
         {
@@ -53,7 +58,10 @@
     {
       "id": "use_case_005",
       "name": "Sustainability Assessment",
-      "tags": ["manufacturing", "sustainability"],
+      "tags": [
+        "manufacturing",
+        "sustainability"
+      ],
       "description": "Verify that equipment specifications meet energy efficiency standards and industry regulations",
       "hasKnowledgeBase": true,
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/en#use-case-005-sustainability-assessment-energy-efficiency-compliance",
@@ -119,7 +127,9 @@
     {
       "id": "use_case_001_ja",
       "name": "ハウスメーカー商談",
-      "tags": ["real-estate"],
+      "tags": [
+        "real-estate"
+      ],
       "description": "顧客商談議事録と建物間取り図の整合性を確認",
       "files": [
         {
@@ -145,7 +155,9 @@
     {
       "id": "use_case_002_ja",
       "name": "不動産仲介_重要事項説明書",
-      "tags": ["real-estate"],
+      "tags": [
+        "real-estate"
+      ],
       "description": "重要事項説明書が業界基準を満たしているかを確認",
       "files": [
         {
@@ -171,7 +183,9 @@
     {
       "id": "use_case_003_ja",
       "name": "車庫申請",
-      "tags": ["corporate-governance"],
+      "tags": [
+        "corporate-governance"
+      ],
       "description": "車庫証明申請書の記載内容が要件を満たしているかを確認",
       "files": [
         {
@@ -197,7 +211,10 @@
     {
       "id": "use_case_004_ja",
       "name": "社内稟議（IT部門）",
-      "tags": ["it-department", "corporate-governance"],
+      "tags": [
+        "it-department",
+        "corporate-governance"
+      ],
       "description": "社内稟議書が社内規定や承認基準を満たしているかを確認",
       "files": [
         {
@@ -219,7 +236,9 @@
     {
       "id": "use_case_005_ja",
       "name": "社内文書（製造部門）",
-      "tags": ["manufacturing"],
+      "tags": [
+        "manufacturing"
+      ],
       "description": "作業手順書が社内の文書作成要領に従っているかを確認",
       "files": [
         {
@@ -245,7 +264,9 @@
     {
       "id": "use_case_006_ja",
       "name": "見積書（購買部門）",
-      "tags": ["corporate-governance"],
+      "tags": [
+        "corporate-governance"
+      ],
       "description": "見積書の記載項目と料金の妥当性を確認",
       "hasKnowledgeBase": true,
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-006見積書購買部門",
@@ -274,6 +295,72 @@
           "type": "knowledge",
           "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9006_%E8%A6%8B%E7%A9%8D%E6%9B%B8%EF%BC%88%E8%B3%BC%E8%B2%B7%E9%83%A8%E9%96%80%EF%BC%89/%E8%A6%8B%E7%A9%8D%E6%9B%B8%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E3%83%AB%E3%83%BC%E3%83%AB%E9%9B%86%EF%BC%88%E3%83%8A%E3%83%AC%E3%83%83%E3%82%B8%EF%BC%89.txt",
           "imagePath": "/examples/images/use_case_006_ja/knowledge_006_ja.jpg"
+        }
+      ]
+    },
+    {
+      "id": "use_case_007_ja",
+      "name": "新薬承認申請レビュー",
+      "tags": [
+        "healthcare"
+      ],
+      "description": "医薬品規制当局による新薬承認申請書類のICH M4（CTD）形式準拠確認。審査ガイドラインをナレッジベースで参照しながらAI審査を実施。",
+      "hasKnowledgeBase": true,
+      "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-007新薬承認申請レビュー",
+      "files": [
+        {
+          "id": "checklist_007_ja",
+          "name": "新薬承認申請チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/新薬承認申請チェックリスト.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/checklist_007_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/checklist_007_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/checklist_007_ja.jpg"
+        },
+        {
+          "id": "review_007_ja",
+          "name": "CTD_2.5_臨床に関する概括評価.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/CTD_2.5_臨床に関する概括評価.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/review_007_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/review_007_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/review_007_ja.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_1",
+          "name": "ICH_M4_CTD構成ガイドライン.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/ICH_M4_CTD構成ガイドライン.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_1_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_1_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_1.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_2",
+          "name": "新医薬品承認審査の基本的考え方.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/新医薬品承認審査の基本的考え方.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_2_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_2_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_2.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_3",
+          "name": "ICH_E3_臨床試験報告書の構造と内容.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/ICH_E3_臨床試験報告書の構造と内容.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_3_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_3_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_3.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_4",
+          "name": "医薬品リスク管理計画（RMP）策定ガイドライン.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/医薬品リスク管理計画（RMP）策定ガイドライン.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_4_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_4_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_4.jpg"
         }
       ]
     }
