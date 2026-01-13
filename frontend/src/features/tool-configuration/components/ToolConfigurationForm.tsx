@@ -11,9 +11,9 @@ import MCPToolsPreview from "./MCPToolsPreview";
 import { usePreviewMcpTools } from "../hooks/useToolConfigurationMutations";
 
 const PLACEHOLDER_JSON = `{
-  "aws-docs": {
-    "command": "uvx",
-    "args": ["awslabs.aws-documentation-mcp-server@latest"]
+  "aws-knowledge": {
+    "command": "npx",
+    "args": ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
   }
 }`;
 

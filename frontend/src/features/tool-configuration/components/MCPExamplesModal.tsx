@@ -19,11 +19,11 @@ interface ExampleItem {
 const EXAMPLES: Record<string, ExampleItem> = {
   single: {
     title: "Single MCP Server",
-    description: "Amazon Location Service",
+    description: "Web content fetcher",
     json: {
-      "aws-location": {
+      "fetch": {
         command: "uvx",
-        args: ["awslabs.aws-location-mcp-server@latest"]
+        args: ["mcp-server-fetch"]
       }
     }
   },
@@ -31,13 +31,13 @@ const EXAMPLES: Record<string, ExampleItem> = {
     title: "Multiple MCP Servers",
     description: "uvx, npx, and HTTP remote",
     json: {
-      "aws-location": {
-        command: "uvx",
-        args: ["awslabs.aws-location-mcp-server@latest"]
-      },
-      "example-server": {
+      "aws-knowledge": {
         command: "npx",
-        args: ["@modelcontextprotocol/server-example"]
+        args: ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+      },
+      "fetch": {
+        command: "uvx",
+        args: ["mcp-server-fetch"]
       },
       "remote-server": {
         command: "uvx",
