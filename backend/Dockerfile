@@ -29,5 +29,3 @@ ENV NPM_CONFIG_PREFIX=/tmp/.npm-global
 
 # アプリケーションの起動
 CMD ["node", "dist/api/index.js"]
-
-# Force rebuild: 1768279794

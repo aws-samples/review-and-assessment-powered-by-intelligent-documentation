@@ -1,6 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse";
+// MCP SDK imports: wildcard pattern requires .js extension for module resolution
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Logger } from "../../../../../review-workflow/utils/logger";
 
 const logger = new Logger("mcp-tools-service");
@@ -86,7 +87,7 @@ async function listToolsFromServer(
 
     if (isHttp) {
       // HTTP transport
-      transport = new SSEClientTransport(new URL(config.url!));
+      transport = new StreamableHTTPClientTransport(new URL(config.url!));
     } else if (config.command && config.args) {
       // stdio transport
       // Add PATH and cache directories to ensure uvx/npx work in Lambda
