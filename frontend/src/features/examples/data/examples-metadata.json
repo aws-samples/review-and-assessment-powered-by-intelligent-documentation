@@ -55,7 +55,7 @@
       "name": "Sustainability Assessment",
       "tags": ["manufacturing", "sustainability"],
       "description": "Verify that equipment specifications meet energy efficiency standards and industry regulations",
-      "hasKnowledgeBase": true,
+      "setupTypes": ["knowledge-base"],
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/en#use-case-005-sustainability-assessment-energy-efficiency-compliance",
       "files": [
         {
@@ -173,6 +173,8 @@
       "name": "車庫申請",
       "tags": ["corporate-governance"],
       "description": "車庫証明申請書の記載内容が要件を満たしているかを確認",
+      "setupTypes": ["mcp"],
+      "githubUrl": "https://github.com/aws-samples/beacon-uc008-mcp-ui/blob/main/examples/ja/README.md#ユースケース-003-車庫申請",
       "files": [
         {
           "id": "checklist_003_ja",
@@ -247,7 +249,7 @@
       "name": "見積書（購買部門）",
       "tags": ["corporate-governance"],
       "description": "見積書の記載項目と料金の妥当性を確認",
-      "hasKnowledgeBase": true,
+      "setupTypes": ["knowledge-base"],
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-006見積書購買部門",
       "files": [
         {
@@ -282,7 +284,7 @@
       "name": "新薬承認申請レビュー",
       "tags": ["healthcare"],
       "description": "医薬品規制当局による新薬承認申請書類のICH M4（CTD）形式準拠確認。審査ガイドラインをナレッジベースで参照しながらAI審査を実施。",
-      "hasKnowledgeBase": true,
+      "setupTypes": ["knowledge-base"],
       "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-007新薬承認申請レビュー",
       "files": [
         {
@@ -346,7 +348,8 @@
       "name": "AWSセキュリティ監査（IT部門）",
       "tags": ["it-department"],
       "description": "AWS環境のセキュリティ設定が社内セキュリティ基準を満たしているかを確認。情報システム部門による審査用チェックリスト。RDS暗号化、S3設定、IAM MFA等10項目を審査。",
-      "hasKnowledgeBase": false,
+      "setupTypes": ["mcp"],
+      "githubUrl": "https://github.com/aws-samples/beacon-uc008-mcp-ui/blob/main/examples/ja/README.md#ユースケース-008-awsセキュリティ監査it部門",
       "files": [
         {
           "id": "checklist_008_ja",
