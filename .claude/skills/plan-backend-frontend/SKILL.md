@@ -323,9 +323,129 @@ export const useChecklistMutations = () => {
 - Run `/test-database-feature` skill (if database changes)
 ```
 
-## After Planning
+## After Planning and Verification
+
+### Planning Phase
 
 1. Review your plan for completeness
 2. Ensure all file paths are specified
 3. Verify architecture patterns are followed
 4. **STOP and wait for "Go" or "Proceed" from user**
+
+### Implementation Phase
+
+After implementation is complete, run:
+
+1. **Build and Format Check**: `/build-and-format`
+2. **Database Tests** (if schema changed): `/test-database-feature`
+3. **Local API Testing** (see below)
+
+### Local Backend API Testing
+
+After implementing backend features, test the API locally before deploying.
+
+#### 1. Start Backend Server
+
+**Basic startup** (assumes DB already running from `/test-database-feature`):
+
+```bash
+cd backend
+RAPID_LOCAL_DEV=true npm run dev
+```
+
+Server starts at: `http://localhost:3000`
+
+You should see:
+```
+⚠️ Running in local development mode with authentication bypassed
+Server is running on http://0.0.0.0:3000
+```
+
+**Port conflict?** Use custom port:
+```bash
+RAPID_LOCAL_DEV=true PORT=3001 npm run dev
+```
+
+#### 2. Test Your Endpoints
+
+**What is RAPID_LOCAL_DEV?**
+- Bypasses AWS Cognito authentication
+- Auto-injects mock user: `local-dev@example.com`
+- Public paths don't need it: `/health`, `/api/health`
+- All other endpoints require it
+
+**Test Examples**:
+
+```bash
+# Health check (no auth needed)
+curl http://localhost:3000/api/health
+
+# GET endpoint (auth bypassed)
+curl http://localhost:3000/checklist-sets
+
+# POST endpoint with JSON body
+curl -X POST http://localhost:3000/checklist-sets \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Test Checklist",
+    "description": "Testing local API"
+  }'
+
+# Your new endpoint - adjust as needed
+curl http://localhost:3000/{your-new-endpoint}
+```
+
+**Test your specific implementation**:
+- Replace `{your-new-endpoint}` with actual path
+- Use appropriate HTTP method (GET/POST/PUT/DELETE)
+- Include request body for POST/PUT/PATCH
+
+#### 3. Common Issues
+
+**Port Already in Use**:
+```bash
+# Error: EADDRINUSE :::3000
+# Solution: Use different port
+PORT=3001 RAPID_LOCAL_DEV=true npm run dev
+```
+
+**Authorization Error**:
+```bash
+# Error: "Authorization header is missing"
+# Solution: Set RAPID_LOCAL_DEV=true
+RAPID_LOCAL_DEV=true npm run dev
+```
+
+**Database Connection Error**:
+```bash
+# Error: "Can't reach database server"
+# Solution: Start database first
+docker-compose -f assets/local/docker-compose.yml up -d
+cd backend && npm run prisma:migrate
+```
+
+#### 4. Verification Checklist
+
+After local testing:
+- ✅ Server starts without errors
+- ✅ Health endpoint returns `{"status":"ok"}`
+- ✅ Your new endpoints return expected responses
+- ✅ Error cases handled correctly (404, 400, 500)
+- ✅ Database operations work (if applicable)
+
+### Frontend Testing
+
+If frontend changes were made:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Access: `http://localhost:5173`
+
+Verify:
+- ✅ UI renders correctly
+- ✅ API calls work (check Network tab)
+- ✅ Error states display properly
+- ✅ Loading states show correctly

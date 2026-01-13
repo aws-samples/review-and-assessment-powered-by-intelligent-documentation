@@ -4,6 +4,7 @@ import {
   getToolConfigurationByIdHandler,
   createToolConfigurationHandler,
   deleteToolConfigurationHandler,
+  previewMcpToolsHandler,
 } from "./handlers";
 
 export function registerToolConfigurationRoutes(
@@ -23,5 +24,9 @@ export function registerToolConfigurationRoutes(
 
   fastify.delete("/tool-configurations/:id", {
     handler: deleteToolConfigurationHandler,
+  });
+
+  fastify.post("/tool-configurations/preview-tools", {
+    handler: previewMcpToolsHandler,
   });
 }

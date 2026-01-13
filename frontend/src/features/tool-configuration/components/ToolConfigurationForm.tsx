@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { CreateToolConfigurationRequest, KnowledgeBaseConfigUI, ToolConfiguration } from "../types";
+import { CreateToolConfigurationRequest, KnowledgeBaseConfigUI, ToolConfiguration, PreviewToolsResult } from "../types";
 import Button from "../../../components/Button";
 import FormTextField from "../../../components/FormTextField";
 import FormTextArea from "../../../components/FormTextArea";
 import HelpIcon from "../../../components/HelpIcon";
-import { HiExclamationCircle, HiInformationCircle } from "react-icons/hi";
+import { HiExclamationCircle, HiInformationCircle, HiRefresh } from "react-icons/hi";
+import MCPExamplesModal from "./MCPExamplesModal";
+import MCPToolsPreview from "./MCPToolsPreview";
+import { usePreviewMcpTools } from "../hooks/useToolConfigurationMutations";
+
+const PLACEHOLDER_JSON = `{
+  "aws-knowledge": {
+    "command": "npx",
+    "args": ["mcp-remote", "https://knowledge-mcp.global.api.aws"]
+  }
+}`;
 
 type ToolConfigurationFormProps = {
   mode: 'create' | 'view' | 'edit';
@@ -28,6 +38,12 @@ export default function ToolConfigurationForm({
   const [kbConfigs, setKbConfigs] = useState<KnowledgeBaseConfigUI[]>([
     { knowledgeBaseId: "", dataSourceIds: [], dataSourceIdsRaw: "" },
   ]);
+  const [enableMCP, setEnableMCP] = useState(false);
+  const [mcpConfigJson, setMcpConfigJson] = useState("");
+  const [mcpJsonError, setMcpJsonError] = useState("");
+  const [showExamplesModal, setShowExamplesModal] = useState(false);
+  const [previewResults, setPreviewResults] = useState<PreviewToolsResult[] | null>(null);
+  const { previewMcpTools, status: previewStatus } = usePreviewMcpTools();
   const [errors, setErrors] = useState({
     name: "",
     tools: "",
@@ -49,6 +65,10 @@ export default function ToolConfigurationForm({
           dataSourceIdsRaw: kb.dataSourceIds?.join(", ") || ""
         })));
       }
+      setEnableMCP(!!initialData.mcpConfig && Object.keys(initialData.mcpConfig).length > 0);
+      if (initialData.mcpConfig && Object.keys(initialData.mcpConfig).length > 0) {
+        setMcpConfigJson(JSON.stringify(initialData.mcpConfig, null, 2));
+      }
     }
   }, [initialData]);
 
@@ -66,7 +86,7 @@ export default function ToolConfigurationForm({
       newErrors.name = t("toolConfiguration.nameRequired");
     }
 
-    if (!codeInterpreter && !enableKB) {
+    if (!codeInterpreter && !enableKB && !enableMCP) {
       newErrors.tools = t("toolConfiguration.toolsRequired");
     }
 
@@ -74,6 +94,48 @@ export default function ToolConfigurationForm({
 
     if (Object.values(newErrors).some((error) => error)) {
       return;
+    }
+
+    let parsedMcpConfig = undefined;
+    if (enableMCP && mcpConfigJson.trim()) {
+      try {
+        parsedMcpConfig = JSON.parse(mcpConfigJson);
+
+        // 構造バリデーション: オブジェクトであること
+        if (typeof parsedMcpConfig !== 'object' || Array.isArray(parsedMcpConfig) || parsedMcpConfig === null) {
+          throw new Error(t("toolConfiguration.mcpMustBeObject"));
+        }
+
+        // 各サーバーのバリデーション
+        Object.entries(parsedMcpConfig).forEach(([serverName, cfg]: [string, any]) => {
+          // HTTP判定：urlがhttp/httpsで始まる
+          const url = cfg.url?.trim();
+          const isHttp = url && (url.startsWith("http://") || url.startsWith("https://"));
+
+          // stdio判定：commandとargsが存在
+          const isStdio = cfg.command && cfg.args && Array.isArray(cfg.args) && cfg.args.length > 0;
+
+          // どちらでもない場合はエラー
+          if (!isHttp && !isStdio) {
+            throw new Error(t("toolConfiguration.mcpInvalidConfig", { name: serverName }));
+          }
+
+          // HTTPの場合、commandやargsがあると混在エラー
+          if (isHttp && (cfg.command || cfg.args)) {
+            throw new Error(t("toolConfiguration.mcpConflictingFields", { name: serverName }));
+          }
+
+          // stdioの場合、argsが配列であることを確認
+          if (isStdio && (!Array.isArray(cfg.args) || cfg.args.length === 0)) {
+            throw new Error(t("toolConfiguration.mcpNeedsArgs", { name: serverName }));
+          }
+        });
+
+        setMcpJsonError("");
+      } catch (err: any) {
+        setMcpJsonError(err.message);
+        return;
+      }
     }
 
     const data: CreateToolConfigurationRequest = {
@@ -85,6 +147,7 @@ export default function ToolConfigurationForm({
             .filter((kb) => kb.knowledgeBaseId.trim())
             .map(({ dataSourceIdsRaw, ...kb }) => kb)
         : undefined,
+      mcpConfig: parsedMcpConfig,
     };
 
     setIsSubmitting(true);
@@ -124,6 +187,20 @@ export default function ToolConfigurationForm({
     console.log(`[DEBUG] Updated kbConfigs:`, updated);
     setKbConfigs(updated);
   };
+
+  const handlePreviewTools = async () => {
+    if (!mcpConfigJson.trim()) return;
+
+    try {
+      const parsed = JSON.parse(mcpConfigJson);
+      const result = await previewMcpTools({ mcpConfig: parsed });
+      setPreviewResults(result);
+      setMcpJsonError("");
+    } catch (error) {
+      setMcpJsonError("Failed to preview tools");
+    }
+  };
+
 
   return (
     <form onSubmit={handleSubmit}>
@@ -275,20 +352,79 @@ export default function ToolConfigurationForm({
           </div>
 
           <div>
-            <label className="flex items-center gap-2 opacity-50">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={false}
-                disabled={true}
+                checked={enableMCP}
+                onChange={(e) => {
+                  setEnableMCP(e.target.checked);
+                  if (errors.tools) {
+                    setErrors((prev) => ({ ...prev, tools: "" }));
+                  }
+                }}
                 className="h-4 w-4 rounded border-gray-300"
+                disabled={isReadOnly}
               />
               <span className="text-sm text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
                 {t("toolConfiguration.mcp")}
               </span>
-              <span className="text-xs text-aws-font-color-gray italic">
-                {t("toolConfiguration.mcpComingSoon")}
-              </span>
+              <HelpIcon content={t("toolConfiguration.mcpHelp")} />
+              {!isReadOnly && (
+                <Button
+                  type="button"
+                  onClick={() => setShowExamplesModal(true)}
+                  variant="text"
+                  size="sm">
+                  {t("toolConfiguration.showExamples")}
+                </Button>
+              )}
             </label>
+
+            {enableMCP && (
+              <div className="ml-6 mt-4">
+                <FormTextArea
+                  id="mcpConfigJson"
+                  name="mcpConfigJson"
+                  label={t("toolConfiguration.mcpConfigJson")}
+                  value={mcpConfigJson}
+                  onChange={(e) => setMcpConfigJson(e.target.value)}
+                  placeholder={PLACEHOLDER_JSON}
+                  rows={20}
+                  className="font-mono text-sm"
+                  disabled={isReadOnly}
+                />
+                {mcpJsonError && (
+                  <div className="mt-2 rounded-md border border-red bg-light-red px-4 py-3 text-sm text-red">
+                    <div className="flex items-center">
+                      <HiExclamationCircle className="mr-2 h-5 w-5 flex-shrink-0" />
+                      <span>{mcpJsonError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!isReadOnly && (
+                  <Button
+                    type="button"
+                    onClick={handlePreviewTools}
+                    variant="secondary"
+                    outline
+                    disabled={!mcpConfigJson.trim() || previewStatus === "loading"}
+                    className="mt-2"
+                  >
+                    {previewStatus === "loading" ? (
+                      <>
+                        <HiRefresh className="mr-2 h-4 w-4 animate-spin" />
+                        {t("toolConfiguration.loading")}
+                      </>
+                    ) : (
+                      t("toolConfiguration.previewTools")
+                    )}
+                  </Button>
+                )}
+
+                {previewResults && <MCPToolsPreview results={previewResults} />}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -308,6 +444,12 @@ export default function ToolConfigurationForm({
           </Button>
         )}
       </div>
+
+      <MCPExamplesModal
+        isOpen={showExamplesModal}
+        onClose={() => setShowExamplesModal(false)}
+        onSelect={(json) => setMcpConfigJson(json)}
+      />
     </form>
   );
 }

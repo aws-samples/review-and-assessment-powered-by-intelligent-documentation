@@ -1,5 +1,9 @@
 import { useApiClient } from "../../../hooks/useApiClient";
-import { CreateToolConfigurationRequest, ToolConfiguration } from "../types";
+import {
+  CreateToolConfigurationRequest,
+  ToolConfiguration,
+  PreviewToolsResult,
+} from "../types";
 
 export const useCreateToolConfiguration = () => {
   const { mutateAsync, status, error } = useApiClient().useMutation<
@@ -21,4 +25,13 @@ export const useDeleteToolConfiguration = () => {
   };
 
   return { deleteToolConfiguration, status, error };
+};
+
+export const usePreviewMcpTools = () => {
+  const { mutateAsync, status, error } = useApiClient().useMutation<
+    PreviewToolsResult[],
+    { mcpConfig: any }
+  >("post", "/tool-configurations/preview-tools");
+
+  return { previewMcpTools: mutateAsync, status, error };
 };

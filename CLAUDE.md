@@ -6,6 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **NO package.json in root directory** - This project has 3 separate TypeScript packages + 1 Python package
 - **Python: ALWAYS use `uv`** for package management (never pip or native python commands)
+- **BEFORE COMMITTING: Format and build all changed packages** - CI will fail otherwise:
+  ```bash
+  # Frontend changes
+  cd frontend && npm run format && npm run build
+
+  # Backend changes
+  cd backend && npm run format && npm run build
+
+  # CDK changes
+  cd cdk && npm run build
+  ```
 - **See AGENT.md** for comprehensive development guidelines, architecture, and coding standards
 
 ## Project Components
