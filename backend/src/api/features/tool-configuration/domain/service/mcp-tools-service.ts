@@ -1,6 +1,6 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse";
 import { Logger } from "../../../../../review-workflow/utils/logger";
 
 const logger = new Logger("mcp-tools-service");
