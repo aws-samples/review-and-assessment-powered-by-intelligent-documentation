@@ -34,7 +34,7 @@ const waf = new FrontendWafStack(app, `RapidFrontendWafStack`, {
 new RapidStack(app, "RapidStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION || process.env.AWS_DEFAULT_REGION || "ap-northeast-1",
+    region: process.env.CDK_DEFAULT_REGION || "us-west-2",
   },
   crossRegionReferences: true,
   webAclId: waf.webAclArn.value,

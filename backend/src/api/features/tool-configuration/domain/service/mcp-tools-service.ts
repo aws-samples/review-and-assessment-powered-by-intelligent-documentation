@@ -1,13 +1,25 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { Logger } from "../../../../../review-workflow/utils/logger";
+
+const logger = new Logger("mcp-tools-service");
 
 export interface MCPServerConfig {
+  // stdio transport fields
   command?: string;
   args?: string[];
+
+  // HTTP transport fields
   url?: string;
+
+  // Optional configuration
+  headers?: Record<string, string>;
+  oauthScopes?: string[];
   env?: Record<string, string>;
   timeout?: number;
+  disabled?: boolean;
+  disabledTools?: string[];
 }
 
 export interface MCPToolInfo {
@@ -48,6 +60,18 @@ export async function previewMcpTools(
   return results;
 }
 
+/**
+ * Lists available tools from an MCP server.
+ *
+ * SECURITY NOTES:
+ * - For stdio transport: Executes user-provided commands. Ensure config is from trusted sources.
+ * - For HTTP transport: Connects to user-provided URLs. Consider network security policies.
+ * - Lambda environment: Enhanced PATH includes UV and NPM for package manager support.
+ *
+ * @param config MCP server configuration (HTTP or stdio transport)
+ * @returns Array of tool information from the MCP server
+ * @throws Error if configuration is invalid or connection fails
+ */
 async function listToolsFromServer(
   config: MCPServerConfig
 ): Promise<MCPToolInfo[]> {
@@ -55,7 +79,7 @@ async function listToolsFromServer(
   let client;
 
   try {
-    // HTTP判定
+    // Detect HTTP transport
     const isHttp =
       config.url &&
       (config.url.startsWith("http://") || config.url.startsWith("https://"));
@@ -76,6 +100,10 @@ async function listToolsFromServer(
         ...config.env,
       };
 
+      // SECURITY WARNING: User-provided command and args are executed directly via StdioClientTransport.
+      // This configuration should ONLY be modifiable by authenticated, authorized users.
+      // The StdioClientTransport does not sanitize these values.
+      // Ensure mcpConfig data comes from trusted sources and is validated at API boundaries.
       transport = new StdioClientTransport({
         command: config.command,
         args: config.args,
@@ -129,7 +157,7 @@ async function listToolsFromServer(
         await client.close();
       } catch (error) {
         // Ignore close errors
-        console.error("Error closing MCP client:", error);
+        logger.error("Error closing MCP client:", error);
       }
     }
   }
