@@ -41,12 +41,9 @@ Ask the user for the following information:
 
 - **Use case name** (English or Japanese)
 - **Use case description**
-- **Category tags**: one or more of:
-  - `real-estate`
-  - `it-department`
-  - `manufacturing`
-  - `sustainability`
-  - `corporate-governance`
+- **Category tags**: one or more tags
+  - Available tags: See `ExampleTag` type in `frontend/src/features/examples/types/index.ts`
+  - To add new tags: Follow Phase 6 instructions
 - **Language**: `en` or `ja`
 - **Files provided** with their types:
   - `checklist`: Checklist files
@@ -154,24 +151,83 @@ Edit `frontend/src/features/examples/data/examples-metadata.json`:
 3. Set `hasKnowledgeBase: true` only if knowledge files are included
 4. Ensure JSON syntax is valid (commas, brackets)
 
-### Phase 6: Update Translations (if needed)
+### Phase 6: Add New Category Tags (if needed)
 
 **Only if introducing NEW tags:**
 
-1. Add translation keys to `frontend/src/i18n/locales/en.json`:
+Adding a new category tag requires updating three locations: type definition, UI components, and translations.
 
-   ```json
-   "examples": {
-     "tagNewTag": "New Tag Display Name"
-   }
-   ```
+#### Step 1: Update TypeScript Type Definition
 
-2. Add translation keys to `frontend/src/i18n/locales/ja.json`:
-   ```json
-   "examples": {
-     "tagNewTag": "新しいタグ"
-   }
-   ```
+Edit `frontend/src/features/examples/types/index.ts`:
+
+Add the new tag to the `ExampleTag` union type:
+
+```typescript
+export type ExampleTag =
+  | "real-estate"
+  | "it-department"
+  | "manufacturing"
+  | "sustainability"
+  | "corporate-governance"
+  | "your-new-tag";  // Add your tag here
+```
+
+#### Step 2: Update UI Components
+
+**2a. Update TagFilter Component**
+
+Edit `frontend/src/features/examples/components/TagFilter.tsx`:
+
+Add the new tag with an appropriate emoji icon to the `tags` array:
+
+```typescript
+const tags: { value: ExampleTag; icon: string }[] = [
+  { value: "real-estate", icon: "🏢" },
+  { value: "it-department", icon: "💼" },
+  { value: "manufacturing", icon: "🏭" },
+  { value: "sustainability", icon: "🌱" },
+  { value: "corporate-governance", icon: "📋" },
+  { value: "your-new-tag", icon: "🎯" },  // Choose appropriate emoji
+];
+```
+
+**2b. Update OnboardingModal Component**
+
+Edit `frontend/src/features/examples/components/OnboardingModal.tsx`:
+
+Add the new tag with the same emoji icon to the `industries` array:
+
+```typescript
+const industries = [
+  { tag: "real-estate", icon: "🏢" },
+  { tag: "it-department", icon: "💼" },
+  { tag: "manufacturing", icon: "🏭" },
+  { tag: "sustainability", icon: "🌱" },
+  { tag: "corporate-governance", icon: "📋" },
+  { tag: "your-new-tag", icon: "🎯" },  // Use same emoji as TagFilter
+] as const;
+```
+
+**Important**: Use the same emoji icon in both components for consistency.
+
+#### Step 3: Update Translations
+
+Add translation keys to `frontend/src/i18n/locales/en.json`:
+
+```json
+"examples": {
+  "tagNewTag": "New Tag Display Name"
+}
+```
+
+Add translation keys to `frontend/src/i18n/locales/ja.json`:
+
+```json
+"examples": {
+  "tagNewTag": "新しいタグ"
+}
+```
 
 **Tag naming convention:**
 
@@ -450,7 +506,7 @@ examples/
 
 **Check**:
 
-1. Tag IDs match allowed values in types (`real-estate`, `it-department`, etc.)
+1. Tag IDs match values defined in `ExampleTag` type (`frontend/src/features/examples/types/index.ts`)
 2. Translation keys exist in i18n files
 3. Tag name follows camelCase convention
 

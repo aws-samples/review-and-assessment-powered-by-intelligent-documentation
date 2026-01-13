@@ -10,13 +10,14 @@ interface OnboardingModalProps {
   onDontShowAgain: () => void;
 }
 
-// 5つの業界カテゴリ定義
+// 6つの業界カテゴリ定義
 const industries = [
   { tag: "real-estate", icon: "🏢" },
   { tag: "it-department", icon: "💼" },
   { tag: "manufacturing", icon: "🏭" },
   { tag: "sustainability", icon: "🌱" },
   { tag: "corporate-governance", icon: "📋" },
+  { tag: "healthcare", icon: "💊" },
 ] as const;
 
 /**
