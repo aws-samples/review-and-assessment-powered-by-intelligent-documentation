@@ -68,7 +68,44 @@ Ask the user for the following information:
 5. Organize by type if needed (subdirectories for knowledge base)
 6. Use descriptive filenames
 
-### Phase 3: Generate GitHub URLs
+### Phase 3: PDF Design Strategy (Optional)
+
+If your use case includes multiple PDF files, consider visual differentiation to improve user experience.
+
+#### Design Principle
+
+**Goal**: Create realistic and easy-to-understand samples
+
+**Approach**:
+- Understand the culture and conventions of the domain/industry/business
+- Choose differentiation methods that feel natural in that context
+- Avoid over-generalization
+
+#### Differentiation Methods (Examples Only)
+
+**Color Palette**: Align with domain conventions
+**Layout**: Choose appropriate structure based on document type
+**Headers/Footers**: Clearly indicate document information
+
+#### Reference: Pharmaceutical Regulatory Documents
+
+Design adopted in UC007 (one example):
+
+| Document | Color | Layout | Reason |
+|----------|-------|--------|--------|
+| Checklist | Blue | Two-column table | Clear verification items |
+| Clinical Evaluation | Green | Section headers | Emphasize hierarchy |
+| Guidelines | Gray | Chapter structure | Identify reference materials |
+
+Rationale: Pharmaceutical industry's culture of formality and reliability
+
+**Important**: This is just one example. Other domains may require completely different approaches.
+
+#### Implementation Examples
+
+See `scripts/example_pdf_templates.py` for detailed implementation patterns.
+
+### Phase 4: Generate GitHub URLs
 
 For each file, construct the raw GitHub URL:
 
@@ -83,7 +120,7 @@ https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-i
 - Use JavaScript: `encodeURIComponent(filename)`
 - Example: `ユースケース001` → `%E3%83%A6%E3%83%BC%E3%82%B9%E3%82%B1%E3%83%BC%E3%82%B9001`
 
-### Phase 4: Update Metadata
+### Phase 5: Update Metadata
 
 Edit `frontend/src/features/examples/data/examples-metadata.json`:
 
@@ -117,7 +154,7 @@ Edit `frontend/src/features/examples/data/examples-metadata.json`:
 3. Set `hasKnowledgeBase: true` only if knowledge files are included
 4. Ensure JSON syntax is valid (commas, brackets)
 
-### Phase 5: Update Translations (if needed)
+### Phase 6: Update Translations (if needed)
 
 **Only if introducing NEW tags:**
 
@@ -142,7 +179,7 @@ Edit `frontend/src/features/examples/data/examples-metadata.json`:
 - Translation key: `examples.tagNewTag` (camelCase with prefix)
 - Format: Split by "-", capitalize each word, join, prefix with `examples.tag`
 
-### Phase 6: Generate Thumbnails
+### Phase 7: Generate Thumbnails
 
 After adding files and updating metadata, generate optimized images for the UI using the thumbnail generation script.
 
@@ -265,7 +302,40 @@ The script generates:
 - **Action**: Review script output for specific error messages
 - **Action**: Re-run script (it will skip already-processed files)
 
-### Phase 7: Local Testing (Optional)
+### Phase 8: PDF Generation with reportlab (Optional)
+
+For programmatic PDF generation using Python and reportlab.
+
+#### Install reportlab
+
+```bash
+cd .claude/skills/add-example
+uv pip install reportlab
+```
+
+#### Japanese Font Support
+
+For Japanese PDF generation with reportlab:
+
+```python
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+# Register Japanese font
+pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
+```
+
+#### Layout Implementation Examples
+
+See `scripts/example_pdf_templates.py` for detailed implementation:
+
+- **Two-Column Table Layout**: For checklists
+- **Section Header Layout**: For evaluation documents
+- **Chapter Structure Layout**: For guidelines
+
+Includes complete implementations with headers/footers and pagination handling.
+
+### Phase 9: Local Testing (Optional)
 
 To verify the changes locally:
 
@@ -411,6 +481,30 @@ examples/
 3. Dependencies installed: `uv pip install -e .`
 4. Metadata file exists and is valid JSON
 5. GitHub URLs in metadata are accessible
+
+### Issue: reportlab not installed
+
+**Solution**:
+
+```bash
+cd .claude/skills/add-example
+uv pip install reportlab
+```
+
+### Issue: Japanese characters in PDF not displaying
+
+**Check**:
+
+1. HeiseiKakuGo-W5 font registered correctly
+2. Using `UnicodeCIDFont` not `TTFont`
+3. String is properly encoded (UTF-8)
+
+**Solution**:
+
+```python
+pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
+c.setFont('HeiseiKakuGo-W5', 10)  # Specify size
+```
 
 ---
 
