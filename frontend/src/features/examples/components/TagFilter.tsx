@@ -25,6 +25,7 @@ export default function TagFilter({
     { value: "manufacturing", icon: "🏭" },
     { value: "sustainability", icon: "🌱" },
     { value: "corporate-governance", icon: "📋" },
+    { value: "healthcare", icon: "💊" },
   ];
 
   return (
