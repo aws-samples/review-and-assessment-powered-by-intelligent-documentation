@@ -1,0 +1,211 @@
+Including dependency stacks: RapidFrontendWafStack
+
+✨  Synthesis time: 20.75s
+
+RapidFrontendWafStack
+RapidFrontendWafStack: deploying... [1/2]
+RapidStack: start: Building RapidStack Template
+RapidStack: success: Built RapidStack Template
+
+ ✅  RapidFrontendWafStack (no changes)
+
+✨  Deployment time: 3.63s
+
+Outputs:
+RapidFrontendWafStack.WebAclId = arn:aws:wafv2:us-east-1:151364017355:global/webacl/RapidFrontendWebAcl/0356145a-bc8f-4773-912f-70d829bbd0af
+Stack ARN:
+arn:aws:cloudformation:us-east-1:151364017355:stack/RapidFrontendWafStack/f80c28c0-baec-11f0-bbfb-12c9e570ea8b
+
+✨  Total time: 24.38s
+
+RapidStack: start: Publishing RapidStack Template (151364017355-us-west-2-b0967896)
+RapidStack: success: Published RapidStack Template (151364017355-us-west-2-b0967896)
+RapidStack
+RapidStack: deploying... [2/2]
+RapidStack: creating CloudFormation changeset...
+RapidStack |   0/157 | 11:41:07 PM | REVIEW_IN_PROGRESS   | AWS::CloudFormation::Stack                  | RapidStack User Initiated
+RapidStack |   0/157 | 11:41:27 PM | CREATE_IN_PROGRESS   | AWS::CloudFormation::Stack                  | RapidStack User Initiated
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::CrossRegionExportReaderCustomResourceProvider/Role (CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | VpcFlowLog/LogGroup (VpcFlowLogLogGroupBB186289) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::EC2::EIP                               | RapidVpc/publicSubnet1/EIP (RapidVpcpublicSubnet1EIPC2D09F98) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::EC2::VPC                               | RapidVpc (RapidVpc4C070FE2) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/ReviewAgent/Role (ReviewProcessorReviewAgentRole333139DC) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::BedrockAgentCore::Memory               | ReviewProcessor/ReviewAgent/Memory (ReviewProcessorReviewAgentMemoryBAD64FAC) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | FeedbackAggregator/HandlerRole (FeedbackAggregatorHandlerRole5972ECEE) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659/ServiceRole (NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659ServiceRoleCB01FBE6) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | AmbiguityProcessor/HandlerRole (AmbiguityProcessorHandlerRoleE1EF672C) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | ReviewProcessor/StateMachineLogGroup (ReviewProcessorStateMachineLogGroup2A748167) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | PrismaMigration/MigrationInvokerRole (PrismaMigrationMigrationInvokerRoleDD44CAFB) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | DocumentProcessor/HandlerRole (DocumentProcessorHandlerRoleD33085EE) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | DocumentProcessor/StateMachineRole (DocumentProcessorStateMachineRole9E34E0DD) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPool                      | Auth/UserPool (AuthUserPool8115E87F) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | AmbiguityProcessor/DLQ (AmbiguityProcessorDLQ502A47FD) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::S3AutoDeleteObjectsCustomResourceProvider/Role (CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Api/ApiGatewayCloudWatchRole (ApiApiGatewayCloudWatchRoleA24215BB) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | DocumentProcessor/StateMachineLogGroup (DocumentProcessorStateMachineLogGroup4AF5B0A9) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/InvokeAgentFunction/ServiceRole (ReviewProcessorInvokeAgentFunctionServiceRoleFA8B9B97) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | VpcFlowLog/IAMRole (VpcFlowLogIAMRoleB4DCB624) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::CloudFront::OriginAccessControl        | Frontend/Distribution/Origin1/S3OriginAccessControl (FrontendDistributionOrigin1S3OriginAccessControl96CDF506) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::ApiGateway::RestApi                    | Api/RapidApi (ApiRapidApi00F79000) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | PrismaMigration/HandlerRole (PrismaMigrationHandlerRole16233FD4) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayExecutionLogs (ApiApiGatewayExecutionLogs64738A9C) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Frontend/ReactBuild/Project/Role (FrontendReactBuildProjectRole67F82260) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/HandlerRole (ReviewProcessorHandlerRole21052EA0) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | SchedulerRoleForTarget-598af3 (SchedulerRoleForTarget598af325566B61) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Api/RapidApi/CloudWatchRole (ApiRapidApiCloudWatchRoleB8B51A99) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/StateMachineRole (ReviewProcessorStateMachineRole9E57510C) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayAccessLogs (ApiApiGatewayAccessLogsFB26645A) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::S3::Bucket                             | us-west-2AccessLogBucket (uswest2AccessLogBucketDC837D1F) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::EC2::InternetGateway                   | RapidVpc/IGW (RapidVpcIGW9F958888) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | HandlerRole (HandlerRoleF4C27E12) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiB/ServiceRole (CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::SecretsManager::Secret                 | Database/Database/Secret (DatabaseSecret2DFA08D3) 
+RapidStack |   0/157 | 11:41:33 PM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) 
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | VpcFlowLog/LogGroup (VpcFlowLogLogGroupBB186289) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayExecutionLogs (ApiApiGatewayExecutionLogs64738A9C) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | ReviewProcessor/StateMachineLogGroup (ReviewProcessorStateMachineLogGroup2A748167) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | AmbiguityProcessor/DLQ (AmbiguityProcessorDLQ502A47FD) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | DocumentProcessor/StateMachineLogGroup (DocumentProcessorStateMachineLogGroup4AF5B0A9) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | SchedulerRoleForTarget-598af3 (SchedulerRoleForTarget598af325566B61) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Frontend/ReactBuild/Project/Role (FrontendReactBuildProjectRole67F82260) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::CloudFront::OriginAccessControl        | Frontend/Distribution/Origin1/S3OriginAccessControl (FrontendDistributionOrigin1S3OriginAccessControl96CDF506) Resource handler returned message: "Resource of type 'AWS::CloudFront::OriginAccessControl' with identifier 'RapidStackFrontendDistributiOrigin1S3OriginAccessControlF2A7A224' already exists." (RequestToken: eff4892d-08af-4303-9155-0eee36af3b42, HandlerErrorCode: AlreadyExists)
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | FeedbackAggregator/HandlerRole (FeedbackAggregatorHandlerRole5972ECEE) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayAccessLogs (ApiApiGatewayAccessLogsFB26645A) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/ReviewAgent/Role (ReviewProcessorReviewAgentRole333139DC) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::CrossRegionExportReaderCustomResourceProvider/Role (CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/HandlerRole (ReviewProcessorHandlerRole21052EA0) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | PrismaMigration/MigrationInvokerRole (PrismaMigrationMigrationInvokerRoleDD44CAFB) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::EC2::InternetGateway                   | RapidVpc/IGW (RapidVpcIGW9F958888) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/StateMachineRole (ReviewProcessorStateMachineRole9E57510C) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | Api/RapidApi/CloudWatchRole (ApiRapidApiCloudWatchRoleB8B51A99) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | VpcFlowLog/IAMRole (VpcFlowLogIAMRoleB4DCB624) Resource creation Initiated
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::Logs::LogGroup                         | Api/ApiGatewayAccessLogs (ApiApiGatewayAccessLogsFB26645A) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | FeedbackAggregator/HandlerRole (FeedbackAggregatorHandlerRole5972ECEE) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | Custom::CrossRegionExportReaderCustomResourceProvider/Role (CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | PrismaMigration/HandlerRole (PrismaMigrationHandlerRole16233FD4) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | ReviewProcessor/ReviewAgent/Role (ReviewProcessorReviewAgentRole333139DC) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::EC2::InternetGateway                   | RapidVpc/IGW (RapidVpcIGW9F958888) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | PrismaMigration/MigrationInvokerRole (PrismaMigrationMigrationInvokerRoleDD44CAFB) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | ReviewProcessor/HandlerRole (ReviewProcessorHandlerRole21052EA0) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | Api/RapidApi/CloudWatchRole (ApiRapidApiCloudWatchRoleB8B51A99) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | ReviewProcessor/StateMachineRole (ReviewProcessorStateMachineRole9E57510C) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::Logs::LogGroup                         | ReviewProcessor/StateMachineLogGroup (ReviewProcessorStateMachineLogGroup2A748167) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | Frontend/ReactBuild/Project/Role (FrontendReactBuildProjectRole67F82260) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | VpcFlowLog/IAMRole (VpcFlowLogIAMRoleB4DCB624) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | SchedulerRoleForTarget-598af3 (SchedulerRoleForTarget598af325566B61) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::Logs::LogGroup                         | VpcFlowLog/LogGroup (VpcFlowLogLogGroupBB186289) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | Api/ApiGatewayCloudWatchRole (ApiApiGatewayCloudWatchRoleA24215BB) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::Logs::LogGroup                         | Api/ApiGatewayExecutionLogs (ApiApiGatewayExecutionLogs64738A9C) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | HandlerRole (HandlerRoleF4C27E12) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659/ServiceRole (NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659ServiceRoleCB01FBE6) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | AmbiguityProcessor/HandlerRole (AmbiguityProcessorHandlerRoleE1EF672C) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | DocumentProcessor/HandlerRole (DocumentProcessorHandlerRoleD33085EE) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::Logs::LogGroup                         | DocumentProcessor/StateMachineLogGroup (DocumentProcessorStateMachineLogGroup4AF5B0A9) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::SecretsManager::Secret                 | Database/Database/Secret (DatabaseSecret2DFA08D3) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | ReviewProcessor/InvokeAgentFunction/ServiceRole (ReviewProcessorInvokeAgentFunctionServiceRoleFA8B9B97) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::IAM::Role                              | Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiB/ServiceRole (CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) Resource creation cancelled
+RapidStack |   0/157 | 11:41:34 PM | CREATE_FAILED        | AWS::S3::Bucket                             | us-west-2AccessLogBucket (uswest2AccessLogBucketDC837D1F) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::SQS::Queue                             | AmbiguityProcessor/DLQ (AmbiguityProcessorDLQ502A47FD) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::EC2::VPC                               | RapidVpc (RapidVpc4C070FE2) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::EC2::EIP                               | RapidVpc/publicSubnet1/EIP (RapidVpcpublicSubnet1EIPC2D09F98) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::ApiGateway::RestApi                    | Api/RapidApi (ApiRapidApi00F79000) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::BedrockAgentCore::Memory               | ReviewProcessor/ReviewAgent/Memory (ReviewProcessorReviewAgentMemoryBAD64FAC) Resource creation cancelled
+RapidStack |   0/157 | 11:41:35 PM | CREATE_FAILED        | AWS::Cognito::UserPool                      | Auth/UserPool (AuthUserPool8115E87F) Resource creation cancelled
+RapidStack |   0/157 | 11:41:36 PM | CREATE_FAILED        | AWS::IAM::Role                              | DocumentProcessor/StateMachineRole (DocumentProcessorStateMachineRole9E34E0DD) Resource creation cancelled
+RapidStack |   0/157 | 11:41:37 PM | CREATE_FAILED        | AWS::IAM::Role                              | Custom::S3AutoDeleteObjectsCustomResourceProvider/Role (CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092) Resource creation cancelled
+RapidStack |   0/157 | 11:41:37 PM | ROLLBACK_IN_PROGRESS | AWS::CloudFormation::Stack                  | RapidStack The following resource(s) failed to create: [DocumentProcessorHandlerRoleD33085EE, ApiRapidApiCloudWatchRoleB8B51A99, ReviewProcessorReviewAgentMemoryBAD64FAC, ApiApiGatewayExecutionLogs64738A9C, ApiRapidApi00F79000, ApiApiGatewayAccessLogsFB26645A, CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092, ReviewProcessorReviewAgentRole333139DC, AuthUserPool8115E87F, CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD, FrontendDistributionOrigin1S3OriginAccessControl96CDF506, uswest2AccessLogBucketDC837D1F, RapidVpcIGW9F958888, DocumentProcessorStateMachineRole9E34E0DD, ApiApiGatewayCloudWatchRoleA24215BB, VpcFlowLogIAMRoleB4DCB624, PrismaMigrationMigrationInvokerRoleDD44CAFB, RapidVpcpublicSubnet1EIPC2D09F98, ReviewProcessorInvokeAgentFunctionServiceRoleFA8B9B97, DocumentProcessorStateMachineLogGroup4AF5B0A9, AmbiguityProcessorHandlerRoleE1EF672C, DatabaseSecret2DFA08D3, FeedbackAggregatorHandlerRole5972ECEE, SchedulerRoleForTarget598af325566B61, RapidVpc4C070FE2, FrontendReactBuildProjectRole67F82260, NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659ServiceRoleCB01FBE6, HandlerRoleF4C27E12, CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1, ReviewProcessorHandlerRole21052EA0, ReviewProcessorStateMachineLogGroup2A748167, CDKMetadata, ReviewProcessorStateMachineRole9E57510C, VpcFlowLogLogGroupBB186289, PrismaMigrationHandlerRole16233FD4, AmbiguityProcessorDLQ502A47FD]. Rollback requested by user.
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::S3::Bucket                             | us-west-2AccessLogBucket (uswest2AccessLogBucketDC837D1F) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | VpcFlowLog/IAMRole (VpcFlowLogIAMRoleB4DCB624) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiB/ServiceRole (CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayAccessLogs (ApiApiGatewayAccessLogsFB26645A) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/StateMachineRole (ReviewProcessorStateMachineRole9E57510C) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::CrossRegionExportReaderCustomResourceProvider/Role (CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | FeedbackAggregator/HandlerRole (FeedbackAggregatorHandlerRole5972ECEE) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/ReviewAgent/Role (ReviewProcessorReviewAgentRole333139DC) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | AmbiguityProcessor/HandlerRole (AmbiguityProcessorHandlerRoleE1EF672C) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::BedrockAgentCore::Memory               | ReviewProcessor/ReviewAgent/Memory (ReviewProcessorReviewAgentMemoryBAD64FAC) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::Cognito::UserPool                      | Auth/UserPool (AuthUserPool8115E87F) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | SchedulerRoleForTarget-598af3 (SchedulerRoleForTarget598af325566B61) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659/ServiceRole (NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659ServiceRoleCB01FBE6) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | PrismaMigration/MigrationInvokerRole (PrismaMigrationMigrationInvokerRoleDD44CAFB) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/InvokeAgentFunction/ServiceRole (ReviewProcessorInvokeAgentFunctionServiceRoleFA8B9B97) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::EC2::InternetGateway                   | RapidVpc/IGW (RapidVpcIGW9F958888) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::SecretsManager::Secret                 | Database/Database/Secret (DatabaseSecret2DFA08D3) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::Logs::LogGroup                         | Api/ApiGatewayExecutionLogs (ApiApiGatewayExecutionLogs64738A9C) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::ApiGateway::RestApi                    | Api/RapidApi (ApiRapidApi00F79000) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | Api/ApiGatewayCloudWatchRole (ApiApiGatewayCloudWatchRoleA24215BB) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | Frontend/ReactBuild/Project/Role (FrontendReactBuildProjectRole67F82260) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::EC2::EIP                               | RapidVpc/publicSubnet1/EIP (RapidVpcpublicSubnet1EIPC2D09F98) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::EC2::VPC                               | RapidVpc (RapidVpc4C070FE2) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | Custom::S3AutoDeleteObjectsCustomResourceProvider/Role (CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | DocumentProcessor/HandlerRole (DocumentProcessorHandlerRoleD33085EE) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | ReviewProcessor/HandlerRole (ReviewProcessorHandlerRole21052EA0) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::SQS::Queue                             | AmbiguityProcessor/DLQ (AmbiguityProcessorDLQ502A47FD) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | HandlerRole (HandlerRoleF4C27E12) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | DocumentProcessor/StateMachineRole (DocumentProcessorStateMachineRole9E34E0DD) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_IN_PROGRESS   | AWS::IAM::Role                              | PrismaMigration/HandlerRole (PrismaMigrationHandlerRole16233FD4) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_SKIPPED       | AWS::Logs::LogGroup                         | ReviewProcessor/StateMachineLogGroup (ReviewProcessorStateMachineLogGroup2A748167) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_SKIPPED       | AWS::Logs::LogGroup                         | DocumentProcessor/StateMachineLogGroup (DocumentProcessorStateMachineLogGroup4AF5B0A9) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_SKIPPED       | AWS::Logs::LogGroup                         | VpcFlowLog/LogGroup (VpcFlowLogLogGroupBB186289) 
+RapidStack |   0/157 | 11:41:39 PM | DELETE_SKIPPED       | AWS::IAM::Role                              | Api/RapidApi/CloudWatchRole (ApiRapidApiCloudWatchRoleB8B51A99) 
+RapidStack |   1/157 | 11:41:40 PM | DELETE_COMPLETE      | AWS::Logs::LogGroup                         | Api/ApiGatewayAccessLogs (ApiApiGatewayAccessLogsFB26645A) 
+RapidStack |   2/157 | 11:41:40 PM | DELETE_COMPLETE      | AWS::Logs::LogGroup                         | Api/ApiGatewayExecutionLogs (ApiApiGatewayExecutionLogs64738A9C) 
+RapidStack |   3/157 | 11:41:40 PM | DELETE_COMPLETE      | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) 
+RapidStack |   4/157 | 11:41:40 PM | DELETE_COMPLETE      | AWS::EC2::InternetGateway                   | RapidVpc/IGW (RapidVpcIGW9F958888) 
+RapidStack |   4/157 | 11:41:40 PM | DELETE_FAILED        | AWS::BedrockAgentCore::Memory               | ReviewProcessor/ReviewAgent/Memory (ReviewProcessorReviewAgentMemoryBAD64FAC) Resource handler returned message: "Validation failed during DeleteMemory: Memory is in transitional state CREATING. Cannot update memory. (Service: BedrockAgentCoreControl, Status Code: 400, Request ID: 908568c6-2c47-44d9-8a89-5ef425f18a3f) (SDK Attempt Count: 1)" (RequestToken: 90ec920d-1f13-39a5-3192-1738db971bba, HandlerErrorCode: InvalidRequest)
+RapidStack |   5/157 | 11:41:40 PM | DELETE_COMPLETE      | AWS::Cognito::UserPool                      | Auth/UserPool (AuthUserPool8115E87F) 
+RapidStack |   6/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::ApiGateway::RestApi                    | Api/RapidApi (ApiRapidApi00F79000) 
+RapidStack |   7/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::S3::Bucket                             | us-west-2AccessLogBucket (uswest2AccessLogBucketDC837D1F) 
+RapidStack |   8/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::EC2::EIP                               | RapidVpc/publicSubnet1/EIP (RapidVpcpublicSubnet1EIPC2D09F98) 
+RapidStack |   9/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::EC2::VPC                               | RapidVpc (RapidVpc4C070FE2) 
+RapidStack |  10/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | SchedulerRoleForTarget-598af3 (SchedulerRoleForTarget598af325566B61) 
+RapidStack |  11/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | Frontend/ReactBuild/Project/Role (FrontendReactBuildProjectRole67F82260) 
+RapidStack |  12/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | FeedbackAggregator/HandlerRole (FeedbackAggregatorHandlerRole5972ECEE) 
+RapidStack |  13/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | HandlerRole (HandlerRoleF4C27E12) 
+RapidStack |  14/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | AmbiguityProcessor/HandlerRole (AmbiguityProcessorHandlerRoleE1EF672C) 
+RapidStack |  15/157 | 11:41:41 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | DocumentProcessor/HandlerRole (DocumentProcessorHandlerRoleD33085EE) 
+RapidStack |  16/157 | 11:41:45 PM | DELETE_COMPLETE      | AWS::SecretsManager::Secret                 | Database/Database/Secret (DatabaseSecret2DFA08D3) 
+RapidStack |  17/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | ReviewProcessor/HandlerRole (ReviewProcessorHandlerRole21052EA0) 
+RapidStack |  18/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiB/ServiceRole (CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1) 
+RapidStack |  19/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | ReviewProcessor/ReviewAgent/Role (ReviewProcessorReviewAgentRole333139DC) 
+RapidStack |  20/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | PrismaMigration/HandlerRole (PrismaMigrationHandlerRole16233FD4) 
+RapidStack |  21/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | Custom::S3AutoDeleteObjectsCustomResourceProvider/Role (CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092) 
+RapidStack |  22/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | ReviewProcessor/InvokeAgentFunction/ServiceRole (ReviewProcessorInvokeAgentFunctionServiceRoleFA8B9B97) 
+RapidStack |  23/157 | 11:41:50 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659/ServiceRole (NodejsBuildCustomResourceHandler25648b212c404f09aa65b6bbb0c44659ServiceRoleCB01FBE6) 
+RapidStack |  24/157 | 11:41:51 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | VpcFlowLog/IAMRole (VpcFlowLogIAMRoleB4DCB624) 
+RapidStack |  25/157 | 11:41:51 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | PrismaMigration/MigrationInvokerRole (PrismaMigrationMigrationInvokerRoleDD44CAFB) 
+RapidStack |  26/157 | 11:41:51 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | ReviewProcessor/StateMachineRole (ReviewProcessorStateMachineRole9E57510C) 
+RapidStack |  27/157 | 11:41:51 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | Custom::CrossRegionExportReaderCustomResourceProvider/Role (CustomCrossRegionExportReaderCustomResourceProviderRole10531BBD) 
+RapidStack |  28/157 | 11:41:53 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | DocumentProcessor/StateMachineRole (DocumentProcessorStateMachineRole9E34E0DD) 
+RapidStack |  29/157 | 11:41:55 PM | DELETE_COMPLETE      | AWS::IAM::Role                              | Api/ApiGatewayCloudWatchRole (ApiApiGatewayCloudWatchRoleA24215BB) 
+RapidStack |  30/157 | 11:42:11 PM | DELETE_COMPLETE      | AWS::SQS::Queue                             | AmbiguityProcessor/DLQ (AmbiguityProcessorDLQ502A47FD) 
+RapidStack |  31/157 | 11:43:44 PM | DELETE_COMPLETE      | AWS::CloudFront::OriginAccessControl        | Frontend/Distribution/Origin1/S3OriginAccessControl (FrontendDistributionOrigin1S3OriginAccessControl96CDF506) 
+RapidStack |  31/157 | 11:43:44 PM | ROLLBACK_FAILED      | AWS::CloudFormation::Stack                  | RapidStack The following resource(s) failed to delete: [ReviewProcessorReviewAgentMemoryBAD64FAC]. 
+
+Failed resources:
+RapidStack | 11:41:34 PM | CREATE_FAILED        | AWS::CloudFront::OriginAccessControl        | Frontend/Distribution/Origin1/S3OriginAccessControl (FrontendDistributionOrigin1S3OriginAccessControl96CDF506) Resource handler returned message: "Resource of type 'AWS::CloudFront::OriginAccessControl' with identifier 'RapidStackFrontendDistributiOrigin1S3OriginAccessControlF2A7A224' already exists." (RequestToken: eff4892d-08af-4303-9155-0eee36af3b42, HandlerErrorCode: AlreadyExists)
+RapidStack | 11:41:40 PM | DELETE_FAILED        | AWS::BedrockAgentCore::Memory               | ReviewProcessor/ReviewAgent/Memory (ReviewProcessorReviewAgentMemoryBAD64FAC) Resource handler returned message: "Validation failed during DeleteMemory: Memory is in transitional state CREATING. Cannot update memory. (Service: BedrockAgentCoreControl, Status Code: 400, Request ID: 908568c6-2c47-44d9-8a89-5ef425f18a3f) (SDK Attempt Count: 1)" (RequestToken: 90ec920d-1f13-39a5-3192-1738db971bba, HandlerErrorCode: InvalidRequest)
+
+NOTICES         (What's this? https://github.com/aws/aws-cdk/wiki/CLI-Notices)
+
+34892	CDK CLI will collect telemetry data on command usage starting at version 2.1100.0 (unless opted out)
+
+	Overview: We do not collect customer content and we anonymize the
+	          telemetry we do collect. See the attached issue for more
+	          information on what data is collected, why, and how to
+	          opt-out. Telemetry will NOT be collected for any CDK CLI
+	          version prior to version 2.1100.0 - regardless of
+	          opt-in/out. You can also preview the telemetry we will start
+	          collecting by logging it to a local file, by adding
+	          `--unstable=telemetry --telemetry-file=my/local/file` to any
+	          `cdk` command.
+
+	Affected versions: cli: >=2.0.0 <2.1100.0
+
+	More information at: https://github.com/aws/aws-cdk/issues/34892
+
+
+If you don’t want to see a notice anymore, use "cdk acknowledge <id>". For example, "cdk acknowledge 34892".
+❌  RapidStack failed: ToolkitError: The stack named RapidStack failed creation, it may need to be manually deleted from the AWS console: ROLLBACK_FAILED (The following resource(s) failed to delete: [ReviewProcessorReviewAgentMemoryBAD64FAC]. ): Resource handler returned message: "Resource of type 'AWS::CloudFront::OriginAccessControl' with identifier 'RapidStackFrontendDistributiOrigin1S3OriginAccessControlF2A7A224' already exists." (RequestToken: eff4892d-08af-4303-9155-0eee36af3b42, HandlerErrorCode: AlreadyExists), Resource handler returned message: "Validation failed during DeleteMemory: Memory is in transitional state CREATING. Cannot update memory. (Service: BedrockAgentCoreControl, Status Code: 400, Request ID: 908568c6-2c47-44d9-8a89-5ef425f18a3f) (SDK Attempt Count: 1)" (RequestToken: 90ec920d-1f13-39a5-3192-1738db971bba, HandlerErrorCode: InvalidRequest)
