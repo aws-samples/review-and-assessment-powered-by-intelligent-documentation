@@ -276,6 +276,70 @@
           "imagePath": "/examples/images/use_case_006_ja/knowledge_006_ja.jpg"
         }
       ]
+    },
+    {
+      "id": "use_case_007_ja",
+      "name": "新薬承認申請レビュー",
+      "tags": ["healthcare"],
+      "description": "医薬品規制当局による新薬承認申請書類のICH M4（CTD）形式準拠確認。審査ガイドラインをナレッジベースで参照しながらAI審査を実施。",
+      "hasKnowledgeBase": true,
+      "githubUrl": "https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/tree/main/examples/ja#ユースケース-007新薬承認申請レビュー",
+      "files": [
+        {
+          "id": "checklist_007_ja",
+          "name": "新薬承認申請チェックリスト.pdf",
+          "type": "checklist",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/新薬承認申請チェックリスト.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/checklist_007_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/checklist_007_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/checklist_007_ja.jpg"
+        },
+        {
+          "id": "review_007_ja",
+          "name": "CTD_2.5_臨床に関する概括評価.pdf",
+          "type": "review",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/CTD_2.5_臨床に関する概括評価.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/review_007_ja_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/review_007_ja_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/review_007_ja.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_1",
+          "name": "ICH_M4_CTD構成ガイドライン.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/ICH_M4_CTD構成ガイドライン.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_1_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_1_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_1.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_2",
+          "name": "新医薬品承認審査の基本的考え方.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/新医薬品承認審査の基本的考え方.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_2_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_2_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_2.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_3",
+          "name": "ICH_E3_臨床試験報告書の構造と内容.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/ICH_E3_臨床試験報告書の構造と内容.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_3_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_3_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_3.jpg"
+        },
+        {
+          "id": "knowledge_007_ja_4",
+          "name": "医薬品リスク管理計画（RMP）策定ガイドライン.pdf",
+          "type": "knowledge",
+          "url": "https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/examples/ja/ユースケース007_新薬承認申請レビュー/knowledge_base_sources/医薬品リスク管理計画（RMP）策定ガイドライン.pdf",
+          "thumbnailPath": "/examples/thumbnails/use_case_007_ja/knowledge_007_ja_4_thumb.jpg",
+          "previewPath": "/examples/previews/use_case_007_ja/knowledge_007_ja_4_preview.jpg",
+          "imagePath": "/examples/images/use_case_007_ja/knowledge_007_ja_4.jpg"
+        }
+      ]
     }
   ]
 }
