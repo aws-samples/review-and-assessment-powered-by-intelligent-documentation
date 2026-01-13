@@ -168,10 +168,11 @@ Tool Configuration画面で以下を追加:
 
 ```json
 {
-  "mcpServers": {
-    "aws-api": {
-      "command": "uvx",
-      "args": ["mcp-server-aws-api"]
+  "awslabs.aws-api-mcp-server": {
+    "command": "uvx",
+    "args": ["awslabs.aws-api-mcp-server@latest"],
+    "env": {
+      "AWS_REGION": "us-east-1"
     }
   }
 }

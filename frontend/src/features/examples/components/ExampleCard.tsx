@@ -16,7 +16,8 @@ export default function ExampleCard({ example }: ExampleCardProps) {
   const { t } = useTranslation();
 
   const fileCount = example.files.length;
-  const hasKnowledge = example.hasKnowledgeBase;
+  const setupTypes = example.setupTypes || [];
+  const hasSetup = setupTypes.length > 0;
 
   return (
     <div className="bg-white dark:bg-aws-squid-ink-dark rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
@@ -26,27 +27,23 @@ export default function ExampleCard({ example }: ExampleCardProps) {
           <h3 className="text-lg font-semibold text-aws-font-color-light dark:text-aws-font-color-white-dark">
             {example.name}
           </h3>
-          {hasKnowledge && (
+          {hasSetup && (
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
                 <span>⚙️</span>
-                <span>{t("examples.hasKnowledgeBase")}</span>
+                <span>{t("examples.setupRequired")}</span>
                 {example.githubUrl && (
                   <a
                     href={example.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-orange-600 dark:text-orange-400 hover:opacity-70 transition-opacity"
-                    aria-label={t("examples.setupInstructions")}
                   >
                     <HiExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
               </span>
-              <HelpIcon
-                content={t("examples.hasKnowledgeBaseTooltip")}
-                position="top"
-              />
+              <HelpIcon content={t("examples.setupTooltip")} position="top" />
             </div>
           )}
         </div>

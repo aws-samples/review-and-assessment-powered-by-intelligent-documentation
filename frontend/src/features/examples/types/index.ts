@@ -15,6 +15,11 @@ export type ExampleTag =
 export type FileType = "checklist" | "review" | "knowledge";
 
 /**
+ * セットアップの種類
+ */
+export type SetupType = "knowledge-base" | "mcp";
+
+/**
  * サンプルファイル
  */
 export interface ExampleFile {
@@ -33,7 +38,7 @@ export interface Example {
   name: string;
   tags: ExampleTag[];
   description: string;
-  hasKnowledgeBase?: boolean;
+  setupTypes?: SetupType[];
   githubUrl?: string;
   files: ExampleFile[];
 }
