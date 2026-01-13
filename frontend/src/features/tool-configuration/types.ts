@@ -36,7 +36,7 @@ export interface ToolConfiguration {
   description?: string;
   knowledgeBase?: KnowledgeBaseConfig[];
   codeInterpreter: boolean;
-  mcpConfig?: MCPServers;  // Record<string, MCPServerConfig>
+  mcpConfig?: MCPServers; // Record<string, MCPServerConfig>
   createdAt: string;
   updatedAt: string;
   usageCount?: number;
@@ -47,7 +47,7 @@ export interface CreateToolConfigurationRequest {
   description?: string;
   knowledgeBase?: KnowledgeBaseConfig[];
   codeInterpreter: boolean;
-  mcpConfig?: MCPServers;  // Record<string, MCPServerConfig>
+  mcpConfig?: MCPServers; // Record<string, MCPServerConfig>
 }
 
 export interface PreviewToolsResult {
