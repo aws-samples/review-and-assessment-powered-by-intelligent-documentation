@@ -73,6 +73,18 @@ export class Api extends Construct {
       })
     );
 
+    // Gateway呼び出し権限（UC008 AWS Security Audit Gateway用）
+    handlerRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "InvokeGatewayForAwsSecurityAudit",
+        effect: iam.Effect.ALLOW,
+        actions: ["bedrock-agentcore:InvokeGateway"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${region}:${accountId}:gateway/*`,
+        ],
+      })
+    );
+
     // Lambda 関数の作成
     this.apiLambda = new lambda.DockerImageFunction(this, "ApiFunction", {
       role: handlerRole,

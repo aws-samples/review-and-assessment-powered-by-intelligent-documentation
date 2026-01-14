@@ -202,6 +202,18 @@ export class Agent extends Construct {
       })
     );
 
+    // Gateway呼び出し権限（UC008 AWS Security Audit Gateway用）
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "InvokeGatewayForAwsSecurityAudit",
+        effect: Effect.ALLOW,
+        actions: ["bedrock-agentcore:InvokeGateway"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${region}:${accountId}:gateway/*`,
+        ],
+      })
+    );
+
     // Note: currently memory is not used
     const memory = new CfnMemory(this, "Memory", {
       name: Names.uniqueResourceName(this, { maxLength: 40 }),
