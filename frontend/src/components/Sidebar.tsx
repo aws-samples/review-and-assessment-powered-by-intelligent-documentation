@@ -13,6 +13,7 @@ import {
   HiChevronDown,
   HiChevronRight,
   HiAnnotation,
+  HiDownload,
 } from "react-icons/hi";
 import { useAuth } from "../contexts/AuthContext";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -91,6 +92,20 @@ export default function Sidebar() {
                   onClick={() => setIsOpen(false)}>
                   <HiDocumentText className="mr-3 h-5 w-5" />
                   {t("sidebar.review")}
+                </Link>
+              </li>
+
+              <li className="mb-1">
+                <Link
+                  to="/examples"
+                  className={`flex items-center rounded-md px-4 py-3 transition-colors ${
+                    isActive("/examples")
+                      ? "bg-aws-sea-blue-light text-aws-font-color-white-light"
+                      : "text-aws-font-color-white-light hover:bg-aws-sea-blue-hover-light"
+                  }`}
+                  onClick={() => setIsOpen(false)}>
+                  <HiDownload className="mr-3 h-5 w-5" />
+                  {t("sidebar.examples")}
                 </Link>
               </li>
 
