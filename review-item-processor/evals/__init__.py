@@ -18,7 +18,11 @@ from .experiments import (
     create_comprehensive_experiment,
     create_tool_efficiency_experiment,
 )
-from .metrics import calculate_calibration_metrics, calculate_sklearn_metrics
+from .metrics import (
+    calculate_calibration_metrics,
+    calculate_explanation_quality_metrics,
+    calculate_sklearn_metrics,
+)
 from .wrapper import (
     ReviewAgentInput,
     ReviewAgentOutput,
@@ -46,4 +50,5 @@ __all__ = [
     # Post-processing metrics
     "calculate_sklearn_metrics",
     "calculate_calibration_metrics",
+    "calculate_explanation_quality_metrics",
 ]

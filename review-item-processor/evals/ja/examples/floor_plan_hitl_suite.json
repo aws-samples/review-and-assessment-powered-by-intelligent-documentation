@@ -1,0 +1,116 @@
+[
+  {
+    "name": "FP001-building-a-clear-compliant",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Aの消防設備コンプライアンス",
+      "check_description": "建物Aに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "pass"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.90, 1.0],
+      "pdf_page": 1,
+      "description": "明確な準拠ケース - 明示的な証拠あり"
+    }
+  },
+  {
+    "name": "FP002-building-b-clear-violation",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Bの消防設備コンプライアンス",
+      "check_description": "建物Bに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.90, 1.0],
+      "pdf_page": 2,
+      "description": "明確な違反ケース - 明示的な非準拠"
+    }
+  },
+  {
+    "name": "FP003-building-c-vague-compliant",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Cの消防設備コンプライアンス",
+      "check_description": "建物Cに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "pass"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.45, 0.60],
+      "pdf_page": 3,
+      "description": "曖昧な準拠ケース - 一般的な記述のみで具体的な証拠なし"
+    }
+  },
+  {
+    "name": "FP004-building-d-incomplete-info",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Dの消防設備コンプライアンス",
+      "check_description": "建物Dに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.40, 0.55],
+      "pdf_page": 4,
+      "description": "不完全な情報ケース - コンプライアンスを検証するには不十分なデータ"
+    }
+  },
+  {
+    "name": "FP005-building-e-partial-compliance",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Eの消防設備コンプライアンス",
+      "check_description": "建物Eに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.65, 0.75],
+      "pdf_page": 5,
+      "description": "部分的コンプライアンスケース - 混在する証拠と明示的な不備"
+    }
+  },
+  {
+    "name": "FP006-building-f-subtle-violation",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Fの消防設備コンプライアンス",
+      "check_description": "建物Fに必要なすべての消防設備(消火器、非常灯、出口標識)が建築基準に従って適切に設置され文書化されていることを確認。建築基準では、非常灯のバッテリーバックアップ時間は最低60分必要",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.70, 0.85],
+      "pdf_page": 6,
+      "description": "重要テストケース: 微妙な違反(45分バックアップ vs 60分必要)がポジティブな文脈に埋もれている - 高信頼度での危険な偽陰性をテスト"
+    }
+  }
+]

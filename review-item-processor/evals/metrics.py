@@ -361,3 +361,46 @@ def calculate_calibration_metrics(report: EvaluationReport, high_confidence_thre
         "safe_operating_threshold": safe_threshold,
         "total_cases": len(confidences),
     }
+
+
+def calculate_explanation_quality_metrics(report: EvaluationReport) -> dict[str, Any]:
+    """
+    Calculate explanation quality metrics from OutputEvaluator report.
+
+    Args:
+        report: EvaluationReport from OutputEvaluator (LLM-as-judge)
+
+    Returns:
+        Dictionary with explanation quality metrics
+    """
+    if not report.scores:
+        return {"error": "No explanation quality scores"}
+
+    scores = report.scores
+    mean_score = float(np.mean(scores))
+    min_score = float(np.min(scores))
+    max_score = float(np.max(scores))
+
+    # Count low quality explanations (score < 0.5)
+    low_quality_count = sum(1 for s in scores if s < 0.5)
+
+    # Identify cases with low explanation quality
+    low_quality_cases = []
+    for i, (score, test_pass) in enumerate(zip(scores, report.test_passes)):
+        if score < 0.5:
+            case_dict = report.cases[i] if i < len(report.cases) else {}
+            low_quality_cases.append({
+                "case_index": i,
+                "case_name": case_dict.get("name", f"case_{i}") if isinstance(case_dict, dict) else f"case_{i}",
+                "score": score,
+                "test_pass": test_pass,
+            })
+
+    return {
+        "mean_score": mean_score,
+        "min_score": min_score,
+        "max_score": max_score,
+        "low_quality_count": low_quality_count,
+        "low_quality_cases": low_quality_cases,
+        "total_cases": len(scores),
+    }

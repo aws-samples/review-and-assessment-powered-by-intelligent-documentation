@@ -1,5 +1,7 @@
 # RAPID Review Agent Evaluation
 
+English | [日本語](./ja/README.md)
+
 Quick evaluation framework for testing the review agent's accuracy, recall, and confidence calibration.
 
 ---

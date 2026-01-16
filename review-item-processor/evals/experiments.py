@@ -31,11 +31,7 @@ Usage:
 from typing import Any
 
 from strands_evals import Case, Experiment
-from strands_evals.evaluators import (
-    FaithfulnessEvaluator,
-    OutputEvaluator,
-    ToolSelectionAccuracyEvaluator,
-)
+from strands_evals.evaluators import OutputEvaluator
 
 from .evaluators import AccuracyEvaluator, ConfidenceCalibrationEvaluator
 from .wrapper import ReviewAgentInput
@@ -102,7 +98,6 @@ Return a score between 0.0 and 1.0, where:
 Provide your reasoning for the score.
 """
         ),
-        FaithfulnessEvaluator(),
     ]
 
     return Experiment(
@@ -130,7 +125,6 @@ def create_tool_efficiency_experiment(
     """
     evaluators = [
         AccuracyEvaluator(),
-        ToolSelectionAccuracyEvaluator(),
         OutputEvaluator(
             rubric="""
 Evaluate tool usage efficiency on a scale of 0.0 to 1.0 based on:
@@ -191,9 +185,6 @@ Evaluate explanation quality (0.0-1.0) based on clarity, evidence, completeness,
 See accuracy experiment rubric for detailed criteria.
 """
         ),
-        FaithfulnessEvaluator(),
-        # Dimension 4: Tool Usage (for cases with tools)
-        ToolSelectionAccuracyEvaluator(),
     ]
 
     return Experiment(

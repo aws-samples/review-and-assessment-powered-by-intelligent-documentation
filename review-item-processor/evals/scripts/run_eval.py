@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evals import (
     calculate_calibration_metrics,
+    calculate_explanation_quality_metrics,
     calculate_sklearn_metrics,
     create_accuracy_experiment,
     create_comprehensive_experiment,
@@ -136,6 +137,7 @@ def main():
         # Match reports to evaluators by order (EvaluationReport doesn't have evaluator_label)
         accuracy_report = None
         calibration_report = None
+        output_evaluator_report = None
 
         for i, report in enumerate(reports):
             evaluator_name = experiment.evaluators[i].get_type_name()
@@ -144,6 +146,8 @@ def main():
                 accuracy_report = report
             elif evaluator_name == "ConfidenceCalibrationEvaluator":
                 calibration_report = report
+            elif evaluator_name == "OutputEvaluator":
+                output_evaluator_report = report
 
         # Calculate sklearn metrics from AccuracyEvaluator
         if accuracy_report:
@@ -163,62 +167,65 @@ def main():
             else:
                 print(f"⚠️  Calibration metrics error: {calibration_metrics['error']}")
 
+        # Calculate explanation quality metrics from OutputEvaluator
+        if output_evaluator_report:
+            explanation_metrics = calculate_explanation_quality_metrics(output_evaluator_report)
+            if "error" not in explanation_metrics:
+                aggregated["OutputEvaluator"] = explanation_metrics
+                print("✓ Explanation quality metrics calculated")
+            else:
+                print(f"⚠️  Explanation quality metrics error: {explanation_metrics['error']}")
+
         print()
 
         # Format case results for storage
         all_reports = []
-        for case in test_cases:
-            # Find case results in reports
+        for case_idx, case in enumerate(test_cases):
+            # Build case data
             case_data = {
                 "case_name": case.name,
                 "metadata": case.metadata,
             }
 
-            # Extract evaluations from reports
-            evaluations = {}
-            for i, report in enumerate(reports):
-                evaluator_name = experiment.evaluators[i].get_type_name()
-                # Find this case's evaluation
-                for eval_case in report.cases:
-                    # Match by checking if the actual output matches
-                    # (This is a simplified approach; in production you'd want better matching)
-                    # Handle both dict and object access patterns
-                    if isinstance(eval_case, dict):
-                        eval_outputs = eval_case.get('evaluation_outputs', [])
-                        evaluations[evaluator_name] = {
-                            "score": eval_outputs[0]['score'] if eval_outputs else 0,
-                            "details": eval_outputs[0].get('reason', '') if eval_outputs else "",
+            # Extract agent output from first report (all reports share same cases)
+            if reports and reports[0].cases and case_idx < len(reports[0].cases):
+                eval_case = reports[0].cases[case_idx]
+                # Handle both dict and object access patterns
+                if isinstance(eval_case, dict):
+                    actual_output = eval_case.get('actual_output', {})
+                    if isinstance(actual_output, dict):
+                        case_data["agent_output"] = {
+                            "result": actual_output.get('result'),
+                            "confidence": actual_output.get('confidence'),
+                            "explanation": actual_output.get('explanation'),
+                            "short_explanation": actual_output.get('shortExplanation') or actual_output.get('short_explanation'),
                         }
-                    else:
-                        evaluations[evaluator_name] = {
-                            "score": eval_case.evaluation_outputs[0].score if eval_case.evaluation_outputs else 0,
-                            "details": eval_case.evaluation_outputs[0].reason if eval_case.evaluation_outputs else "",
+                else:
+                    if hasattr(eval_case, 'actual_output') and hasattr(eval_case.actual_output, 'result'):
+                        case_data["agent_output"] = {
+                            "result": eval_case.actual_output.result,
+                            "confidence": eval_case.actual_output.confidence,
+                            "explanation": eval_case.actual_output.explanation,
+                            "short_explanation": eval_case.actual_output.short_explanation,
                         }
-                    break
 
-            # Extract agent output from first report
-            if reports and reports[0].cases:
-                for eval_case in reports[0].cases:
-                    # Handle both dict and object access patterns
-                    if isinstance(eval_case, dict):
-                        actual_output = eval_case.get('actual_output', {})
-                        if isinstance(actual_output, dict) and 'result' in actual_output:
-                            case_data["agent_output"] = {
-                                "result": actual_output.get('result'),
-                                "confidence": actual_output.get('confidence'),
-                                "explanation": actual_output.get('explanation'),
-                                "short_explanation": actual_output.get('shortExplanation') or actual_output.get('short_explanation'),
-                            }
-                            break
-                    else:
-                        if hasattr(eval_case.actual_output, 'result'):
-                            case_data["agent_output"] = {
-                                "result": eval_case.actual_output.result,
-                                "confidence": eval_case.actual_output.confidence,
-                                "explanation": eval_case.actual_output.explanation,
-                                "short_explanation": eval_case.actual_output.short_explanation,
-                            }
-                            break
+            # Extract evaluations from each evaluator's report
+            evaluations = {}
+            for evaluator_idx, report in enumerate(reports):
+                evaluator_name = experiment.evaluators[evaluator_idx].get_type_name()
+
+                # Use indexed access - reports are ordered and aligned with test_cases
+                if case_idx < len(report.scores):
+                    # Get score, reason, and pass/fail for this case
+                    score = report.scores[case_idx] if case_idx < len(report.scores) else 0
+                    reason = report.reasons[case_idx] if case_idx < len(report.reasons) else ""
+                    test_pass = report.test_passes[case_idx] if case_idx < len(report.test_passes) else False
+
+                    evaluations[evaluator_name] = {
+                        "score": score,
+                        "details": reason,
+                        "pass": test_pass,
+                    }
 
             case_data["evaluations"] = evaluations
             all_reports.append(case_data)
@@ -244,8 +251,8 @@ def main():
             output_file = results_dir / f"results_{timestamp}.json"
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, "w") as f:
-            json.dump(results, f, indent=2)
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
 
         print(f"\n✓ Results saved to: {output_file}")
 
@@ -281,6 +288,17 @@ def main():
                 print(f"\n✓ Safe Threshold:           {rec['threshold']}")
                 print(f"  → Accuracy above threshold: {rec['accuracy']:.0%}")
                 print(f"  → FN rate above threshold:  {rec['false_negative_rate']:.1%}")
+
+        # Display explanation quality metrics (optional, LLM-as-judge)
+        if "OutputEvaluator" in aggregated:
+            exp_metrics = aggregated["OutputEvaluator"]
+            print(f"\n{'=' * 60}")
+            print("EXPLANATION QUALITY (LLM-as-Judge)")
+            print("=" * 60)
+            print(f"Mean Score:         {exp_metrics.get('mean_score', 0):.2f}/1.0")
+            print(f"Min Score:          {exp_metrics.get('min_score', 0):.2f}")
+            print(f"Max Score:          {exp_metrics.get('max_score', 0):.2f}")
+            print(f"Low Quality Count:  {exp_metrics.get('low_quality_count', 0)} (score < 0.5)")
 
         print("\n" + "=" * 60)
 
