@@ -170,10 +170,50 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
 
     const runtimeTaskRole = new iam.Role(this, 'RuntimeTaskRole', {
       assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
-      ],
     });
+
+    // Security audit permissions
+    runtimeTaskRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'SecurityAuditReadAccess',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          // RDS
+          'rds:Describe*',
+          // S3
+          's3:Get*',
+          's3:List*',
+          // IAM
+          'iam:Get*',
+          'iam:List*',
+          'iam:GenerateCredentialReport',
+          // CloudTrail
+          'cloudtrail:Describe*',
+          'cloudtrail:Get*',
+          'cloudtrail:List*',
+          'cloudtrail:LookupEvents',
+          // EC2/VPC
+          'ec2:Describe*',
+          // Config
+          'config:Describe*',
+          'config:Get*',
+          'config:List*',
+          // GuardDuty
+          'guardduty:Get*',
+          'guardduty:List*',
+          // CloudWatch Logs
+          'logs:Describe*',
+          'logs:Get*',
+          'logs:FilterLogEvents',
+          // SNS/SQS (for notification audits)
+          'sns:Get*',
+          'sns:List*',
+          'sqs:Get*',
+          'sqs:List*',
+        ],
+        resources: ['*'],
+      })
+    );
 
     // =================================================================
     // SECTION 5: AgentCore Runtime (L2 Construct)

@@ -1,0 +1,46 @@
+{
+  "tools": [
+    {
+      "name": "call_aws",
+      "description": "Execute AWS CLI commands with validation and error handling. Supports all AWS services including RDS, S3, IAM, CloudTrail, EC2, Config, GuardDuty.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "AWS CLI command to execute (e.g., 'aws rds describe-db-instances', 'aws s3api list-buckets')"
+          }
+        },
+        "required": ["command"]
+      }
+    },
+    {
+      "name": "suggest_aws_commands",
+      "description": "Recommends AWS CLI commands based on natural language queries. Provides the complete set of parameters for the 5 most likely commands.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language description of what you want to do (e.g., 'list all RDS instances with encryption status')"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "get_execution_plan",
+      "description": "Experimental tool that provides structured workflows for complex AWS tasks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Description of complex AWS task requiring multiple steps"
+          }
+        },
+        "required": ["task"]
+      }
+    }
+  ]
+}
