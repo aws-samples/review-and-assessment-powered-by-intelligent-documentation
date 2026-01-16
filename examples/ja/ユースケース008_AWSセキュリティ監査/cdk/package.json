@@ -17,7 +17,10 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.222.0",
-    "constructs": "^10.0.0"
+    "aws-cdk-lib": "2.234.1",
+    "constructs": "^10.0.0",
+    "@aws-cdk/aws-bedrock-agentcore-alpha": "2.234.1-alpha.0",
+    "@aws-sdk/client-bedrock-agentcore-control": "^3.0.0",
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
   }
 }

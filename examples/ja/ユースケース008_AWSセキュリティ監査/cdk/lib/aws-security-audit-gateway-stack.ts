@@ -1,11 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
 import { Aws, Names } from 'aws-cdk-lib';
-import * as agentcore from 'aws-cdk-lib/aws-bedrockagentcore';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as agentcore from '@aws-cdk/aws-bedrock-agentcore-alpha';
+import * as cfnAgentcore from 'aws-cdk-lib/aws-bedrockagentcore';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as cr from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 import * as path from 'path';
-import * as fs from 'fs';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 export class AwsSecurityAuditGatewayStack extends cdk.Stack {
   public readonly gatewayEndpoint: string;
@@ -17,12 +19,189 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
     const region = cdk.Stack.of(this).region;
     const accountId = cdk.Stack.of(this).account;
 
-    // 1. Create Gateway IAM role
+    // ========================================================================
+    // IMPORTANT: Fixed unique ID (must be stable across deployments)
+    //
+    // - Do NOT use timestamps or random values (Cognito Domain creation fails)
+    // - Use a fixed string that doesn't change between deployments
+    // - Cognito domain prefix will be: uc8-rt-{uniqueId}
+    //
+    // If deployment fails with "Domain already exists" error:
+    //   Change "uc008" to another value (e.g., "uc008v2", "uc008-yourname")
+    // ========================================================================
+    const uniqueId = "uc008";
+
+    // =================================================================
+    // SECTION 1: Runtime Cognito (M2M)
+    // =================================================================
+
+    const runtimeUserPool = new cognito.UserPool(this, 'RuntimeUserPool', {
+      userPoolName: `uc8-runtime-${uniqueId}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Add Cognito Domain for OAuth2 token endpoint
+    const poolDomain = runtimeUserPool.addDomain('RuntimeDomain', {
+      cognitoDomain: {
+        domainPrefix: `uc8-rt-${uniqueId}`,
+      },
+    });
+
+    const resourceServer = new cognito.UserPoolResourceServer(
+      this,
+      'ResourceServer',
+      {
+        userPool: runtimeUserPool,
+        identifier: `runtime-${uniqueId}`,
+        scopes: [
+          {
+            scopeName: 'tools',
+            scopeDescription: 'Access MCP tools',
+          },
+        ],
+      }
+    );
+
+    const toolsScope = new cognito.ResourceServerScope({
+      scopeName: 'tools',
+      scopeDescription: 'Access MCP tools',
+    });
+
+    const m2mClient = new cognito.UserPoolClient(this, 'M2MClient', {
+      userPool: runtimeUserPool,
+      generateSecret: true,
+      oAuth: {
+        flows: { clientCredentials: true },
+        scopes: [
+          cognito.OAuthScope.resourceServer(resourceServer, toolsScope),
+        ],
+      },
+    });
+
+    // =================================================================
+    // SECTION 2: Get Client Secret (Custom Resource)
+    // =================================================================
+
+    const describeClient = new cr.AwsCustomResource(this, 'GetClientSecret', {
+      onCreate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'describeUserPoolClient',
+        parameters: {
+          UserPoolId: runtimeUserPool.userPoolId,
+          ClientId: m2mClient.userPoolClientId,
+        },
+        physicalResourceId: cr.PhysicalResourceId.of('DescribeRuntimeClient'),
+      },
+      policy: cr.AwsCustomResourcePolicy.fromStatements([
+        new iam.PolicyStatement({
+          actions: ['cognito-idp:DescribeUserPoolClient'],
+          resources: [runtimeUserPool.userPoolArn],
+        }),
+      ]),
+    });
+
+    const clientSecret = describeClient.getResponseField(
+      'UserPoolClient.ClientSecret'
+    );
+    const discoveryUrl = `https://cognito-idp.${region}.amazonaws.com/${runtimeUserPool.userPoolId}/.well-known/openid-configuration`;
+
+    // =================================================================
+    // SECTION 3: OAuth2 Credential Provider (Custom Resource)
+    // =================================================================
+
+    const oauth2Provider = new cr.AwsCustomResource(this, 'OAuth2ProviderV2', {
+      onCreate: {
+        service: 'bedrock-agentcore-control',
+        action: 'createOauth2CredentialProvider',
+        parameters: {
+          name: `oauth-uc8-${uniqueId}`,
+          credentialProviderVendor: 'CustomOauth2',
+          oauth2ProviderConfigInput: {
+            customOauth2ProviderConfig: {
+              oauthDiscovery: { discoveryUrl },
+              clientId: m2mClient.userPoolClientId,
+              clientSecret,
+            },
+          },
+        },
+        physicalResourceId: cr.PhysicalResourceId.fromResponse(
+          'credentialProviderArn'
+        ),
+      },
+      onUpdate: {
+        service: 'bedrock-agentcore-control',
+        action: 'createOauth2CredentialProvider',
+        parameters: {
+          name: `oauth-uc8-${uniqueId}`,
+          credentialProviderVendor: 'CustomOauth2',
+          oauth2ProviderConfigInput: {
+            customOauth2ProviderConfig: {
+              oauthDiscovery: { discoveryUrl },
+              clientId: m2mClient.userPoolClientId,
+              clientSecret,
+            },
+          },
+        },
+        physicalResourceId: cr.PhysicalResourceId.fromResponse(
+          'credentialProviderArn'
+        ),
+      },
+      onDelete: {
+        service: 'bedrock-agentcore-control',
+        action: 'deleteOauth2CredentialProvider',
+        parameters: { name: `oauth-uc8-${uniqueId}` },
+      },
+      policy: cr.AwsCustomResourcePolicy.fromStatements([
+        new iam.PolicyStatement({
+          actions: ['bedrock-agentcore:*', 'secretsmanager:*'],
+          resources: ['*'],
+        }),
+      ]),
+      timeout: cdk.Duration.minutes(5),
+    });
+
+    const credentialProviderArn = oauth2Provider.getResponseField(
+      'credentialProviderArn'
+    );
+
+    // =================================================================
+    // SECTION 4: Runtime Task Role
+    // =================================================================
+
+    const runtimeTaskRole = new iam.Role(this, 'RuntimeTaskRole', {
+      assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('ReadOnlyAccess'),
+      ],
+    });
+
+    // =================================================================
+    // SECTION 5: AgentCore Runtime (L2 Construct)
+    // =================================================================
+
+    const runtime = new agentcore.Runtime(this, 'Runtime', {
+      runtimeName: `uc8runtime${uniqueId}`,
+      agentRuntimeArtifact: agentcore.AgentRuntimeArtifact.fromAsset(
+        path.join(__dirname, 'runtime-mcp-server'),
+        { platform: Platform.LINUX_ARM64 }
+      ),
+      protocolConfiguration: agentcore.ProtocolType.MCP,
+      authorizerConfiguration:
+        agentcore.RuntimeAuthorizerConfiguration.usingCognito(runtimeUserPool, [
+          m2mClient,
+        ]),
+      executionRole: runtimeTaskRole,
+    });
+
+    // =================================================================
+    // SECTION 6: Gateway (IAM auth)
+    // =================================================================
+
     const gatewayRole = new iam.Role(this, 'GatewayRole', {
       assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
     });
 
-    // Add necessary Gateway permissions
+    // Add Gateway permissions
     gatewayRole.addToPolicy(
       new iam.PolicyStatement({
         sid: 'GetGateway',
@@ -67,110 +246,78 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
       })
     );
 
-    gatewayRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: 'InvokeLambda',
-        effect: iam.Effect.ALLOW,
-        actions: ['lambda:InvokeFunction'],
-        resources: [`arn:aws:lambda:${region}:${accountId}:function:*`],
-      })
-    );
-
-    // 2. Create AgentCore Gateway with IAM auth
-    const gatewayName = Names.uniqueResourceName(this, {
-      maxLength: 100,
-      separator: '-',
-    }).toLowerCase();
-
-    const gateway = new agentcore.CfnGateway(this, 'Gateway', {
-      name: gatewayName,
+    const gateway = new cfnAgentcore.CfnGateway(this, 'Gateway', {
+      name: `uc8-gateway-${uniqueId}`,
       roleArn: gatewayRole.roleArn,
       authorizerType: 'AWS_IAM',
       protocolType: 'MCP',
       protocolConfiguration: {
         mcp: {
-          instructions: 'Gateway for AWS Security Audit using aws-api-mcp-server',
+          instructions:
+            'Gateway for AWS Security Audit using Runtime MCP server',
           searchType: 'SEMANTIC',
         },
       },
     } as any);
 
-    // 3. Create Lambda Tool (Docker image with Python + Node.js)
-    const lambdaFunction = new lambda.DockerImageFunction(this, 'McpProxyTool', {
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, 'lambda-tool')),
-      timeout: cdk.Duration.seconds(60),
-      memorySize: 512,
-      architecture: lambda.Architecture.ARM_64,
-      environment: {
-        HOME: '/tmp',
-        AWS_CONFIG_FILE: '/tmp/.aws/config',
-        UV_CACHE_DIR: '/tmp/.uv',
-        UV_TOOL_DIR: '/tmp/.uv/tools',
-      },
-    });
+    // =================================================================
+    // SECTION 7: Gateway Target
+    // =================================================================
 
-    // 4. Add 12 IAM permissions for AWS security APIs
-    lambdaFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'rds:DescribeDBInstances',
-          's3:ListBuckets',
-          's3:GetPublicAccessBlock',
-          'iam:ListUsers',
-          'iam:ListMFADevices',
-          'iam:GetAccountPasswordPolicy',
-          'cloudtrail:DescribeTrails',
-          'cloudtrail:GetTrailStatus',
-          'ec2:DescribeVpcs',
-          'ec2:DescribeFlowLogs',
-          'ec2:DescribeSecurityGroups',
-          'ec2:DescribeVolumes',
-          'config:DescribeConfigurationRecorders',
-          'config:DescribeConfigurationRecorderStatus',
-          'guardduty:ListDetectors',
-          'guardduty:GetDetector',
+    // Encode Runtime ARN for URL (using CloudFormation functions for proper token handling)
+    // Replace ':' with '%3A' and '/' with '%2F', then add qualifier parameter
+    const encodedRuntimeArn = cdk.Fn.join('', [
+      'https://bedrock-agentcore.',
+      region,
+      '.amazonaws.com/runtimes/',
+      cdk.Fn.join(
+        '%2F',
+        cdk.Fn.split(
+          '/',
+          cdk.Fn.join('%3A', cdk.Fn.split(':', runtime.agentRuntimeArn))
+        )
+      ),
+      '/invocations?qualifier=DEFAULT',
+    ]);
+
+    const scopeString = `${resourceServer.userPoolResourceServerId}/tools`;
+
+    const gatewayIdToken = cdk.Fn.select(1, cdk.Fn.split('/', gateway.attrGatewayArn));
+
+    const gatewayTarget = new cfnAgentcore.CfnGatewayTarget(
+      this,
+      'GatewayTarget',
+      {
+        name: 'aws-api-mcp-server',
+        gatewayIdentifier: gatewayIdToken,
+        credentialProviderConfigurations: [
+          {
+            credentialProviderType: 'OAUTH',
+            credentialProvider: {
+              oauthCredentialProvider: {
+                providerArn: credentialProviderArn,
+                scopes: [scopeString],
+              },
+            },
+          },
         ],
-        resources: ['*'],
-      })
-    );
-
-    // Grant Gateway permission to invoke Lambda
-    lambdaFunction.grantInvoke(gatewayRole);
-
-    // 5. Load tool schema
-    const schemaPath = path.join(__dirname, 'lambda-tool/tool-schema.json');
-    const schemaContent = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
-
-    // 6. Extract gateway ID from ARN for GatewayTarget
-    const gatewayArn = gateway.attrGatewayArn;
-    const gatewayIdToken = cdk.Fn.select(1, cdk.Fn.split('/', gatewayArn));
-
-    // 7. Register Lambda with Gateway
-    const gatewayTarget = new agentcore.CfnGatewayTarget(this, 'GatewayTarget', {
-      name: 'aws-api-mcp-server',
-      gatewayIdentifier: gatewayIdToken,
-      credentialProviderConfigurations: [
-        {
-          credentialProviderType: 'GATEWAY_IAM_ROLE',
-        },
-      ],
-      targetConfiguration: {
-        mcp: {
-          lambda: {
-            lambdaArn: lambdaFunction.functionArn,
-            toolSchema: {
-              inlinePayload: schemaContent.tools,
+        targetConfiguration: {
+          mcp: {
+            mcpServer: {
+              endpoint: encodedRuntimeArn,
             },
           },
         },
-      },
-    } as any);
+      } as any
+    );
 
-    // 8. Store gateway endpoint and extract ID from ARN
+    // =================================================================
+    // SECTION 8: Outputs
+    // =================================================================
+
     this.gatewayEndpoint = gateway.attrGatewayUrl || '';
 
-    // 9. Create MCP configuration JSON for Stack output (IAM auth with MCP Proxy)
+    // Create MCP configuration JSON for Stack output (IAM auth with MCP Proxy)
     const mcpConfig = {
       'aws-security-audit-gateway': {
         command: 'uvx',
@@ -179,20 +326,39 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
     };
     this.mcpConfigOutput = JSON.stringify(mcpConfig, null, 2);
 
-    // 10. Output gateway information
     new cdk.CfnOutput(this, 'GatewayEndpoint', {
       value: this.gatewayEndpoint,
       description: 'AgentCore Gateway endpoint URL',
     });
 
     new cdk.CfnOutput(this, 'GatewayArn', {
-      value: gatewayArn,
+      value: gateway.attrGatewayArn,
       description: 'AgentCore Gateway ARN (for IAM permissions)',
     });
 
-    new cdk.CfnOutput(this, 'GatewayId', {
-      value: gatewayIdToken,
-      description: 'AgentCore Gateway ID',
+    new cdk.CfnOutput(this, 'RuntimeArn', {
+      value: runtime.agentRuntimeArn,
+      description: 'Runtime ARN',
+    });
+
+    new cdk.CfnOutput(this, 'CognitoDomain', {
+      value: `${poolDomain.domainName}.auth.${region}.amazoncognito.com`,
+      description: 'Cognito Domain for OAuth2 token endpoint',
+    });
+
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: runtimeUserPool.userPoolId,
+      description: 'Runtime User Pool ID',
+    });
+
+    new cdk.CfnOutput(this, 'ClientId', {
+      value: m2mClient.userPoolClientId,
+      description: 'M2M Client ID',
+    });
+
+    new cdk.CfnOutput(this, 'Scope', {
+      value: scopeString,
+      description: 'OAuth2 Scope for token request',
     });
 
     new cdk.CfnOutput(this, 'McpConfiguration', {
@@ -204,7 +370,7 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
       value: JSON.stringify(
         {
           Action: 'bedrock-agentcore:InvokeGateway',
-          Resource: gatewayArn,
+          Resource: gateway.attrGatewayArn,
         },
         null,
         2

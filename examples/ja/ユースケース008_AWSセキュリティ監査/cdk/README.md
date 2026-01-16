@@ -10,8 +10,79 @@ AgentCore Runtime (review-item-processor)
         └─> UC008 MCP Gateway
               └─> Lambda Tool (MCP proxy)
                     └─> aws-api-mcp-server (stdio)
-                          └─> AWS APIs (12 read-only permissions)
+                          └─> AWS APIs (AdministratorAccess)
 ```
+
+## MCP Proxy Architecture
+
+This Gateway uses **MCP Proxy for AWS** to handle IAM authentication transparently:
+
+```
+Backend/AgentCore Runtime
+  └─> mcp-proxy-for-aws (stdio subprocess)
+        └─> [SigV4 signing via AWS SDK]
+              └─> Gateway (IAM auth)
+                    └─> Lambda Tool
+                          └─> aws-api-mcp-server
+                                └─> AWS APIs
+```
+
+**Key Points**:
+- Backend/AgentCore use standard `StdioClientTransport` - no special handling needed
+- MCP Proxy handles SigV4 signing automatically using AWS SDK credentials
+- No manual token passing or special Gateway authentication code
+- IAM credentials managed by AWS SDK in each environment
+- Same code works in both Backend API and AgentCore Runtime
+
+**How It Works**:
+1. Backend/AgentCore starts `uvx mcp-proxy-for-aws <gateway-url>` as subprocess
+2. MCP Proxy accepts standard MCP JSON-RPC over stdin/stdout
+3. MCP Proxy signs requests with SigV4 using IAM credentials from environment
+4. MCP Proxy forwards to Gateway via HTTPS
+5. Gateway validates IAM signature and invokes Lambda tools
+
+**Reference**: https://github.com/aws/mcp-proxy-for-aws
+
+## ⚠️ Security Warning: Admin Permissions
+
+The Lambda Tool has **AdministratorAccess** for comprehensive security audits.
+
+**Why Admin Access**:
+- Security audits require broad read access across all AWS services
+- Enables comprehensive compliance checking beyond the initial 12 API calls
+- Gateway IAM authentication + SigV4 signing provides security layer
+- Lambda is isolated and only accessible via authenticated Gateway
+
+**Security Mitigation**:
+1. **IAM Authentication**: Gateway requires SigV4-signed requests from authorized principals
+2. **Role-Based Access**: Only AgentCore Runtime with proper IAM role can invoke Gateway
+3. **CloudTrail Logging**: All Gateway invocations are logged for audit trails
+4. **Network Isolation**: Lambda has no direct internet access, only AWS API access
+5. **Same-Account Audit**: Lambda queries resources in its own AWS account
+
+**To Restrict Permissions**:
+
+If admin access is too broad for your use case, you can replace it with specific read-only actions in `aws-security-audit-gateway-stack.ts` (line ~119):
+
+```typescript
+// Replace AdministratorAccess with specific permissions
+lambdaFunction.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: [
+      'rds:Describe*',
+      's3:Get*',
+      's3:List*',
+      'iam:Get*',
+      'iam:List*',
+      // Add other read-only actions as needed
+    ],
+    resources: ['*'],
+  })
+);
+```
+
+**Important**: The Gateway Lambda audits the **same AWS account** where RAPID is deployed. No cross-account access is configured.
 
 ## Prerequisites
 
@@ -44,8 +115,10 @@ npx cdk bootstrap
 ### 4. Deploy Stack
 
 ```bash
-npx cdk deploy AwsSecurityAuditGatewayStack
+npx cdk deploy AwsSecurityAuditGatewayStack --region ap-northeast-1
 ```
+
+**Note**: Specify your target region. This example uses `ap-northeast-1` (Tokyo).
 
 ### 5. Get Stack Outputs
 
@@ -97,15 +170,21 @@ npx cdk deploy RapidStack
 
 1. Copy the `McpConfiguration` output from the stack
 2. In RAPID UI, go to Tool Configuration and create new configuration
-3. Paste the MCP configuration:
+3. Paste the MCP configuration (using **Stdio transport with MCP Proxy**):
 
 ```json
 {
   "aws-security-audit-gateway": {
-    "url": "https://xxx.gateway.bedrock-agentcore.us-west-2.amazonaws.com"
+    "command": "uvx",
+    "args": [
+      "mcp-proxy-for-aws",
+      "https://xxx.gateway.bedrock-agentcore.ap-northeast-1.amazonaws.com/mcp"
+    ]
   }
 }
 ```
+
+**Important**: Replace the Gateway URL with your actual Gateway endpoint from stack outputs.
 
 4. Preview to verify 3 tools are available:
    - `call_aws`
@@ -116,20 +195,30 @@ npx cdk deploy RapidStack
 
 1. Upload UC008 checklist (AWSセキュリティ監査チェックリスト.pdf)
 2. Assign the Tool Configuration created above
-3. Upload review documents (AWSアカウント利用申請書.pdf)
+3. Upload review document (システム納品前セキュリティ検証報告書.pdf or similar)
 4. Run review - AgentCore Runtime will call the Gateway with AWS API tools
+5. Gateway Lambda audits the **same AWS account** where RAPID is deployed
 
 ## Stack Outputs Explained
 
 ### McpConfiguration
-Ready-to-copy JSON for Tool Configuration UI:
+Ready-to-copy JSON for Tool Configuration UI (Stdio transport format):
 ```json
 {
   "aws-security-audit-gateway": {
-    "url": "https://xxx.gateway.bedrock-agentcore.us-west-2.amazonaws.com"
+    "command": "uvx",
+    "args": [
+      "mcp-proxy-for-aws",
+      "https://xxx.gateway.bedrock-agentcore.ap-northeast-1.amazonaws.com/mcp"
+    ]
   }
 }
 ```
+
+**How It Works**:
+- `uvx` runs `mcp-proxy-for-aws` as a temporary subprocess
+- MCP Proxy handles SigV4 signing using AWS SDK credentials
+- Backend/AgentCore use standard `StdioClientTransport` - no special code needed
 
 ### IamPermissionRequired
 Permission to add to AgentCore Runtime role:
@@ -152,14 +241,21 @@ The Lambda Tool acts as an MCP proxy:
   - `AWS_CONFIG_FILE=/tmp/.aws/config`
   - `UV_CACHE_DIR=/tmp/.uv`
 
-### IAM Permissions (12 AWS APIs)
-- `rds:DescribeDBInstances` - RDS encryption status
-- `s3:ListBuckets`, `s3:GetPublicAccessBlock` - S3 public access
-- `iam:ListUsers`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy` - IAM security
-- `cloudtrail:DescribeTrails`, `cloudtrail:GetTrailStatus` - CloudTrail logging
-- `ec2:DescribeVpcs`, `ec2:DescribeFlowLogs`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes` - VPC and EC2 security
-- `config:DescribeConfigurationRecorders`, `config:DescribeConfigurationRecorderStatus` - AWS Config
-- `guardduty:ListDetectors`, `guardduty:GetDetector` - GuardDuty threat detection
+### IAM Permissions (AdministratorAccess)
+
+The Lambda function has **AdministratorAccess** managed policy for comprehensive security audits.
+
+**Common Use Cases**:
+- RDS encryption status (`rds:DescribeDBInstances`)
+- S3 public access (`s3:ListBuckets`, `s3:GetPublicAccessBlock`)
+- IAM security (`iam:ListUsers`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`)
+- CloudTrail logging (`cloudtrail:DescribeTrails`, `cloudtrail:GetTrailStatus`)
+- VPC and EC2 security (`ec2:DescribeVpcs`, `ec2:DescribeFlowLogs`, `ec2:DescribeSecurityGroups`)
+- AWS Config (`config:DescribeConfigurationRecorders`)
+- GuardDuty threat detection (`guardduty:ListDetectors`, `guardduty:GetDetector`)
+- **And any other AWS API** for comprehensive compliance checking
+
+**Security**: See "⚠️ Security Warning: Admin Permissions" section above for details on security mitigation
 
 ## Verification
 
