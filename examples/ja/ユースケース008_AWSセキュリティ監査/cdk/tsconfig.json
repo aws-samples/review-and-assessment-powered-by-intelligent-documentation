@@ -27,6 +27,7 @@
   "exclude": [
     "node_modules",
     "cdk.out",
-    "lib/lambda-tool/node_modules"
+    "lib/lambda-tool/node_modules",
+    "lib/runtime-mcp-server"
   ]
 }
