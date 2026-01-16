@@ -11,6 +11,7 @@ interface ModalProps {
   title: React.ReactNode;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  dismissible?: boolean;
 }
 
 export default function Modal({
@@ -19,13 +20,14 @@ export default function Modal({
   title,
   children,
   size = "md",
+  dismissible = true,
 }: ModalProps) {
   const { t } = useTranslation();
 
   // ESCキーでモーダルを閉じる
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen) {
+      if (event.key === "Escape" && isOpen && dismissible) {
         onClose();
       }
     };
@@ -41,7 +43,7 @@ export default function Modal({
       window.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "auto";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, dismissible]);
 
   // モーダルが閉じている場合は何も表示しない
   if (!isOpen) return null;
@@ -69,26 +71,28 @@ export default function Modal({
       {/* オーバーレイ */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
+        {...(dismissible && { onClick: onClose })}
         aria-hidden="true"></div>
 
       {/* モーダルコンテンツ */}
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div
-          className={`${getSizeClass()} w-full transform overflow-hidden rounded-lg bg-white text-left align-middle shadow-xl transition-all`}
+          className={`${getSizeClass()} w-full transform overflow-hidden rounded-lg bg-white dark:bg-aws-squid-ink-dark text-left align-middle shadow-xl transition-all`}
           onClick={(e) => e.stopPropagation()}>
           {/* ヘッダー */}
-          <div className="flex items-center justify-between border-b border-light-gray px-6 py-4">
-            <h3 className="text-lg font-medium text-aws-squid-ink-light">
+          <div className="flex items-center justify-between border-b border-aws-font-color-gray dark:border-aws-font-color-dark px-6 py-4">
+            <h3 className="text-lg font-medium text-aws-font-color-light dark:text-aws-font-color-dark">
               {title}
             </h3>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-gray-500 focus:outline-none"
-              onClick={onClose}>
-              <span className="sr-only">{t("common.close")}</span>
-              <HiX className="h-6 w-6" />
-            </button>
+            {dismissible && (
+              <button
+                type="button"
+                className="text-aws-font-color-gray hover:text-aws-font-color-light dark:hover:text-aws-font-color-dark focus:outline-none"
+                onClick={onClose}>
+                <span className="sr-only">{t("common.close")}</span>
+                <HiX className="h-6 w-6" />
+              </button>
+            )}
           </div>
 
           {/* コンテンツ */}

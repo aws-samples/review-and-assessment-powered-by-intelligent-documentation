@@ -9,3 +9,6 @@ cdk.out
 
 # CDK context - contains environment-specific values
 cdk.context.json
+
+# Log files
+*.log
