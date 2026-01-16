@@ -24,6 +24,7 @@ class ReviewAgentInput:
     check_description: str
     language_name: str = "日本語"
     tool_configuration: dict[str, Any] | None = None
+    fixtures_dir: str | None = None
 
     def to_agent_event(self, fixtures_dir: Path) -> dict[str, Any]:
         """Convert to agent event format with absolute paths."""
@@ -90,19 +91,27 @@ def run_review_agent(
     )
     from strands_tools import file_read, image_reader
 
-    # Get fixtures directory - check multiple locations
-    evals_dir = Path(__file__).parent
-    potential_fixture_dirs = [
-        evals_dir / "examples" / "fixtures",     # Demo files
-        evals_dir / "my_tests" / "fixtures",     # User test files
-        evals_dir / "test_cases" / "fixtures",   # Legacy location
-    ]
+    # Determine fixtures directory
+    if case.input.fixtures_dir:
+        # Use explicit fixtures directory from input
+        fixtures_dir = Path(case.input.fixtures_dir)
+        if not fixtures_dir.is_absolute():
+            evals_dir = Path(__file__).parent
+            fixtures_dir = evals_dir / fixtures_dir
+
+        # NO SEARCH - use exact directory specified
+        potential_fixture_dirs = [fixtures_dir]
+    else:
+        # Fallback: should not reach here if CLI properly sets fixtures_dir
+        raise ValueError(
+            "fixtures_dir must be specified in ReviewAgentInput. "
+            "This should be set by load_test_case_from_json()."
+        )
 
     if use_local_files:
         # Use local file paths directly (faster for testing)
         document_paths = []
         for doc_path in case.input.document_paths:
-            # Try to find file in one of the fixture directories
             found = False
             for fixtures_dir in potential_fixture_dirs:
                 full_path = fixtures_dir / doc_path
@@ -112,10 +121,8 @@ def run_review_agent(
                     break
 
             if not found:
-                # File not found in any fixture directory - raise helpful error
                 raise FileNotFoundError(
-                    f"Document '{doc_path}' not found in any fixture directory. "
-                    f"Checked: {[str(d) for d in potential_fixture_dirs]}"
+                    f"Document '{doc_path}' not found in fixtures directory: {potential_fixture_dirs[0]}"
                 )
     else:
         # Upload to S3 and use S3 paths (production-like testing)
@@ -210,12 +217,16 @@ def run_review_agent(
     )
 
 
-def load_test_case_from_json(json_path: Path) -> Case[ReviewAgentInput, ReviewAgentOutput]:
+def load_test_case_from_json(
+    json_path: Path,
+    fixtures_dir: Path | None = None,
+) -> Case[ReviewAgentInput, ReviewAgentOutput]:
     """
     Load a test case from JSON file.
 
     Args:
         json_path: Path to JSON file
+        fixtures_dir: Directory containing fixture files
 
     Returns:
         Case object for use with Strands Evals
@@ -231,6 +242,7 @@ def load_test_case_from_json(json_path: Path) -> Case[ReviewAgentInput, ReviewAg
         check_description=input_data["check_description"],
         language_name=input_data.get("language_name", "日本語"),
         tool_configuration=input_data.get("tool_configuration"),
+        fixtures_dir=str(fixtures_dir) if fixtures_dir else None,
     )
 
     # Parse expected output (for ground truth comparison)
@@ -245,12 +257,16 @@ def load_test_case_from_json(json_path: Path) -> Case[ReviewAgentInput, ReviewAg
     )
 
 
-def load_test_suite_from_json(json_path: Path) -> list[Case[ReviewAgentInput, ReviewAgentOutput]]:
+def load_test_suite_from_json(
+    json_path: Path,
+    fixtures_dir: Path | None = None,
+) -> list[Case[ReviewAgentInput, ReviewAgentOutput]]:
     """
     Load a test suite (multiple cases) from JSON file.
 
     Args:
         json_path: Path to JSON file containing array of test cases
+        fixtures_dir: Directory containing fixture files
 
     Returns:
         List of Case objects
@@ -269,7 +285,7 @@ def load_test_suite_from_json(json_path: Path) -> list[Case[ReviewAgentInput, Re
                 tmp_path = Path(tmp.name)
 
             try:
-                case = load_test_case_from_json(tmp_path)
+                case = load_test_case_from_json(tmp_path, fixtures_dir=fixtures_dir)
                 cases.append(case)
             finally:
                 tmp_path.unlink()
@@ -277,4 +293,4 @@ def load_test_suite_from_json(json_path: Path) -> list[Case[ReviewAgentInput, Re
         return cases
     else:
         # Single test case
-        return [load_test_case_from_json(json_path)]
+        return [load_test_case_from_json(json_path, fixtures_dir=fixtures_dir)]

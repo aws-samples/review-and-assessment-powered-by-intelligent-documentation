@@ -2,115 +2,85 @@
   {
     "name": "FP001-building-a-clear-compliant",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building A",
       "check_description": "Verify that Building A has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
       "language_name": "English"
     },
     "expected_output": {
       "result": "pass"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.90, 1.0],
-      "pdf_page": 1,
-      "description": "Clear compliant case with explicit evidence"
     }
   },
   {
     "name": "FP002-building-b-clear-violation",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building B",
       "check_description": "Verify that Building B has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
       "language_name": "English"
     },
     "expected_output": {
       "result": "fail"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.90, 1.0],
-      "pdf_page": 2,
-      "description": "Clear violation case with explicit non-compliance"
     }
   },
   {
     "name": "FP003-building-c-vague-compliant",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building C",
       "check_description": "Verify that Building C has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
       "language_name": "English"
     },
     "expected_output": {
       "result": "pass"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.45, 0.60],
-      "pdf_page": 3,
-      "description": "Vague compliant case with general statements but no specific evidence"
     }
   },
   {
     "name": "FP004-building-d-incomplete-info",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building D",
       "check_description": "Verify that Building D has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
       "language_name": "English"
     },
     "expected_output": {
       "result": "fail"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.40, 0.55],
-      "pdf_page": 4,
-      "description": "Incomplete information case - insufficient data to verify compliance"
     }
   },
   {
     "name": "FP005-building-e-partial-compliance",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building E",
       "check_description": "Verify that Building E has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
       "language_name": "English"
     },
     "expected_output": {
       "result": "fail"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.65, 0.75],
-      "pdf_page": 5,
-      "description": "Partial compliance case with mixed evidence and explicit deficiencies"
     }
   },
   {
     "name": "FP006-building-f-subtle-violation",
     "input": {
-      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "document_paths": [
+        "floor_plan_safety_reports.pdf"
+      ],
       "check_name": "Fire Safety Equipment Compliance for Building F",
       "check_description": "Verify that Building F has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented. Building code requires emergency lighting battery backup duration of minimum 60 minutes",
       "language_name": "English"
     },
     "expected_output": {
       "result": "fail"
-    },
-    "metadata": {
-      "category": "safety_compliance",
-      "criticality": "high",
-      "expected_confidence_range": [0.70, 0.85],
-      "pdf_page": 6,
-      "description": "CRITICAL TEST CASE: Subtle violation (45 min backup vs 60 min required) buried in positive context - tests for dangerous false negative at high confidence"
     }
   }
 ]

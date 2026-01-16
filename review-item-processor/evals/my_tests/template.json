@@ -1,7 +1,9 @@
 {
   "name": "TC###-description",
   "input": {
-    "document_paths": ["fixtures/sample_document.pdf"],
+    "document_paths": [
+      "fixtures/sample_document.pdf"
+    ],
     "check_name": "チェック項目名",
     "check_description": "チェック項目の詳細説明",
     "language_name": "日本語",
@@ -13,13 +15,14 @@
   },
   "expected_output": {
     "result": "pass",
-    "confidence_range": [0.8, 1.0],
-    "explanation_keywords": ["キーワード1", "キーワード2"]
-  },
-  "metadata": {
-    "category": "safety_compliance",
-    "criticality": "high",
-    "notes": "Test case description and rationale"
+    "confidence_range": [
+      0.8,
+      1.0
+    ],
+    "explanation_keywords": [
+      "キーワード1",
+      "キーワード2"
+    ]
   },
   "_comments": {
     "tool_configuration_fields": {

@@ -58,6 +58,13 @@ def main():
         help="Path to single test case JSON file",
     )
 
+    # Fixtures directory
+    parser.add_argument(
+        "--fixtures-dir",
+        type=Path,
+        help="Directory containing fixture files (default: {suite_dir}/fixtures/)",
+    )
+
     # Experiment type
     parser.add_argument(
         "--experiment",
@@ -90,14 +97,37 @@ def main():
         import os
         os.chdir(evals_dir)
 
+        # Determine fixtures directory
+        if args.fixtures_dir:
+            # Explicit override
+            fixtures_dir = args.fixtures_dir
+            if not fixtures_dir.is_absolute():
+                fixtures_dir = evals_dir / fixtures_dir
+        else:
+            # Default to suite's directory + /fixtures/
+            if args.suite:
+                suite_parent = args.suite.parent
+                fixtures_dir = suite_parent / "fixtures"
+            else:
+                # Single case - use case file's directory + /fixtures/
+                case_parent = args.case.parent
+                fixtures_dir = case_parent / "fixtures"
+
+        print(f"Using fixtures directory: {fixtures_dir}")
+
+        # Verify it exists
+        if not fixtures_dir.exists():
+            print(f"ERROR: Fixtures directory does not exist: {fixtures_dir}")
+            return 1
+
         # Load test cases
         if args.suite:
             print(f"Loading test suite: {args.suite}")
-            test_cases = load_test_suite_from_json(args.suite)
+            test_cases = load_test_suite_from_json(args.suite, fixtures_dir=fixtures_dir)
             print(f"Loaded {len(test_cases)} test cases")
         else:
             print(f"Loading test case: {args.case}")
-            test_cases = [load_test_case_from_json(args.case)]
+            test_cases = [load_test_case_from_json(args.case, fixtures_dir=fixtures_dir)]
 
         # Create experiment
         print(f"\nCreating {args.experiment} experiment...")
@@ -184,7 +214,14 @@ def main():
             # Build case data
             case_data = {
                 "case_name": case.name,
-                "metadata": case.metadata,
+                "input": {
+                    "document_paths": case.input.document_paths,
+                    "check_name": case.input.check_name,
+                    "check_description": case.input.check_description,
+                    "language_name": case.input.language_name,
+                    "tool_configuration": case.input.tool_configuration,
+                    "fixtures_dir": case.input.fixtures_dir,
+                },
             }
 
             # Extract agent output from first report (all reports share same cases)
