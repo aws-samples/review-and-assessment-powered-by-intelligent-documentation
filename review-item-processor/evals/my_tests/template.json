@@ -1,0 +1,31 @@
+{
+  "name": "TC###-description",
+  "input": {
+    "document_paths": ["fixtures/sample_document.pdf"],
+    "check_name": "チェック項目名",
+    "check_description": "チェック項目の詳細説明",
+    "language_name": "日本語",
+    "tool_configuration": {
+      "codeInterpreter": false,
+      "knowledgeBase": null,
+      "mcpConfig": null
+    }
+  },
+  "expected_output": {
+    "result": "pass",
+    "confidence_range": [0.8, 1.0],
+    "explanation_keywords": ["キーワード1", "キーワード2"]
+  },
+  "metadata": {
+    "category": "safety_compliance",
+    "criticality": "high",
+    "notes": "Test case description and rationale"
+  },
+  "_comments": {
+    "tool_configuration_fields": {
+      "codeInterpreter": "Set to true if agent needs to execute code for calculations or data analysis",
+      "knowledgeBase": "IMPORTANT: This is a LIST! Example: [{\"knowledgeBaseId\": \"KB123ABC\", \"dataSourceIds\": null}] or [{\"knowledgeBaseId\": \"KB-1\", \"dataSourceIds\": [\"source-1\"]}, {\"knowledgeBaseId\": \"KB-2\"}]",
+      "mcpConfig": "Configure MCP tools (contact support for available tools and configuration)"
+    }
+  }
+}

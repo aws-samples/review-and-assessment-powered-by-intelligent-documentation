@@ -1,0 +1,40 @@
+[
+  {
+    "name": "FP001-building-a-clear-compliant",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "Fire Safety Equipment Compliance for Building A",
+      "check_description": "Verify that Building A has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
+      "language_name": "English"
+    },
+    "expected_output": {
+      "result": "pass"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.90, 1.0],
+      "pdf_page": 1,
+      "description": "Clear compliant case with explicit evidence"
+    }
+  },
+  {
+    "name": "FP002-building-b-clear-violation",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "Fire Safety Equipment Compliance for Building B",
+      "check_description": "Verify that Building B has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
+      "language_name": "English"
+    },
+    "expected_output": {
+      "result": "fail"
+    },
+    "metadata": {
+      "category": "safety_compliance",
+      "criticality": "high",
+      "expected_confidence_range": [0.90, 1.0],
+      "pdf_page": 2,
+      "description": "Clear violation case with explicit non-compliance"
+    }
+  }
+]
