@@ -18,7 +18,7 @@ uv sync --extra evals
 事前構築されたデモを実行して動作を確認:
 
 ```bash
-uv run python evals/scripts/run_eval.py --suite ja/examples/quick_start_suite.json
+uv run python evals/scripts/run_eval.py --suite ja/examples/floor_plan_hitl_suite.json
 ```
 
 以下のようなメトリクスが表示されます:
@@ -29,7 +29,7 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/quick_start_suite.js
 
 **何が起きたか?** 3 つの異なるプロンプトパターンで AI エージェントをテストしました(約 1-2 分)。これらのメトリクスの意味については、以下の「コアコンセプト」セクションを参照してください。
 
-**さらに詳しく?** 詳細な 10 ケースのウォークスルーについては、以下の「包括的な例」セクションを参照してください。
+**さらに詳しく?** 詳細なウォークスルーについては、以下の「包括的な例」セクションを参照してください。
 
 ---
 
@@ -89,19 +89,6 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/quick_start_suite.js
   - これが最も危険 - エージェントが確信を持って違反を見逃す
   - 本番 HITL システムでは 0 でなければならない
 
-### 視覚的な例
-
-```
-ドキュメント: 消火器が欠落(違反)
-期待される結果: FAIL
-エージェントの判定: FAIL、信頼度95%
-
-✓ 正しい予測(再現率に貢献)
-✓ 適切な高信頼度(良好なキャリブレーション)
-```
-
-**次へ:** 次のセクションでエージェントプロンプト評価の詳細を参照 →
-
 ---
 
 ## エージェントプロンプト評価
@@ -145,15 +132,11 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/quick_start_suite.js
 
 `agent.py`には複数のプロンプト関数が含まれています:
 
-1. **Document review (legacy format)**: `_get_document_review_prompt_legacy()`
-   - PDFドキュメントレビュー用
-   - extractedTextフィールドを含む
-
-2. **Document review (with citations)**: `_get_document_review_prompt_with_citations()`
+1. **Document review (with citations)**: `_get_document_review_prompt_with_citations()`
    - PDFドキュメントレビュー用
    - citationsフィールド (引用配列) を含む
 
-3. **Image review**: `get_image_review_prompt()`
+2. **Image review**: `get_image_review_prompt()`
    - 画像レビュー用
    - usedImageIndexesとboundingBoxesをサポート
 
@@ -190,88 +173,17 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/quick_start_suite.js
 }
 ```
 
-### 技術者向け: システムプロンプトの評価
-
-**目的**: agent.pyのプロンプト設計が適切に機能しているかをテスト
-
-**テスト内容**:
-- プロンプトの明確性と有効性
-- 信頼度キャリブレーション品質
-- エッジケースの処理 (曖昧なプロンプト、証拠不在)
-- HITL安全性 (critical errorsは必ず0)
-
-**評価アプローチ**:
-- **同じドキュメントで異なるcheck_descriptionをテスト**
-- プロンプトの具体性、明確性、粒度が結果と信頼度に与える影響を測定
-- システムプロンプトの設計原則が機能しているか検証
-
-**なぜこのアプローチ?**
-
-❌ **誤ったアプローチ**: 同じcheck_descriptionで異なるドキュメント品質をテスト
-- → これは「ドキュメント品質ベンチマーク」であり、エージェント評価ではない
-
-✅ **正しいアプローチ**: 同じドキュメントで異なるcheck_descriptionをテスト
-- → エージェントのプロンプト処理能力を評価
-- → システムプロンプトの設計品質を検証
-
-### 非技術者向け: check_descriptionの検証 (副次的用途)
-
-**目的**: 自分が書いたcheck_descriptionの品質を検証
-
-**テスト内容**:
-- check_descriptionの明確性
-- エージェントがドメイン用語を理解できるか
-- 自分のユースケースでの信頼度レベル
-
-**注**: これはオプションです。多くの場合、技術チームがチューニングしたエージェントをそのまま使用すれば十分です。
-
-**次へ:** 次のセクションで実際の CLI での評価例を参照 →
-
 ---
 
-## 包括的な例: プロンプトバリエーション評価
+## 包括的な例: floor_plan_hitl_suite 実行結果の詳細解説
 
-この例は、10 つのプロンプトバリエーションを使用した CLI での完全な評価ワークフローを示します。
-
-**目的**: サンプル評価を通じてプロンプト評価を学ぶ
-
-### Example Test Design Strategy (サンプル設計戦略)
-
-このセクションでは、**サンプルテストスイートがどのように設計されているか**を説明します。これは学習用の例です。
-
-#### なぜBuilding Aを使用?
-
-**Building A (完全準拠ドキュメント)** を使用してプロンプトバリエーションをテスト:
-
-Building Aドキュメントの内容:
-- **消火器**: 8台のABC型消火器 - キッチン(2)、廊下(4)、倉庫(1)、ガレージ(1)
-- **非常灯**: LED非常照明システム、バッテリーバックアップ90分
-- **出口標識**: 6個の照明付き出口標識
-- **点検記録**: 2025年12月に完了、全て合格
-- **総合評価**: FULLY COMPLIANT (完全適合)
-
-#### 10個のテストケースで何をテストするか
-
-| テストケース | プロンプトパターン | 期待される信頼度 | 期待結果 |
-|------------|------------------|---------------|---------|
-| TC001 | 非常に具体的 (1階消火器) | 高 (0.90-1.0) | pass |
-| TC002 | 具体的 (バッテリー60分) | 高 (0.90-1.0) | pass |
-| TC003 | 中程度 (出口標識) | 高 (0.85-0.95) | pass |
-| TC004 | 一般的 (消防設備全般) | 中 (0.75-0.90) | pass |
-| TC005 | 曖昧 (安全設備) | 低-中 (0.55-0.75) | pass |
-| TC006 | 証拠不在 (スプリンクラー) | 高 (0.85-0.95) | fail |
-| TC007 | 証拠不在 (火災警報) | 高 (0.85-0.95) | fail |
-| TC008 | 複数要件 (全設備点検) | 高 (0.85-0.95) | pass |
-| TC009 | 否定形 (期限切れでない) | 高 (0.90-1.0) | pass |
-| TC010 | 数量閾値 (15台以上) | 高 (0.85-0.95) | pass |
-
-各テストケースは異なるプロンプトパターンでエージェントの動作を検証します。
+この例では、3つのテストケースを使用した実際の評価実行とその結果を詳しく解説します。
 
 ### 評価の実行方法
 
 #### 使用ファイル
 
-- **テストスイート**: `ja/examples/floor_plan_hitl_suite.json` (10 テストケース)
+- **テストスイート**: `ja/examples/floor_plan_hitl_suite.json` (3 テストケース)
 - **ドキュメント**: `ja/examples/fixtures/floor_plan_safety_reports.pdf` (1 ページのみ使用: Building A)
 - **正解ラベル**: テストスイート内の事前決定された合格/不合格ラベル
 
@@ -371,17 +283,6 @@ Low Quality Count:  0
 - **0 Critical Errors**: 高信頼度で違反を見逃したことがない
 - **ECE 0.233**: 信頼度が実際の精度とよく一致
 
-**エージェントの信頼度決定ルール:**
-- **明確な証拠あり** → confidence 0.90-1.0 (TC001: pass, TC002: fail)
-- **証拠不在** → confidence 0.40 (TC004) - INSUFFICIENT_INFORMATION_HANDLINGルール
-- プロンプトの曖昧さは検出されない（ドキュメント証拠の明確さが優先）
-
-**3つの必須テストケースで十分な理由:**
-- TC001: High confidence pass (明確な証拠)
-- TC002: High confidence fail (明確な基準違反)
-- TC004: Evidence absent fail (証拠不在、低confidence)
-- この3つでエージェントの主要な振る舞いをすべてカバー
-
 ---
 
 ## カスタマイズ方法: 独自ドキュメントのテスト
@@ -434,7 +335,6 @@ cp evals/my_tests/template.json evals/my_tests/my_suite.json
 
 **オプションフィールド**:
 
-- `metadata`: 追加情報(カテゴリ、重要度など)
 - `tool_configuration`: 高度なユースケース用(References セクション参照)
 
 ### ステップ 3: 正解ラベルの決定
@@ -453,26 +353,22 @@ cp evals/my_tests/template.json evals/my_tests/my_suite.json
 
 **重要**: 正解ラベルは、答えがどうあるべきかであり、エージェントが何と言うかの予想ではありません。
 
-### ステップ 4: 評価の実行
+### ステップ 4: 評価の実行と反復改善
+
+**4.1 初回評価を実行:**
 
 ```bash
 cd review-item-processor
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json
 ```
 
-上記の包括的な例と同様の出力が表示されます。
-
-### ステップ 5: 結果の解釈
-
-**以下の主要メトリクスに注目**:
+**4.2 結果を解釈し、主要メトリクスに注目:**
 
 - **Recall**: エージェントはすべての違反を検出したか?
-
   - 目標: 安全性/コンプライアンスで>95%
   - 低い場合: 偽陰性をレビューし、check_description を改善
 
 - **Precision**: フラグのうち何件が実際の問題か?
-
   - 目標: >80%(いくつかの偽陽性は許容可能)
   - 低い場合: check_description が曖昧すぎないかチェック
 
@@ -480,9 +376,9 @@ uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json
   - 目標: 0(本番環境では必ずゼロ)
   - > 0 の場合: 重大 - すぐにこれらのケースをレビュー
 
-### ステップ 6: さらにテストケースを追加
+**4.3 必要に応じてテストケースを追加し、反復:**
 
-JSON を配列にしてテストスイートを作成:
+結果に基づいてテストスイートを拡張します。JSON を配列にして複数ケースを追加:
 
 ```json
 [
@@ -509,9 +405,9 @@ JSON を配列にしてテストスイートを作成:
 ]
 ```
 
-**推奨**: 有意義なメトリクスを得るには、5-10 のテストケースから始めてください。
+**推奨**: 有意義なメトリクスを得るには、5-10 のテストケースから始めてください。新しいケースを追加したら、評価を再実行して改善を確認します。
 
-### ステップ 7: 結果の保存とレビュー
+### ステップ 5: 結果の保存とレビュー
 
 結果は自動的に`results/results_TIMESTAMP.json`に保存されます。
 
@@ -688,82 +584,6 @@ uv run python evals/scripts/run_eval.py --case my_tests/single_case.json
 # 精度のみ実行(高速)
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --experiment accuracy
 ```
-
-### トラブルシューティング
-
-**"ModuleNotFoundError: No module named 'strands_evals'"**
-
-```bash
-cd review-item-processor
-uv sync --extra evals
-```
-
----
-
-**"Agent execution failed"**
-
-考えられる原因:
-
-- AWS 認証情報が設定されていない: `aws configure`を実行
-- リージョンで Bedrock にアクセスできない
-- ドキュメントパスが正しくない
-
-確認:
-
-1. AWS 認証情報を確認: `aws sts get-caller-identity`
-2. リージョンで Bedrock アクセスを確認
-3. ドキュメントファイルが fixtures ディレクトリに存在することを確認
-
----
-
-**"FileNotFoundError: Document 'xyz.pdf' not found"**
-
-- ファイルが`my_tests/fixtures/`または`ja/examples/fixtures/`にあることを確認
-- テストケースではフルパスではなくファイル名のみを使用
-- ✅ 正しい: `"document_paths": ["my_doc.pdf"]`
-- ❌ 誤り: `"document_paths": ["/full/path/my_doc.pdf"]`
-
----
-
-**メトリクスに"No valid test cases"**
-
-以下を確認:
-
-- `expected_output.result`が"pass"または"fail"(小文字)であること
-- エージェントが有効な結果を返したこと
-- `--verbose`で実行して詳細出力を確認
-
----
-
-**低い Recall (<90%)**
-
-エージェントが違反を見逃しています。試してみる:
-
-1. `check_description`をより具体的かつ詳細にする
-2. 探すべきものの例を追加
-3. ドキュメントの品質が悪い(スキャン画像など)かチェック
-4. 偽陰性ケースをレビューしてパターンを見つける
-
----
-
-**高い偽陽性率 (Precision <70%)**
-
-エージェントが非問題に過度にフラグを立てています。試してみる:
-
-1. 合格基準について`check_description`をより正確にする
-2. 明確化の例を追加
-3. 正解ラベルが正しいかチェック
-
----
-
-**Critical Errors >0**
-
-🚨 **重大**: エージェントが確信を持って違反を見逃しました
-
-1. これらのケースをすぐにレビュー - 最も危険
-2. エージェントがなぜ確信を持っていたのに間違っていたかを理解
-3. これらのケースに対処するために`check_description`を更新
-4. 修正を確認するために評価を再実行
 
 ### 高度なトピック
 
