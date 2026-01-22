@@ -79,18 +79,6 @@ def run_review_agent(
     Raises:
         Exception: If agent execution fails
     """
-    from agent import (
-        _run_agent_with_file_read_tool,
-        _run_agent_with_document_block,
-        get_document_review_prompt,
-        get_image_review_prompt,
-        ENABLE_CITATIONS,
-        DOCUMENT_MODEL_ID,
-        IMAGE_MODEL_ID,
-        IMAGE_FILE_EXTENSIONS,
-    )
-    from strands_tools import file_read, image_reader
-
     # Determine fixtures directory
     if case.input.fixtures_dir:
         # Use explicit fixtures directory from input
@@ -108,106 +96,48 @@ def run_review_agent(
             "This should be set by load_test_case_from_json()."
         )
 
-    if use_local_files:
-        # Use local file paths directly (faster for testing)
-        document_paths = []
-        for doc_path in case.input.document_paths:
-            found = False
-            for fixtures_dir in potential_fixture_dirs:
-                full_path = fixtures_dir / doc_path
-                if full_path.exists():
-                    document_paths.append(str(full_path))
-                    found = True
-                    break
-
-            if not found:
-                raise FileNotFoundError(
-                    f"Document '{doc_path}' not found in fixtures directory: {potential_fixture_dirs[0]}"
-                )
-    else:
-        # Upload to S3 and use S3 paths (production-like testing)
+    if not use_local_files:
         raise NotImplementedError(
             "S3 upload not yet implemented. Use use_local_files=True"
         )
 
-    # Check file types
-    has_images = False
-    for path in document_paths:
-        ext = os.path.splitext(path)[1].lower()
-        if ext in IMAGE_FILE_EXTENSIONS:
-            has_images = True
-            break
+    # Import process_review_from_local
+    from agent import process_review_from_local
 
-    # Select model and prepare prompt
-    if has_images:
-        selected_model_id = IMAGE_MODEL_ID
-        prompt = get_image_review_prompt(
-            case.input.language_name,
-            case.input.check_name,
-            case.input.check_description,
-            selected_model_id
-        )
-        tools = [file_read, image_reader]
-        use_citations = False
-    else:
-        selected_model_id = DOCUMENT_MODEL_ID
-        # Check if model supports citations for PDFs
-        from model_config import ModelConfig
-        model_config = ModelConfig.create(selected_model_id)
-        use_citations = ENABLE_CITATIONS and model_config.supports_citation
+    # Resolve document paths to absolute paths
+    document_paths = []
+    for doc_path in case.input.document_paths:
+        found = False
+        for fixtures_dir in potential_fixture_dirs:
+            full_path = fixtures_dir / doc_path
+            if full_path.exists():
+                document_paths.append(str(full_path))
+                found = True
+                break
 
-        prompt = get_document_review_prompt(
-            case.input.language_name,
-            case.input.check_name,
-            case.input.check_description,
-            use_citations=use_citations
-        )
-        tools = [file_read]
-
-    # Execute agent - use appropriate method based on document type and citation support
-    try:
-        if has_images or not use_citations:
-            # Use file_read_tool for images or models without citation support
-            result = _run_agent_with_file_read_tool(
-                prompt="",  # Empty prompt, system_prompt contains the full prompt
-                file_paths=document_paths,
-                model_id=selected_model_id,
-                system_prompt=prompt,
-                temperature=0.1,
-                base_tools=tools,
-                toolConfiguration=case.input.tool_configuration or {}
+        if not found:
+            raise FileNotFoundError(
+                f"Document '{doc_path}' not found in fixtures directory: {potential_fixture_dirs[0]}"
             )
-        else:
-            # Use document block with citations for PDFs (primary use case)
-            # Create user message for the document
-            files_list = ", ".join([os.path.basename(p) for p in document_paths])
-            user_prompt = f"Please analyze the document(s): {files_list}"
 
-            result = _run_agent_with_document_block(
-                prompt=user_prompt,
-                file_paths=document_paths,
-                model_id=selected_model_id,
-                system_prompt=prompt,
-                temperature=0.1,
-                toolConfiguration=case.input.tool_configuration or {}
-            )
-    except Exception as e:
-        raise Exception(f"Agent execution failed: {e}") from e
+    # Execute agent using unified local processing
+    result = process_review_from_local(
+        document_paths=document_paths,
+        check_name=case.input.check_name,
+        check_description=case.input.check_description,
+        language_name=case.input.language_name,
+        model_id=None,  # Auto-select based on file types
+        toolConfiguration=case.input.tool_configuration,
+        feedback_summary=None,  # Not used in evals currently
+    )
 
-    # Check if result has required fields
-    if not result.get("result"):
-        raise Exception(f"Agent did not return a valid result: {result}")
-
-    # Extract tool usage
-    tool_usage = result.get("verificationDetails", {}).get("sourcesDetails", [])
-
-    # Create structured output
+    # Convert to ReviewAgentOutput
     return ReviewAgentOutput(
         result=result["result"],
         confidence=result["confidence"],
         explanation=result["explanation"],
         short_explanation=result["shortExplanation"],
-        tool_usage=tool_usage,
+        tool_usage=result.get("verificationDetails", {}).get("sourcesDetails", []),
         review_meta=result.get("reviewMeta", {}),
         extracted_text=result.get("extractedText"),
         page_number=result.get("pageNumber"),
