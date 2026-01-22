@@ -83,7 +83,7 @@ class ConfidenceCalibrationEvaluator(Evaluator):
     Evaluates confidence calibration with HITL safety focus.
 
     Returns simple scores that are post-processed for calibration metrics
-    (ECE, Brier score, over-confidence rate, safe threshold).
+    (over-confidence rate, under-confidence rate, critical errors, safe threshold).
     """
 
     def __init__(self, high_confidence_threshold: float = 0.8):

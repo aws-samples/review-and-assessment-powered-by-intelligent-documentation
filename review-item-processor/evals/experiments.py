@@ -45,7 +45,7 @@ def create_accuracy_experiment(
 
     Evaluates:
     - Accuracy (pass/fail correctness) → Post-process for recall, precision, F1
-    - Confidence calibration (HITL safety) → Post-process for ECE, Brier, thresholds
+    - Confidence calibration (HITL safety) → Post-process for over-confidence, under-confidence, thresholds
     - Explanation quality (LLM-as-judge)
     - Faithfulness (evidence grounding)
 
@@ -176,7 +176,7 @@ def create_comprehensive_experiment(
     evaluators = [
         # Dimension 1: Accuracy (post-process for recall, precision, F1)
         AccuracyEvaluator(),
-        # Dimension 2: Confidence Calibration (post-process for ECE, Brier)
+        # Dimension 2: Confidence Calibration (post-process for over-confidence, under-confidence, critical errors)
         ConfidenceCalibrationEvaluator(high_confidence_threshold=0.8),
         # Dimension 3: Explanation Quality (LLM-as-judge)
         OutputEvaluator(

@@ -191,40 +191,6 @@ def extract_calibration_data(report: EvaluationReport) -> tuple[list[float], lis
     return confidences, correct_flags
 
 
-def calculate_ece(
-    confidences: list[float], correct_flags: list[bool], n_bins: int = 10
-) -> float:
-    """Calculate Expected Calibration Error."""
-    bins = np.linspace(0, 1, n_bins + 1)
-    bin_totals = np.zeros(n_bins)
-    bin_correct = np.zeros(n_bins)
-    bin_conf = np.zeros(n_bins)
-
-    for conf, correct in zip(confidences, correct_flags):
-        bin_idx = min(int(conf * n_bins), n_bins - 1)
-        bin_totals[bin_idx] += 1
-        bin_correct[bin_idx] += int(correct)
-        bin_conf[bin_idx] += conf
-
-    ece = 0.0
-    total = len(confidences)
-
-    for i in range(n_bins):
-        if bin_totals[i] > 0:
-            avg_conf = bin_conf[i] / bin_totals[i]
-            avg_acc = bin_correct[i] / bin_totals[i]
-            ece += (bin_totals[i] / total) * abs(avg_conf - avg_acc)
-
-    return ece
-
-
-def calculate_brier_score(
-    confidences: list[float], correct_flags: list[bool]
-) -> float:
-    """Calculate Brier Score."""
-    return float(
-        np.mean([(conf - int(correct)) ** 2 for conf, correct in zip(confidences, correct_flags)])
-    )
 
 
 def find_safe_threshold(
@@ -299,10 +265,6 @@ def calculate_calibration_metrics(report: EvaluationReport, high_confidence_thre
     if not confidences:
         return {"error": "No valid test cases"}
 
-    # Standard calibration metrics
-    ece = calculate_ece(confidences, correct_flags)
-    brier = calculate_brier_score(confidences, correct_flags)
-
     # High confidence analysis (HITL critical)
     high_conf_predictions = [
         (conf, correct)
@@ -348,8 +310,6 @@ def calculate_calibration_metrics(report: EvaluationReport, high_confidence_thre
     safe_threshold = find_safe_threshold(confidences, correct_flags)
 
     return {
-        "ece": float(ece),
-        "brier_score": float(brier),
         "over_confidence_rate": float(over_confidence_rate),
         "under_confidence_rate": float(under_confidence_rate),
         "high_confidence_predictions": high_conf_total,

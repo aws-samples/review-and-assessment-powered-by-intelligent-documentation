@@ -3,7 +3,7 @@ Evaluation framework for RAPID review agent.
 
 Uses strands-agents-evals SDK with hybrid approach:
 - Strands handles experiment orchestration
-- Custom post-processing for sklearn metrics (recall, precision, F1, ECE, Brier)
+- Custom post-processing for sklearn metrics (recall, precision, F1)
 
 Evaluates agent across 4 dimensions:
 - Accuracy: Pass/fail correctness

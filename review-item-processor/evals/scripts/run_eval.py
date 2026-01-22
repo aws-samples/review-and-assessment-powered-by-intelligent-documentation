@@ -315,8 +315,7 @@ def main():
 
         if "ConfidenceCalibrationEvaluator" in aggregated:
             cal_metrics = aggregated["ConfidenceCalibrationEvaluator"]
-            print(f"\nECE (Calibration Error):   {cal_metrics.get('ece', 0):.3f}")
-            print(f"Over-Confidence Rate:       {cal_metrics.get('over_confidence_rate', 0):.1%}")
+            print(f"\nOver-Confidence Rate:       {cal_metrics.get('over_confidence_rate', 0):.1%}")
             print(f"Critical Errors (FN@HC):    {cal_metrics.get('critical_error_count', 0)}")
 
             safe_threshold = cal_metrics.get("safe_operating_threshold", {})
