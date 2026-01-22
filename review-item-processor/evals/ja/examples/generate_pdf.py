@@ -192,7 +192,7 @@ def create_page(c, page_num, building, scenario_type):
     c.drawString(400, 30, f"報告書番号: FP-2025-00{page_num}")
 
 def main():
-    output_file = "ja/examples/fixtures/floor_plan_safety_reports.pdf"
+    output_file = "fixtures/floor_plan_safety_reports.pdf"
     c = canvas.Canvas(output_file, pagesize=A4)
 
     scenarios = [

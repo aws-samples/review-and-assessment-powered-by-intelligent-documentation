@@ -4,9 +4,9 @@
     "document_paths": [
       "fixtures/sample_document.pdf"
     ],
-    "check_name": "チェック項目名",
-    "check_description": "チェック項目の詳細説明",
-    "language_name": "日本語",
+    "check_name": "Fire Safety Equipment Check",
+    "check_description": "Verify that fire extinguishers are installed and properly maintained according to safety standards",
+    "language_name": "English",
     "tool_configuration": {
       "codeInterpreter": false,
       "knowledgeBase": null,
@@ -20,11 +20,19 @@
       1.0
     ],
     "explanation_keywords": [
-      "キーワード1",
-      "キーワード2"
+      "installed",
+      "compliant"
     ]
   },
   "_comments": {
+    "name": "Unique identifier for the test case (e.g., TC001-fire-extinguisher)",
+    "document_paths": "Array of document file names in the fixtures directory",
+    "check_name": "Short name for the check item",
+    "check_description": "Detailed description of requirements - agent uses this to make decisions",
+    "language_name": "Language setting: 'English' or '日本語'",
+    "expected_output_result": "Ground truth label: 'pass' (compliant) or 'fail' (non-compliant)",
+    "confidence_range": "Expected confidence score range (optional)",
+    "explanation_keywords": "Keywords that should appear in the explanation (optional)",
     "tool_configuration_fields": {
       "codeInterpreter": "Set to true if agent needs to execute code for calculations or data analysis",
       "knowledgeBase": "IMPORTANT: This is a LIST! Example: [{\"knowledgeBaseId\": \"KB123ABC\", \"dataSourceIds\": null}] or [{\"knowledgeBaseId\": \"KB-1\", \"dataSourceIds\": [\"source-1\"]}, {\"knowledgeBaseId\": \"KB-2\"}]",

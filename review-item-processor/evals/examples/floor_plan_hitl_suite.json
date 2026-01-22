@@ -1,12 +1,10 @@
 [
   {
-    "name": "FP001-building-a-clear-compliant",
+    "name": "TC001-high-confidence-pass",
     "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building A",
-      "check_description": "Verify that Building A has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "Fire Extinguisher Installation Check - Building A 1st Floor Corridor",
+      "check_description": "Verify that Building A (Page 1) has 2 or more ABC-type fire extinguishers installed in the 1st floor corridor and all are within their valid date",
       "language_name": "English"
     },
     "expected_output": {
@@ -14,13 +12,11 @@
     }
   },
   {
-    "name": "FP002-building-b-clear-violation",
+    "name": "TC002-high-confidence-fail",
     "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building B",
-      "check_description": "Verify that Building B has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "Emergency Light Battery Backup Time Check - Building A",
+      "check_description": "Verify that Building A (Page 1) emergency lights have a battery backup time of at least 120 minutes or more",
       "language_name": "English"
     },
     "expected_output": {
@@ -28,55 +24,11 @@
     }
   },
   {
-    "name": "FP003-building-c-vague-compliant",
+    "name": "TC004-evidence-absent",
     "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building C",
-      "check_description": "Verify that Building C has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
-      "language_name": "English"
-    },
-    "expected_output": {
-      "result": "pass"
-    }
-  },
-  {
-    "name": "FP004-building-d-incomplete-info",
-    "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building D",
-      "check_description": "Verify that Building D has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
-      "language_name": "English"
-    },
-    "expected_output": {
-      "result": "fail"
-    }
-  },
-  {
-    "name": "FP005-building-e-partial-compliance",
-    "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building E",
-      "check_description": "Verify that Building E has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented according to building code requirements",
-      "language_name": "English"
-    },
-    "expected_output": {
-      "result": "fail"
-    }
-  },
-  {
-    "name": "FP006-building-f-subtle-violation",
-    "input": {
-      "document_paths": [
-        "floor_plan_safety_reports.pdf"
-      ],
-      "check_name": "Fire Safety Equipment Compliance for Building F",
-      "check_description": "Verify that Building F has all required fire safety equipment (extinguishers, emergency lighting, exit signs) properly installed and documented. Building code requires emergency lighting battery backup duration of minimum 60 minutes",
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "Sprinkler System Installation Check - Building A",
+      "check_description": "Verify that Building A (Page 1) has a sprinkler system installed",
       "language_name": "English"
     },
     "expected_output": {

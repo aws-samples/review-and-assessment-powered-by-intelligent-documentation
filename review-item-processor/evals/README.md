@@ -18,18 +18,18 @@ uv sync --extra evals
 Run a pre-built demo to see it work:
 
 ```bash
-uv run python evals/scripts/run_eval.py --suite examples/quick_start_suite.json
+uv run python evals/scripts/run_eval.py --suite examples/floor_plan_hitl_suite.json
 ```
 
 You'll see metrics like:
 
-- Accuracy: 100% (2/2 correct)
-- Recall: 100% ⭐ (caught all issues)
+- Accuracy: 100% (3/3 correct)
+- Recall: 100% ⭐ (caught all violations)
 - Critical Errors: 0 (safe for HITL)
 
-**What just happened?** You tested an AI agent against 2 fire safety scenarios (~1-2 minutes). See "Core Concepts" below to understand what these metrics mean.
+**What just happened?** You tested an AI agent against 3 fire safety scenarios (~2-3 minutes). See "Core Concepts" below to understand what these metrics mean.
 
-**Want more?** See the "Comprehensive Example" section below for a detailed 6-case walkthrough.
+**Want more?** See the "Comprehensive Example" section below for a detailed walkthrough with explanation of each test case.
 
 ---
 
@@ -80,10 +80,10 @@ Before deploying AI agents in production (especially for safety/compliance), you
   - 0.5-0.7 = uncertain
   - <0.5 = very uncertain
 
-- **ECE (Expected Calibration Error)**: How well confidence matches actual accuracy
+- **Over-Confidence Rate**: Percentage of high-confidence predictions that are wrong
 
-  - <0.10 = well calibrated
-  - > 0.20 = can't trust confidence scores
+  - Should be close to 0%
+  - High rate = agent is dangerously over-confident
 
 - **Critical Errors (FN@HC)**: False negatives at HIGH confidence
   - This is MOST DANGEROUS - agent confidently misses violations
@@ -104,29 +104,92 @@ Agent says: FAIL with 95% confidence
 
 ---
 
+## Agent Prompt Evaluation
+
+### Target Audience
+
+This eval framework is primarily designed for **technical users** (AI/ML Engineer, System Developer).
+
+**Workflow**:
+
+1. Design system prompts in agent.py (role definition, output format, confidence guidelines, critical rules)
+2. Run evals to test prompt variations
+3. Analyze metrics (recall, precision, critical errors)
+4. Improve prompts until production standards are met
+5. Release the agent
+
+**Note**: Non-technical users typically don't need to run evals. Use the agent as tuned by the technical team.
+
+### What Are We Evaluating?
+
+This evaluation framework assesses **prompt quality in agent.py**. Specifically:
+
+#### Prompts Defined in agent.py
+
+`agent.py` contains multiple prompt functions:
+
+- System prompt
+- Document review agent prompt
+- Image review agent prompt
+
+#### Elements Included in Each Prompt
+
+Prompts include these elements:
+
+- **Role Definition**:
+
+  - Document: "You are an expert document reviewer"
+  - Image: "You are an AI assistant who reviews images"
+
+- **Output Format**:
+
+  - JSON schema with required fields
+  - Language specification
+
+- **Confidence Guidelines**:
+
+  - 0.90-1.00: Clear evidence found, obvious compliance/non-compliance
+  - 0.70-0.89: Relevant evidence with some uncertainty
+  - 0.50-0.69: Ambiguous evidence, significant uncertainty
+  - 0.30-0.49: Insufficient evidence for determination
+
+- **Critical Rules**:
+  - `BASE_JUDGMENT_ON_DOCUMENTS_ONLY`: Base judgment only on provided documents
+  - `INSUFFICIENT_INFORMATION_HANDLING`: How to handle insufficient information
+
+#### check_description (User Prompt)
+
+Beyond agent.py prompts, test cases specify concrete check instructions:
+
+```json
+{
+  "check_name": "Fire Extinguisher Installation Check",
+  "check_description": "Verify that 2 or more ABC-type fire extinguishers are installed in the 1st floor hallway and are within valid date"
+}
+```
+
+---
+
 ## Comprehensive Example: Floor Plan Safety Evaluation
 
-This example shows a complete evaluation workflow using the CLI with 6 test cases.
+This example shows a complete evaluation workflow using the CLI with 3 test cases.
 
 ### Test Scenario
 
-We're testing fire safety compliance across 6 building floor plans with varying evidence quality:
+We're testing fire safety compliance with 3 essential test cases covering different evidence scenarios:
 
-| Building | Scenario                                     | Expected Confidence |
-| -------- | -------------------------------------------- | ------------------- |
-| A        | Clear compliant evidence                     | High (0.90-1.0)     |
-| B        | Clear violation evidence                     | High (0.90-1.0)     |
-| C        | Vague compliant description                  | Low (0.45-0.60)     |
-| D        | Incomplete information                       | Low (0.40-0.55)     |
-| E        | Partial compliance                           | Medium (0.65-0.75)  |
-| F        | Subtle violation (45 min vs 60 min required) | Critical test       |
+| Test Case | Check Type                 | Expected Result | Purpose                                       |
+| --------- | -------------------------- | --------------- | --------------------------------------------- |
+| TC001     | Fire extinguisher presence | PASS            | High-confidence pass (clear compliance)       |
+| TC002     | Emergency light backup     | FAIL            | High-confidence fail (clear violation)        |
+| TC004     | Sprinkler system presence  | FAIL            | Evidence absent (information not in document) |
 
-**Purpose**: Test if agent can distinguish high-confidence correct answers from uncertain cases, and catch subtle violations.
+**Purpose**: Test if agent can handle clear compliance, clear violations, and cases where evidence is absent from documents.
 
 ### Files Used
 
-- **Test suite**: `examples/floor_plan_hitl_suite.json` (6 test cases)
-- **Document**: `examples/fixtures/floor_plan_safety_reports.pdf` (6 pages, one per building)
+- **Test suite**: `examples/floor_plan_hitl_suite.json` (3 test cases)
+- **Document**: `examples/fixtures/floor_plan_safety_reports.pdf` (Building A safety report on page 1)
 - **Ground truth**: Pre-determined pass/fail labels in the test suite
 
 ### Running the Evaluation
@@ -141,37 +204,32 @@ uv run python evals/scripts/run_eval.py \
 ### Expected Output
 
 ```
-✓ Loaded 6 test cases from examples/floor_plan_hitl_suite.json
+✓ Loaded 3 test cases from examples/floor_plan_hitl_suite.json
 ✓ Created experiment with 4 evaluators
 
 🤖 Running agent evaluation...
-  Processing case 1/6: FP001-building-a-clear-compliant...
-  Processing case 2/6: FP002-building-b-clear-violation...
-  Processing case 3/6: FP003-building-c-vague-compliant...
-  Processing case 4/6: FP004-building-d-incomplete-info...
-  Processing case 5/6: FP005-building-e-partial-compliance...
-  Processing case 6/6: FP006-building-f-subtle-violation...
+  Processing case 1/3: TC001-high-confidence-pass...
+  Processing case 2/3: TC002-high-confidence-fail...
+  Processing case 3/3: TC004-evidence-absent...
 
 ✓ Evaluation complete!
-Results saved to: results/results_20250116_143022.json
+Results saved to: results/results_20250122_143022.json
 
 =============================================================
 ACCURACY METRICS
 =============================================================
-Accuracy:  83% (5/6 correct)
+Accuracy:  100% (3/3 correct)
 Recall:    100% ⭐ (caught all violations)
-Precision: 80% (1 false positive)
-F1 Score:  0.89
+Precision: 100%
+F1 Score:  1.00
 
 False Negatives: 0 (no missed violations - GOOD!)
-False Positives: 1 (unnecessary review for Building C - acceptable)
+False Positives: 0 (no unnecessary reviews - EXCELLENT!)
 
 =============================================================
 CONFIDENCE CALIBRATION (HITL SAFETY)
 =============================================================
-ECE (Calibration Error):   0.083 (good - <0.10)
-Brier Score:                0.120
-Over-Confidence Rate:       16.7% (1/6 high-confidence wrong)
+Over-Confidence Rate:       0.0% (0/3 high-confidence wrong)
 Critical Errors (FN@HC):    0 (no high-confidence false negatives)
 
 ✓ Safe Threshold:           0.85
@@ -182,51 +240,50 @@ Critical Errors (FN@HC):    0 (no high-confidence false negatives)
 
 ### Understanding Each Result
 
-| Metric              | Value   | What It Means                                      | Is This Good?                      |
-| ------------------- | ------- | -------------------------------------------------- | ---------------------------------- |
-| **Accuracy**        | 83%     | Agent got 5 out of 6 predictions correct           | ✓ Good - most predictions accurate |
-| **Recall**          | 100% ⭐ | Caught ALL real violations (0 false negatives)     | ✓ Excellent - safe for production  |
-| **Precision**       | 80%     | 4 out of 5 "fail" predictions were real violations | ✓ Good - minimal false alarms      |
-| **F1 Score**        | 0.89    | Balanced measure of precision & recall             | ✓ Strong overall performance       |
-| **ECE**             | 0.083   | Confidence scores align well with accuracy         | ✓ Well-calibrated (<0.10 is good)  |
-| **Brier Score**     | 0.120   | Combined accuracy & calibration quality            | ✓ Low is better (0.0 = perfect)    |
-| **Over-Confidence** | 16.7%   | 1 out of 6 high-confidence predictions wrong       | ⚠️ Acceptable but monitor          |
-| **Critical Errors** | 0       | No missed violations at high confidence            | ✓ Perfect - no dangerous errors    |
+| Metric              | Value   | What It Means                                  | Is This Good?                       |
+| ------------------- | ------- | ---------------------------------------------- | ----------------------------------- |
+| **Accuracy**        | 100%    | Agent got all 3 predictions correct            | ✓ Perfect - all predictions correct |
+| **Recall**          | 100% ⭐ | Caught ALL real violations (0 false negatives) | ✓ Excellent - safe for production   |
+| **Precision**       | 100%    | All "fail" predictions were real violations    | ✓ Perfect - no false alarms         |
+| **F1 Score**        | 1.00    | Balanced measure of precision & recall         | ✓ Perfect performance               |
+| **Over-Confidence** | 0.0%    | No high-confidence predictions were wrong      | ✓ Perfect - well calibrated         |
+| **Critical Errors** | 0       | No missed violations at high confidence        | ✓ Perfect - no dangerous errors     |
 
-**Key Insight**: 100% recall with 0 critical errors means this agent is **safe for HITL deployment**. The 83% accuracy is acceptable because all mistakes were false positives (unnecessary human reviews), not missed violations.
+**Key Insight**: 100% recall with 0 critical errors means this agent is **safe for HITL deployment**. All predictions were accurate with no false positives or false negatives.
 
 ### Understanding the Results
 
 **Accuracy Metrics:**
 
-- **83% overall accuracy**: Agent got 5 out of 6 predictions correct
+- **100% overall accuracy**: Agent got all 3 predictions correct
 - **100% recall** ⭐: Caught ALL real violations (most important metric!)
-- **1 false positive**: Building C was flagged unnecessarily (agent was uncertain, so this is acceptable)
+- **0 false positives**: No unnecessary flagging
+- **0 false negatives**: No missed violations
 
 **What This Means for Production:**
 
-- Agent won't miss critical safety violations
-- Some safe buildings may go to human review (better safe than sorry)
-- False positives are manageable - only 1 out of 6 cases
+- Agent correctly handles clear compliance cases (TC001)
+- Agent correctly identifies clear violations (TC002)
+- Agent appropriately handles cases where evidence is absent (TC004)
 
 **Calibration Insights:**
 
-- **High confidence (0.9+)** predictions were correct (Buildings A & B)
-- **Low confidence (0.4-0.6)** appropriately expressed uncertainty (Buildings C & D)
-- **Medium confidence (0.7)** showed mixed evidence (Building E)
-- **ECE 0.083**: Well-calibrated - confidence scores match actual accuracy
+- **TC001 (high-confidence pass)**: Agent correctly identified clear compliance evidence
+- **TC002 (high-confidence fail)**: Agent correctly identified violation (90 min backup < 120 min required)
+- **TC004 (evidence absent)**: Agent correctly reported low confidence when sprinkler information was not in document
+- **Over-Confidence Rate 0.0%**: No high-confidence predictions were wrong (perfect calibration)
 
 **What This Means for HITL:**
 
 - Can trust high-confidence predictions for auto-approval
-- Low-confidence cases should go to human review
+- Low-confidence cases appropriately go to human review
 - Safe threshold of 0.85 means: predictions above 85% confidence are reliable
 
 **Critical Safety Check:**
 
 - **0 critical errors**: Agent never confidently missed a violation
-- If this were >0, it would indicate dangerous over-confidence
-- Building F test case validates agent can catch subtle violations
+- All test cases passed successfully
+- Agent demonstrates appropriate handling of clear evidence and absent evidence scenarios
 
 ### Next Steps
 
@@ -406,44 +463,6 @@ uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --verbose
 
 #### Calibration Metrics (HITL Safety)
 
-- **ECE (Expected Calibration Error)**
-
-  - Measures how well confidence scores match actual accuracy
-  - **Formula**: `ECE = (1/M) × Σ|accuracy(Bm) - confidence(Bm)|`
-    - M = number of confidence bins (typically 10)
-    - Bm = predictions in bin m
-    - accuracy(Bm) = actual accuracy within bin
-    - confidence(Bm) = average confidence within bin
-  - **Example**:
-    ```
-    Bin [0.8-0.9]: 5 predictions, 4 correct
-    accuracy(B) = 4/5 = 0.80
-    confidence(B) = 0.85 (average)
-    |0.80 - 0.85| = 0.05 (contribution to ECE)
-    ```
-  - Lower is better: <0.10 is good, <0.05 is excellent
-  - **Why it matters**: You only want to trust high-confidence predictions if they're actually correct. Over-confident wrong predictions are dangerous in production HITL systems.
-
-- **Brier Score**
-
-  - Overall prediction quality metric (combines accuracy and calibration)
-  - **Formula**: `Brier = (1/N) × Σ(confidence - truth)²`
-    - N = number of predictions
-    - confidence = predicted probability
-    - truth = 1 if correct, 0 if wrong
-  - **Example**:
-
-    ```
-    Prediction: "pass" with 0.9 confidence, actually pass
-    (0.9 - 1)² = 0.01 (small penalty - good!)
-
-    Prediction: "fail" with 0.8 confidence, actually pass
-    (0.8 - 0)² = 0.64 (high penalty - bad!)
-    ```
-
-  - Lower is better: 0.0 = perfect, 1.0 = worst
-  - Penalizes both incorrect predictions and poor confidence calibration
-
 - **Over-Confidence Rate**
 
   - % of high-confidence predictions (>0.85) that are wrong
@@ -481,12 +500,11 @@ uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --verbose
 
 #### Interpreting Your Results
 
-| Metric          | Good  | Warning | Action                                              |
-| --------------- | ----- | ------- | --------------------------------------------------- |
-| Recall          | >95%  | <90%    | ⚠️ Improve check_description, add training examples |
-| Precision       | >80%  | <70%    | ⚠️ Check_description may be too vague               |
-| ECE             | <0.10 | >0.20   | ⚠️ Can't trust confidence scores                    |
-| Critical Errors | 0     | >0      | 🚨 CRITICAL - Review immediately                    |
+| Metric          | Good | Warning | Action                                              |
+| --------------- | ---- | ------- | --------------------------------------------------- |
+| Recall          | >95% | <90%    | ⚠️ Improve check_description, add training examples |
+| Precision       | >80% | <70%    | ⚠️ Check_description may be too vague               |
+| Critical Errors | 0    | >0      | 🚨 CRITICAL - Review immediately                    |
 
 ### CLI Options Reference
 
