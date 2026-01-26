@@ -15,6 +15,9 @@ RUN python --version && node --version && npm --version
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-cache
 
+# Install MCP Proxy for AWS (for Gateway IAM authentication)
+RUN uv tool install mcp-proxy-for-aws
+
 COPY . ./
 
 EXPOSE 8080

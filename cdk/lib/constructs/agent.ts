@@ -41,10 +41,7 @@ export class Agent extends Construct {
     } = props;
 
     const image = new DockerImageAsset(this, "Image", {
-      directory: join(
-        __dirname,
-        "../../../review-item-processor"
-      ),
+      directory: join(__dirname, "../../../review-item-processor"),
       platform: Platform.LINUX_ARM64,
       file: "Dockerfile",
     });
@@ -66,7 +63,7 @@ export class Agent extends Construct {
         resources: [
           `arn:aws:logs:${region}:${accountId}:log-group:/aws/bedrock-agentcore/runtimes/*`,
         ],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -74,7 +71,7 @@ export class Agent extends Construct {
         effect: Effect.ALLOW,
         actions: ["logs:DescribeLogGroups"],
         resources: [`arn:aws:logs:${region}:${accountId}:log-group:*`],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -84,7 +81,7 @@ export class Agent extends Construct {
         resources: [
           `arn:aws:logs:${region}:${accountId}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*`,
         ],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -93,7 +90,7 @@ export class Agent extends Construct {
         effect: Effect.ALLOW,
         actions: ["ecr:GetAuthorizationToken"],
         resources: ["*"],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -106,7 +103,7 @@ export class Agent extends Construct {
           "xray:GetSamplingTargets",
         ],
         resources: ["*"],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -120,7 +117,7 @@ export class Agent extends Construct {
           "xray:UpdateIndexingRule",
         ],
         resources: ["*"],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -136,7 +133,7 @@ export class Agent extends Construct {
           `arn:aws:logs:*:${accountId}:log-group:/aws/application-signals/data:*`,
           `arn:aws:logs:*:${accountId}:log-group:aws/spans:*`,
         ],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -145,7 +142,7 @@ export class Agent extends Construct {
         effect: Effect.ALLOW,
         actions: ["application-signals:StartDiscovery"],
         resources: ["*"],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -158,7 +155,7 @@ export class Agent extends Construct {
             "cloudwatch:namespace": "bedrock-agentcore",
           },
         },
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -174,7 +171,7 @@ export class Agent extends Construct {
           `arn:aws:bedrock-agentcore:${region}:${accountId}:workload-identity-directory/default`,
           `arn:aws:bedrock-agentcore:${region}:${accountId}:workload-identity-directory/default/workload-identity/agentName-*`,
         ],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -190,7 +187,7 @@ export class Agent extends Construct {
           `arn:aws:bedrock:${region}:${accountId}:*`,
           `arn:aws:bedrock:*:${accountId}:inference-profile/*`,
         ],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -199,7 +196,18 @@ export class Agent extends Construct {
         effect: Effect.ALLOW,
         actions: ["bedrock:Retrieve"],
         resources: [`arn:aws:bedrock:${region}:${accountId}:knowledge-base/*`],
-      })
+      }),
+    );
+
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "InvokeGatewayForAwsSecurityAudit",
+        effect: Effect.ALLOW,
+        actions: ["bedrock-agentcore:InvokeGateway"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${region}:${accountId}:gateway/*`,
+        ],
+      }),
     );
 
     // Note: currently memory is not used
@@ -227,7 +235,7 @@ export class Agent extends Construct {
           "bedrock-agentcore:RetrieveMemoryRecords",
         ],
         resources: [memory.attrMemoryArn],
-      })
+      }),
     );
 
     role.addToPolicy(
@@ -249,7 +257,7 @@ export class Agent extends Construct {
           `arn:aws:bedrock-agentcore:${region}:${accountId}:code-interpreter/*`,
           `arn:aws:bedrock-agentcore:${region}:aws:code-interpreter/*`,
         ],
-      })
+      }),
     );
 
     const runtime = new CfnRuntime(this, "Runtime", {
@@ -292,7 +300,7 @@ export class Agent extends Construct {
           this.runtimeArn,
           `${this.runtimeArn}/runtime-endpoint/DEFAULT`,
         ],
-      })
+      }),
     );
   }
 }
