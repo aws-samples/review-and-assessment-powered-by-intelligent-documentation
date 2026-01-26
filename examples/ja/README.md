@@ -115,11 +115,11 @@
 **含まれるファイル**:
 
 - チェックリスト: 新薬承認申請チェックリスト（PDF）
-- 審査対象書類: CTD_2.5_臨床に関する概括評価（PDF）
+- 審査対象書類: CTD*2.5*臨床に関する概括評価（PDF）
 - ナレッジベース用ファイル:
   - ICH_M4_CTD構成ガイドライン（PDF）
   - 新医薬品承認審査の基本的考え方（PDF）
-  - ICH_E3_臨床試験報告書の構造と内容（PDF）
+  - ICH*E3*臨床試験報告書の構造と内容（PDF）
   - 医薬品リスク管理計画（RMP）策定ガイドライン（PDF）
 
 **セットアップ手順**:
@@ -160,9 +160,7 @@
 - チェックリスト: AWSセキュリティ監査チェックリスト（PDF）
 - 審査対象書類: システム納品前セキュリティ検証報告書（PDF）
 
-**活用場面**: SIが複数の顧客AWS環境を管理する際、納品前の最終セキュリティチェックを自動化できます。RDS暗号化、S3設定、IAM MFA等の設定状況を実際のAWS環境から取得し、契約で定められたセキュリティ基準への準拠を検証します。Gateway経由で実環境を監査するため、ドキュメントと実態の乖離を防ぎます。
-
-**重要**: Gateway Lambda は **RAPIDがデプロイされている同一AWSアカウント** 内のリソースを監査します。クロスアカウント設定は不要です。
+**活用場面**: SIが複数の顧客AWS環境を管理する際、納品前の最終セキュリティチェックを自動化できます。RDS暗号化、S3設定、IAM MFA等の設定状況を実際のAWS環境から取得し、契約で定められたセキュリティ基準への準拠を検証します。
 
 #### セットアップ手順
 
@@ -178,25 +176,15 @@ npx cdk bootstrap  # 初回のみ
 npx cdk deploy AwsSecurityAuditGatewayStack --region ap-northeast-1
 ```
 
-**Note**: Specify your target region. This example uses `ap-northeast-1` (Tokyo).
+**重要**: このスタックは **RAPIDがデプロイされている同一AWSアカウント** と同じアカウント・リージョンにデプロイしてください。
 
 デプロイが完了すると、Stack outputsに以下の情報が表示されます：
+
 - **GatewayEndpoint**: Gateway URL
 - **McpConfiguration**: Tool Configuration用のJSON（コピーして使用）
 - **IamPermissionRequired**: AgentCore Runtimeに必要な権限情報
 
-**2. メインCDKスタックを再デプロイ（権限追加）**
-
-Gateway呼び出し権限が自動的に `cdk/lib/constructs/agent.ts` に追加されています。メインスタックを再デプロイしてください：
-
-```bash
-cd ../../../..  # プロジェクトルートに戻る
-cd cdk
-npm run build
-npx cdk deploy RapidStack
-```
-
-**3. Tool Configuration設定**
+**2. Tool Configuration設定**
 
 1. RAPID UIでTool Configuration画面を開く
 2. 新規作成をクリック
@@ -214,73 +202,16 @@ npx cdk deploy RapidStack
 }
 ```
 
-**Important**: Replace the Gateway URL with your actual Gateway endpoint from stack outputs. The Stdio transport format uses MCP Proxy for AWS to handle IAM authentication (SigV4 signing) automatically.
-
 4. Previewで3つのツールが表示されることを確認：
    - `call_aws` - AWS CLIコマンド実行
    - `suggest_aws_commands` - 自然言語からAWS CLIコマンドを提案
    - `get_execution_plan` - 複雑なAWSタスクのワークフロー生成
 
-**4. チェックリストでの使用**
+**3. チェックリストでの使用**
 
 1. AWSセキュリティ監査チェックリストをアップロード
-2. 上記で作成したTool Configurationを選択
-3. システム納品前セキュリティ検証報告書をアップロード
-4. レビューを実行
-5. Gateway Lambda が同一AWSアカウント内のリソースを監査します
-
-詳細は [UC008 Gateway README](./ユースケース008_AWSセキュリティ監査/cdk/README.md) を参照してください。
-
-#### アーキテクチャ
-
-```
-Backend/AgentCore → mcp-proxy-for-aws → Gateway (IAM認証) → Lambda → aws-api-mcp-server → AWS APIs
-```
-
-**MCP Proxy for AWS**:
-- Backend/AgentCoreは標準の`StdioClientTransport`を使用（特別な実装不要）
-- MCP Proxyが自動的にSigV4署名を処理（AWS SDK経由）
-- IAM認証のため、トークン管理が不要
-
-**Lambda Tool Permissions**:
-- **AdministratorAccess** 管理ポリシー（包括的なセキュリティ監査用）
-- ⚠️ **セキュリティ警告**: 詳細は [UC008 Gateway README](./ユースケース008_AWSセキュリティ監査/cdk/README.md) の "Security Warning" セクションを参照
-
-**Common Use Cases**:
-- RDS暗号化状況、S3設定、IAM MFA
-- CloudTrail、VPC Flow Logs、GuardDuty
-- その他すべてのAWSサービスのセキュリティ監査
-
-**同一アカウント監査**: Lambda は RAPIDと同じAWSアカウント内のリソースを監査（クロスアカウント設定不要）
-
-参考: https://github.com/awslabs/mcp/tree/main/src/aws-api-mcp-server
-
-#### SI業務での活用例
-
-このユースケースは、SIの以下のような業務シーンで活用できます：
-
-1. **納品前セキュリティ検証** (Primary)
-   - 顧客へのシステム納品前に、最終的なセキュリティ要件充足を自動確認
-   - 引き渡しドキュメントとして監査レポートを提供
-
-2. **定期SLAコンプライアンス監査**
-   - 運用保守SLAで定められたセキュリティ基準の遵守を月次/四半期で証明
-   - 前回監査との差分を追跡し、変更管理を実施
-
-3. **インシデント対応後の設定確認**
-   - セキュリティインシデント発生後、是正措置が適切に実施されたことを検証
-   - インシデントクローズレポートのエビデンスとして使用
-
-4. **マルチアカウント統制監査**
-   - 複数の顧客AWSアカウントに対して、同一のセキュリティ基準を一貫して適用
-   - アカウント間での設定の不整合を検出
-
-5. **環境引継ぎ時のベースライン評価**
-   - 他SIや顧客内製チームからAWS環境の運用を引き継ぐ際、現状のセキュリティ姿勢を評価
-   - SLA開始前に必要な是正措置を特定
-
-これらのシーンでは、ドキュメントベースのチェックではなく、**実際のAWS環境の設定値をGateway経由で取得**することで、ドキュメントと実態の乖離を防ぎ、監査の信頼性を高めることができます。
-
+2. チェックリスト編集画面を開き、上記で作成したTool Configurationを割り当て
+3. レビューを実行
 
 ## 使用方法
 

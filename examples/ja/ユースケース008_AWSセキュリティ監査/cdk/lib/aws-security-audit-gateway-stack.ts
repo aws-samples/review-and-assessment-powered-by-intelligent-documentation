@@ -1,10 +1,10 @@
-import * as cdk from 'aws-cdk-lib';
-import * as agentcore from 'aws-cdk-lib/aws-bedrockagentcore';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { Construct } from 'constructs';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as cdk from "aws-cdk-lib";
+import * as agentcore from "aws-cdk-lib/aws-bedrockagentcore";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import { Construct } from "constructs";
+import * as path from "path";
+import * as fs from "fs";
 
 export class AwsSecurityAuditGatewayStack extends cdk.Stack {
   public readonly gatewayEndpoint: string;
@@ -13,134 +13,123 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const UNIQUE_ID = "uc008";
+
     const region = cdk.Stack.of(this).region;
     const accountId = cdk.Stack.of(this).account;
-
-    // ========================================================================
-    // UC008 Gateway with IAM Authentication
-    // ========================================================================
-    // Architecture:
-    //   User → Gateway (IAM) → Lambda (aws-api-mcp-server via uvx)
-    //
-    // Benefits:
-    //   - No token expiration (IAM credentials auto-refresh)
-    //   - Simpler architecture (no Runtime, no Cognito)
-    //   - Lower cost (no Fargate)
-    //   - Easier debugging (CloudWatch Logs)
-    // ========================================================================
-
-    const uniqueId = 'uc008';
 
     // =================================================================
     // SECTION 1: Gateway IAM Role
     // =================================================================
 
-    const gatewayRole = new iam.Role(this, 'GatewayRole', {
-      assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
-      description: 'IAM role for UC008 Gateway to invoke Lambda function',
+    const gatewayRole = new iam.Role(this, "GatewayRole", {
+      assumedBy: new iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
+      description: "IAM role for UC008 Gateway to invoke Lambda function",
     });
 
-    // Gateway自身の操作権限
     gatewayRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'GetGateway',
+        sid: "GetGateway",
         effect: iam.Effect.ALLOW,
-        actions: ['bedrock-agentcore:GetGateway'],
+        actions: ["bedrock-agentcore:GetGateway"],
         resources: [
           `arn:aws:bedrock-agentcore:${region}:${accountId}:gateway/*`,
         ],
-      })
+      }),
     );
 
-    // Lambda呼び出し権限
     gatewayRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'InvokeLambda',
+        sid: "InvokeLambda",
         effect: iam.Effect.ALLOW,
-        actions: ['lambda:InvokeFunction'],
+        actions: ["lambda:InvokeFunction"],
         resources: [`arn:aws:lambda:${region}:${accountId}:function:*`],
-      })
+      }),
     );
 
     // =================================================================
     // SECTION 2: Lambda Function (Python Docker Image)
     // =================================================================
 
-    const lambdaFunction = new lambda.DockerImageFunction(this, 'McpProxyTool', {
-      code: lambda.DockerImageCode.fromImageAsset(
-        path.join(__dirname, 'lambda-tool')
-      ),
-      timeout: cdk.Duration.seconds(120),
-      memorySize: 1024,
-      architecture: lambda.Architecture.ARM_64,
-      description: 'MCP proxy for aws-api-mcp-server (UC008 Gateway)',
-      environment: {
-        HOME: '/tmp',
-        UV_CACHE_DIR: '/tmp/.uv',
-        UV_TOOL_DIR: '/tmp/.uv/tools',
-        LOG_LEVEL: 'DEBUG',
+    const lambdaFunction = new lambda.DockerImageFunction(
+      this,
+      "McpProxyTool",
+      {
+        code: lambda.DockerImageCode.fromImageAsset(
+          path.join(__dirname, "lambda-tool"),
+        ),
+        timeout: cdk.Duration.seconds(120),
+        memorySize: 1024,
+        architecture: lambda.Architecture.ARM_64,
+        description: "MCP proxy for aws-api-mcp-server (UC008 Gateway)",
+        environment: {
+          HOME: "/tmp",
+          UV_CACHE_DIR: "/tmp/.uv",
+          UV_TOOL_DIR: "/tmp/.uv/tools",
+          LOG_LEVEL: "DEBUG",
+        },
       },
-    });
+    );
 
     // AWS Security Audit permissions
     lambdaFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        sid: 'SecurityAuditReadAccess',
+        sid: "SecurityAuditReadAccess",
         effect: iam.Effect.ALLOW,
         actions: [
           // RDS
-          'rds:Describe*',
+          "rds:Describe*",
           // S3
-          's3:Get*',
-          's3:List*',
+          "s3:Get*",
+          "s3:List*",
           // IAM
-          'iam:Get*',
-          'iam:List*',
-          'iam:GenerateCredentialReport',
+          "iam:Get*",
+          "iam:List*",
+          "iam:GenerateCredentialReport",
           // CloudTrail
-          'cloudtrail:Describe*',
-          'cloudtrail:Get*',
-          'cloudtrail:List*',
-          'cloudtrail:LookupEvents',
+          "cloudtrail:Describe*",
+          "cloudtrail:Get*",
+          "cloudtrail:List*",
+          "cloudtrail:LookupEvents",
           // EC2/VPC
-          'ec2:Describe*',
+          "ec2:Describe*",
           // Config
-          'config:Describe*',
-          'config:Get*',
-          'config:List*',
+          "config:Describe*",
+          "config:Get*",
+          "config:List*",
           // GuardDuty
-          'guardduty:Get*',
-          'guardduty:List*',
+          "guardduty:Get*",
+          "guardduty:List*",
           // CloudWatch Logs
-          'logs:Describe*',
-          'logs:Get*',
-          'logs:FilterLogEvents',
+          "logs:Describe*",
+          "logs:Get*",
+          "logs:FilterLogEvents",
           // SNS/SQS
-          'sns:Get*',
-          'sns:List*',
-          'sqs:Get*',
-          'sqs:List*',
+          "sns:Get*",
+          "sns:List*",
+          "sqs:Get*",
+          "sqs:List*",
         ],
-        resources: ['*'],
-      })
+        resources: ["*"],
+      }),
     );
 
     // =================================================================
     // SECTION 3: L1 CfnGateway (IAM Auth)
     // =================================================================
 
-    const gatewayName = `uc8-gateway-${uniqueId}-lambda`;
+    const gatewayName = `uc8-gateway-${UNIQUE_ID}-lambda`;
 
-    const gateway = new agentcore.CfnGateway(this, 'Gateway', {
+    const gateway = new agentcore.CfnGateway(this, "Gateway", {
       name: gatewayName,
       roleArn: gatewayRole.roleArn,
-      authorizerType: 'AWS_IAM',
-      protocolType: 'MCP',
+      authorizerType: "AWS_IAM",
+      protocolType: "MCP",
       protocolConfiguration: {
         mcp: {
           instructions:
-            'Gateway for AWS Security Audit using aws-api-mcp-server',
-          searchType: 'SEMANTIC',
+            "Gateway for AWS Security Audit using aws-api-mcp-server",
+          searchType: "SEMANTIC",
         },
       },
     } as any);
@@ -149,26 +138,26 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
     // SECTION 4: Gateway Target (Lambda + Tool Schema)
     // =================================================================
 
-    // tool-schema.jsonを読み込み
-    const schemaPath = path.join(__dirname, 'lambda-tool/tool-schema.json');
-    const schemaContent = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
+    // tool-schema.json
+    const schemaPath = path.join(__dirname, "lambda-tool/tool-schema.json");
+    const schemaContent = JSON.parse(fs.readFileSync(schemaPath, "utf-8"));
 
-    // Gateway IDを抽出
+    // Extract Gateway ID
     const gatewayIdToken = cdk.Fn.select(
       1,
-      cdk.Fn.split('/', gateway.attrGatewayArn)
+      cdk.Fn.split("/", gateway.attrGatewayArn),
     );
 
-    // Gateway Targetを作成
+    // Create a Gateway Target
     const gatewayTarget = new agentcore.CfnGatewayTarget(
       this,
-      'GatewayTarget',
+      "GatewayTarget",
       {
-        name: 'aws-api-mcp-server',
+        name: "aws-api-mcp-server",
         gatewayIdentifier: gatewayIdToken,
         credentialProviderConfigurations: [
           {
-            credentialProviderType: 'GATEWAY_IAM_ROLE',
+            credentialProviderType: "GATEWAY_IAM_ROLE",
           },
         ],
         targetConfiguration: {
@@ -181,59 +170,59 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
             },
           },
         },
-      } as any
+      } as any,
     );
 
     // =================================================================
     // SECTION 5: CloudFormation Outputs
     // =================================================================
 
-    this.gatewayEndpoint = gateway.attrGatewayUrl || '';
+    this.gatewayEndpoint = gateway.attrGatewayUrl || "";
 
     // MCP Configuration for mcp-proxy-for-aws
     const mcpConfig = {
-      'aws-security-audit-gateway': {
-        command: 'uvx',
-        args: ['mcp-proxy-for-aws', this.gatewayEndpoint],
+      "aws-security-audit-gateway": {
+        command: "uvx",
+        args: ["mcp-proxy-for-aws", this.gatewayEndpoint],
       },
     };
     this.mcpConfigOutput = JSON.stringify(mcpConfig, null, 2);
 
-    new cdk.CfnOutput(this, 'GatewayEndpoint', {
+    new cdk.CfnOutput(this, "GatewayEndpoint", {
       value: this.gatewayEndpoint,
-      description: 'AgentCore Gateway endpoint URL',
+      description: "AgentCore Gateway endpoint URL",
     });
 
-    new cdk.CfnOutput(this, 'GatewayArn', {
+    new cdk.CfnOutput(this, "GatewayArn", {
       value: gateway.attrGatewayArn,
-      description: 'AgentCore Gateway ARN (for IAM permissions)',
+      description: "AgentCore Gateway ARN (for IAM permissions)",
     });
 
-    new cdk.CfnOutput(this, 'GatewayId', {
+    new cdk.CfnOutput(this, "GatewayId", {
       value: gatewayIdToken,
-      description: 'AgentCore Gateway ID',
+      description: "AgentCore Gateway ID",
     });
 
-    new cdk.CfnOutput(this, 'LambdaFunctionArn', {
+    new cdk.CfnOutput(this, "LambdaFunctionArn", {
       value: lambdaFunction.functionArn,
-      description: 'Lambda function ARN',
+      description: "Lambda function ARN",
     });
 
-    new cdk.CfnOutput(this, 'McpConfiguration', {
+    new cdk.CfnOutput(this, "McpConfiguration", {
       value: this.mcpConfigOutput,
-      description: 'MCP configuration JSON (copy to Tool Configuration)',
+      description: "MCP configuration JSON (copy to Tool Configuration)",
     });
 
-    new cdk.CfnOutput(this, 'IamPermissionRequired', {
+    new cdk.CfnOutput(this, "IamPermissionRequired", {
       value: JSON.stringify(
         {
-          Action: 'bedrock-agentcore:InvokeGateway',
+          Action: "bedrock-agentcore:InvokeGateway",
           Resource: gateway.attrGatewayArn,
         },
         null,
-        2
+        2,
       ),
-      description: 'IAM permission to add to AgentCore Runtime role',
+      description: "IAM permission to add to AgentCore Runtime role",
     });
   }
 }
