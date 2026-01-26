@@ -117,6 +117,24 @@ export class AwsSecurityAuditGatewayStack extends cdk.Stack {
     // =================================================================
     // SECTION 3: L1 CfnGateway (IAM Auth)
     // =================================================================
+    //
+    // AgentCore Gateway Authentication Options:
+    //
+    // 1. AWS_IAM (selected here)
+    //    - Uses SigV4 signature-based authentication
+    //    - No additional token management required
+    //    - Gateway→Lambda calls are automatically authenticated via IAM
+    //    - MCP clients connecting to this Gateway MUST support SigV4:
+    //      * Use mcp-proxy-for-aws (handles SigV4 signing automatically)
+    //      * Or implement custom SigV4 signing in HTTP requests
+    //      * Strands Agent SDK's streamablehttp_client does NOT support SigV4
+    //
+    // 2. CUSTOM_JWT (alternative, not used here)
+    //    - OAuth 2.0 / OIDC token-based authentication
+    //    - Allows direct HTTP connections from MCP clients
+    //    - Requires Cognito or external identity provider setup
+    //    - Bearer token in Authorization header
+    // =================================================================
 
     const gatewayName = `uc8-gateway-${UNIQUE_ID}-lambda`;
 
