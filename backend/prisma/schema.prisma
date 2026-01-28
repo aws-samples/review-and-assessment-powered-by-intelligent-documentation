@@ -39,11 +39,13 @@ model CheckListSet {
   id          String              @id @map("check_list_set_id") @db.VarChar(26)
   name        String              @db.VarChar(255)
   description String?             @db.Text
+  userId      String              @map("user_id") @db.VarChar(50)
   checkLists  CheckList[]
   documents   CheckListDocument[]
   reviewJobs  ReviewJob[]
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
 
+  @@index([userId], map: "idx_check_list_sets_user_id")
   @@map("check_list_sets")
 }
 
