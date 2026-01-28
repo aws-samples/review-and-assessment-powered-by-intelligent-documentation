@@ -115,11 +115,11 @@
 **含まれるファイル**:
 
 - チェックリスト: 新薬承認申請チェックリスト（PDF）
-- 審査対象書類: CTD_2.5_臨床に関する概括評価（PDF）
+- 審査対象書類: CTD*2.5*臨床に関する概括評価（PDF）
 - ナレッジベース用ファイル:
   - ICH_M4_CTD構成ガイドライン（PDF）
   - 新医薬品承認審査の基本的考え方（PDF）
-  - ICH_E3_臨床試験報告書の構造と内容（PDF）
+  - ICH*E3*臨床試験報告書の構造と内容（PDF）
   - 医薬品リスク管理計画（RMP）策定ガイドライン（PDF）
 
 **セットアップ手順**:
@@ -151,47 +151,67 @@
 
 **活用場面**: 新薬承認申請書類の形式準拠性確認や必要項目の記載確認を自動化し、規制当局による審査業務の効率化と品質向上を実現できます。ナレッジベースと連動することで、ICHガイドラインや審査基準との整合性も確認できます。
 
-### ユースケース 008: AWSセキュリティ監査（IT部門）
+### ユースケース 008: AWSセキュリティ監査（SI納品前検証）
 
-**概要**: AWS環境のセキュリティ設定が社内セキュリティ基準を満たしているかを確認するユースケースです。情報システム部門がDX推進部などの事業部門からのAWSアカウント利用申請を審査する際に使用します。
+**概要**: システムインテグレーター（SI）が顧客向けに開発したAWSシステムを納品する前に、セキュリティ設定が要件を満たしているかを検証するユースケースです。開発完了後の最終チェックとして、実際のAWS環境の設定を自動監査し、顧客への引き渡しドキュメントを作成します。
 
 **含まれるファイル**:
 
 - チェックリスト: AWSセキュリティ監査チェックリスト（PDF）
-- 審査対象書類: AWSアカウント利用申請書（PDF）
+- 審査対象書類: システム納品前セキュリティ検証報告書（PDF）
 
-**活用場面**: AWS環境のセキュリティ設定が社内基準を満たしているかを自動チェックし、情報システム部門による審査業務を効率化できます。RDS暗号化、S3設定、IAM MFA等10項目を審査します。
+**活用場面**: SIが複数の顧客AWS環境を管理する際、納品前の最終セキュリティチェックを自動化できます。RDS暗号化、S3設定、IAM MFA等の設定状況を実際のAWS環境から取得し、契約で定められたセキュリティ基準への準拠を検証します。
 
-**MCP 設定例**:
+#### セットアップ手順
 
-Tool Configuration画面で以下を追加:
+このユースケースは専用のMCP Gatewayをデプロイする必要があります。以下の手順で設定してください：
+
+**1. Gateway CDKスタックをデプロイ**
+
+```bash
+cd ユースケース008_AWSセキュリティ監査/cdk
+npm install
+npm run build
+npx cdk bootstrap  # 初回のみ
+npx cdk deploy AwsSecurityAuditGatewayStack --region ap-northeast-1
+```
+
+**重要**: このスタックは **RAPIDがデプロイされている同一AWSアカウント** と同じアカウント・リージョンにデプロイしてください。
+
+デプロイが完了すると、Stack outputsに以下の情報が表示されます：
+
+- **GatewayEndpoint**: Gateway URL
+- **McpConfiguration**: Tool Configuration用のJSON（コピーして使用）
+- **IamPermissionRequired**: AgentCore Runtimeに必要な権限情報
+
+**2. Tool Configuration設定**
+
+1. RAPID UIでTool Configuration画面を開く
+2. 新規作成をクリック
+3. Stack outputsの `McpConfiguration` 値をコピーしてMCP Config欄に貼り付け（**Stdio transport format**）：
 
 ```json
 {
-  "awslabs.aws-api-mcp-server": {
+  "aws-security-audit-gateway": {
     "command": "uvx",
-    "args": ["awslabs.aws-api-mcp-server@latest"],
-    "env": {
-      "AWS_REGION": "us-east-1"
-    }
+    "args": [
+      "mcp-proxy-for-aws",
+      "https://xxx.gateway.bedrock-agentcore.ap-northeast-1.amazonaws.com/mcp"
+    ]
   }
 }
 ```
 
-**重要: AgentCore RuntimeへのIAM権限付与**
+4. Previewで3つのツールが表示されることを確認：
+   - `call_aws` - AWS CLIコマンド実行
+   - `suggest_aws_commands` - 自然言語からAWS CLIコマンドを提案
+   - `get_execution_plan` - 複雑なAWSタスクのワークフロー生成
 
-このユースケースを実施するには、**AgentCore Runtime（Lambda実行ロール）** に以下のIAM読み取り権限が必要です：
+**3. チェックリストでの使用**
 
-- `rds:DescribeDBInstances`
-- `s3:ListBuckets`, `s3:GetPublicAccessBlock`
-- `iam:ListUsers`, `iam:ListMFADevices`, `iam:GetAccountPasswordPolicy`
-- `cloudtrail:DescribeTrails`, `cloudtrail:GetTrailStatus`
-- `ec2:DescribeVpcs`, `ec2:DescribeFlowLogs`, `ec2:DescribeSecurityGroups`, `ec2:DescribeVolumes`
-- `config:DescribeConfigurationRecorders`, `config:DescribeConfigurationRecorderStatus`
-- `guardduty:ListDetectors`, `guardduty:GetDetector`
-
-詳細: https://github.com/awslabs/mcp/tree/main/src/aws-api-mcp-server
-
+1. AWSセキュリティ監査チェックリストをアップロード
+2. チェックリスト編集画面を開き、上記で作成したTool Configurationを割り当て
+3. レビューを実行
 
 ## 使用方法
 

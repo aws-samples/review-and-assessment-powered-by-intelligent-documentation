@@ -1,0 +1,42 @@
+{
+  "name": "TC###-説明",
+  "input": {
+    "document_paths": [
+      "fixtures/sample_document.pdf"
+    ],
+    "check_name": "消防設備チェック",
+    "check_description": "安全基準に従って消火器が設置され、適切に保守されているかを確認する",
+    "language_name": "日本語",
+    "tool_configuration": {
+      "codeInterpreter": false,
+      "knowledgeBase": null,
+      "mcpConfig": null
+    }
+  },
+  "expected_output": {
+    "result": "pass",
+    "confidence_range": [
+      0.8,
+      1.0
+    ],
+    "explanation_keywords": [
+      "設置済み",
+      "適合"
+    ]
+  },
+  "_comments": {
+    "name": "テストケースの一意識別子（例: TC001-fire-extinguisher）",
+    "document_paths": "fixturesディレクトリ内のドキュメントファイル名の配列",
+    "check_name": "チェック内容の短い名前",
+    "check_description": "要件の詳細な説明 - エージェントがこれを使用して判断を行う",
+    "language_name": "言語設定: 'English' または '日本語'",
+    "expected_output_result": "正解ラベル: 'pass'(準拠) または 'fail'(非準拠)",
+    "confidence_range": "期待される信頼度範囲（オプション）",
+    "explanation_keywords": "説明に含まれるべきキーワード（オプション）",
+    "tool_configuration_fields": {
+      "codeInterpreter": "計算やデータ分析のためにコード実行が必要な場合はtrueに設定",
+      "knowledgeBase": "重要: これはリストです! 例: [{\"knowledgeBaseId\": \"KB123ABC\", \"dataSourceIds\": null}] または [{\"knowledgeBaseId\": \"KB-1\", \"dataSourceIds\": [\"source-1\"]}, {\"knowledgeBaseId\": \"KB-2\"}]",
+      "mcpConfig": "MCPツールを設定（利用可能なツールと設定についてはサポートに問い合わせ）"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "aws-security-audit-gateway-cdk",
+  "version": "1.0.0",
+  "description": "CDK project for AWS Security Audit Gateway using MCP",
+  "bin": {
+    "aws-security-audit-gateway": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "aws-cdk": "2.1031.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.234.1",
+    "constructs": "^10.0.0",
+    "@aws-cdk/aws-bedrock-agentcore-alpha": "2.234.1-alpha.0",
+    "@aws-sdk/client-bedrock-agentcore-control": "^3.0.0",
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
+  }
+}

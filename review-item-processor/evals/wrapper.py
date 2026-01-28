@@ -1,0 +1,226 @@
+"""
+Wrapper module to adapt the RAPID review agent to Strands Evals SDK format.
+
+This module provides:
+- ReviewAgentInput/Output: Type-safe input/output models
+- run_review_agent: Function that executes the agent and returns structured output
+"""
+
+import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from strands_evals import Case
+
+
+@dataclass
+class ReviewAgentInput:
+    """Input for review agent evaluation."""
+
+    document_paths: list[str]  # Relative paths to fixtures/
+    check_name: str
+    check_description: str
+    language_name: str = "日本語"
+    tool_configuration: dict[str, Any] | None = None
+    fixtures_dir: str | None = None
+
+    def to_agent_event(self, fixtures_dir: Path) -> dict[str, Any]:
+        """Convert to agent event format with absolute paths."""
+        return {
+            "reviewJobId": "eval-job",
+            "checkId": "eval-check",
+            "reviewResultId": "eval-result",
+            "documentPaths": [
+                str(fixtures_dir / path) for path in self.document_paths
+            ],
+            "checkName": self.check_name,
+            "checkDescription": self.check_description,
+            "languageName": self.language_name,
+            "toolConfiguration": self.tool_configuration or {},
+        }
+
+
+@dataclass
+class ReviewAgentOutput:
+    """Output from review agent evaluation."""
+
+    result: str  # "pass" | "fail"
+    confidence: float
+    explanation: str
+    short_explanation: str
+    tool_usage: list[dict[str, Any]]  # From verificationDetails.sourcesDetails
+    review_meta: dict[str, Any]
+
+    # Additional fields for analysis
+    extracted_text: str | list[str] | None = None
+    page_number: int | None = None
+    review_type: str | None = None  # "PDF" | "IMAGE"
+    used_image_indexes: list[int] | None = None
+    bounding_boxes: list[dict] | None = None
+
+
+def run_review_agent(
+    case: Case[ReviewAgentInput, ReviewAgentOutput],
+    use_local_files: bool = True,
+) -> ReviewAgentOutput:
+    """
+    Execute the review agent and return structured output.
+
+    Args:
+        case: Test case with input and expected output
+        use_local_files: If True, use local files directly (default).
+                        If False, upload to S3 first (for production-like testing)
+
+    Returns:
+        ReviewAgentOutput with agent results
+
+    Raises:
+        Exception: If agent execution fails
+    """
+    # Determine fixtures directory
+    if case.input.fixtures_dir:
+        # Use explicit fixtures directory from input
+        fixtures_dir = Path(case.input.fixtures_dir)
+        if not fixtures_dir.is_absolute():
+            evals_dir = Path(__file__).parent
+            fixtures_dir = evals_dir / fixtures_dir
+
+        # NO SEARCH - use exact directory specified
+        potential_fixture_dirs = [fixtures_dir]
+    else:
+        # Fallback: should not reach here if CLI properly sets fixtures_dir
+        raise ValueError(
+            "fixtures_dir must be specified in ReviewAgentInput. "
+            "This should be set by load_test_case_from_json()."
+        )
+
+    if not use_local_files:
+        raise NotImplementedError(
+            "S3 upload not yet implemented. Use use_local_files=True"
+        )
+
+    # Import process_review_from_local
+    from agent import process_review_from_local
+
+    # Resolve document paths to absolute paths
+    document_paths = []
+    for doc_path in case.input.document_paths:
+        found = False
+        for fixtures_dir in potential_fixture_dirs:
+            full_path = fixtures_dir / doc_path
+            if full_path.exists():
+                document_paths.append(str(full_path))
+                found = True
+                break
+
+        if not found:
+            raise FileNotFoundError(
+                f"Document '{doc_path}' not found in fixtures directory: {potential_fixture_dirs[0]}"
+            )
+
+    # Execute agent using unified local processing
+    result = process_review_from_local(
+        document_paths=document_paths,
+        check_name=case.input.check_name,
+        check_description=case.input.check_description,
+        language_name=case.input.language_name,
+        model_id=None,  # Auto-select based on file types
+        toolConfiguration=case.input.tool_configuration,
+        feedback_summary=None,  # Not used in evals currently
+    )
+
+    # Convert to ReviewAgentOutput
+    return ReviewAgentOutput(
+        result=result["result"],
+        confidence=result["confidence"],
+        explanation=result["explanation"],
+        short_explanation=result["shortExplanation"],
+        tool_usage=result.get("verificationDetails", {}).get("sourcesDetails", []),
+        review_meta=result.get("reviewMeta", {}),
+        extracted_text=result.get("extractedText"),
+        page_number=result.get("pageNumber"),
+        review_type=result.get("reviewType"),
+        used_image_indexes=result.get("usedImageIndexes"),
+        bounding_boxes=result.get("boundingBoxes"),
+    )
+
+
+def load_test_case_from_json(
+    json_path: Path,
+    fixtures_dir: Path | None = None,
+) -> Case[ReviewAgentInput, ReviewAgentOutput]:
+    """
+    Load a test case from JSON file.
+
+    Args:
+        json_path: Path to JSON file
+        fixtures_dir: Directory containing fixture files
+
+    Returns:
+        Case object for use with Strands Evals
+    """
+    with open(json_path) as f:
+        data = json.load(f)
+
+    # Parse input
+    input_data = data["input"]
+    agent_input = ReviewAgentInput(
+        document_paths=input_data["document_paths"],
+        check_name=input_data["check_name"],
+        check_description=input_data["check_description"],
+        language_name=input_data.get("language_name", "日本語"),
+        tool_configuration=input_data.get("tool_configuration"),
+        fixtures_dir=str(fixtures_dir) if fixtures_dir else None,
+    )
+
+    # Parse expected output (for ground truth comparison)
+    expected = data.get("expected_output", {})
+
+    # Create case
+    return Case(
+        name=data.get("name", data.get("id", "unknown")),
+        input=agent_input,
+        expected_output=expected,  # Store as dict for flexible evaluation
+        metadata=data.get("metadata", {}),
+    )
+
+
+def load_test_suite_from_json(
+    json_path: Path,
+    fixtures_dir: Path | None = None,
+) -> list[Case[ReviewAgentInput, ReviewAgentOutput]]:
+    """
+    Load a test suite (multiple cases) from JSON file.
+
+    Args:
+        json_path: Path to JSON file containing array of test cases
+        fixtures_dir: Directory containing fixture files
+
+    Returns:
+        List of Case objects
+    """
+    with open(json_path) as f:
+        data = json.load(f)
+
+    if isinstance(data, list):
+        # Array of test cases
+        cases = []
+        for item in data:
+            # Create temp file for each case
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+                json.dump(item, tmp)
+                tmp_path = Path(tmp.name)
+
+            try:
+                case = load_test_case_from_json(tmp_path, fixtures_dir=fixtures_dir)
+                cases.append(case)
+            finally:
+                tmp_path.unlink()
+
+        return cases
+    else:
+        # Single test case
+        return [load_test_case_from_json(json_path, fixtures_dir=fixtures_dir)]

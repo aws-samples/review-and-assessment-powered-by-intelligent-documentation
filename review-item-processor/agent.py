@@ -125,27 +125,25 @@ def supports_caching(model_id: str) -> bool:
 
 
 def _should_use_document_block(
-    document_paths: list,
-    model_id: str,
-    has_images: bool
+    document_paths: list, model_id: str, has_images: bool
 ) -> bool:
     """
     Determine if document block should be used.
-    
+
     Document block: Embed PDF directly in request
     File read tool: Use file_read tool with file paths
-    
+
     Args:
         document_paths: List of document paths
         model_id: Bedrock model ID
         has_images: Whether documents contain images
-        
+
     Returns:
         True to use document block, False to use file_read tool
     """
     if has_images:
         return False
-    
+
     model = ModelConfig.create(model_id)
     return ENABLE_CITATIONS and model.supports_document_block
 
@@ -190,6 +188,185 @@ def sanitize_file_name(filename: str) -> str:
     logger.debug(f"Sanitized filename: {sanitized} (original: {filename})")
 
     return sanitized
+
+
+def _detect_image_file(file_paths: list[str]) -> bool:
+    """
+    Detect if image files are present in the file path list.
+
+    Returns:
+        True if any image file found, False otherwise
+    """
+    for path in file_paths:
+        ext = os.path.splitext(path)[1].lower()
+        if ext in IMAGE_FILE_EXTENSIONS:
+            return True
+    return False
+
+
+def _select_model_for_files(
+    has_images: bool, model_id_override: str | None = None
+) -> str:
+    """
+    Select model based on file types.
+
+    Args:
+        has_images: Whether image files are present
+        model_id_override: User-specified model ID (takes priority)
+
+    Returns:
+        Selected model ID
+    """
+    if model_id_override:
+        return model_id_override
+    return IMAGE_MODEL_ID if has_images else DOCUMENT_MODEL_ID
+
+
+def _validate_and_complete_result(
+    result: dict[str, Any], has_images: bool
+) -> dict[str, Any]:
+    """
+    Validate and complete required fields in the result dict.
+    """
+    # Set defaults for required fields
+    if "result" not in result:
+        result["result"] = "fail"
+    if "confidence" not in result:
+        result["confidence"] = 0.5
+    if "explanation" not in result:
+        result["explanation"] = "No explanation provided"
+    if "shortExplanation" not in result:
+        result["shortExplanation"] = "No short explanation provided"
+    if "verificationDetails" not in result:
+        result["verificationDetails"] = {"sourcesDetails": []}
+    elif "sourcesDetails" not in result["verificationDetails"]:
+        result["verificationDetails"]["sourcesDetails"] = []
+
+    # File type-specific fields
+    if has_images:
+        if "usedImageIndexes" not in result:
+            result["usedImageIndexes"] = []
+        if "boundingBoxes" not in result:
+            result["boundingBoxes"] = []
+    else:
+        if "extractedText" not in result:
+            result["extractedText"] = ""
+        if "pageNumber" not in result:
+            result["pageNumber"] = 1
+
+    return result
+
+
+def _execute_review_core(
+    file_paths: list[str],
+    has_images: bool,
+    check_name: str,
+    check_description: str,
+    language_name: str,
+    model_id: str,
+    toolConfiguration: dict[str, Any] | None,
+    feedback_summary: str | None,
+) -> dict[str, Any]:
+    """
+    Execute review from local files (common logic).
+
+    Args:
+        file_paths: List of absolute paths to local files
+        has_images: Whether image files are present
+        check_name: Check item name
+        check_description: Check item description
+        language_name: Language name
+        model_id: Model ID to use
+        toolConfiguration: Tool configuration
+        feedback_summary: Feedback summary
+
+    Returns:
+        Review result dict
+    """
+    # Determine processing method
+    use_document_block = _should_use_document_block(file_paths, model_id, has_images)
+
+    logger.debug(
+        f"Processing method: "
+        f"{'document_block' if use_document_block else 'file_read_tool'}, "
+        f"model={model_id}"
+    )
+
+    # Generate prompt and execute
+    if use_document_block:
+        # Document block path（PDF with citations）
+        prompt = get_document_review_prompt(
+            language_name,
+            check_name,
+            check_description,
+            use_citations=False,  # Model auto-detects
+            tool_config=toolConfiguration,
+            feedback_summary=feedback_summary,
+        )
+        system_prompt = (
+            f"You are an expert document reviewer. "
+            f"Analyze the provided files and evaluate the check item. "
+            f"All responses must be in {language_name}."
+        )
+
+        result = _run_agent_with_document_block(
+            prompt=prompt,
+            file_paths=file_paths,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            toolConfiguration=toolConfiguration,
+        )
+        result["reviewType"] = "PDF"
+        logger.debug("Used document block processing")
+
+    else:
+        # File read tool path (images or non-citation support)
+        if has_images:
+            prompt = get_image_review_prompt(
+                language_name,
+                check_name,
+                check_description,
+                model_id,
+                toolConfiguration,
+                feedback_summary,
+            )
+            tools = [file_read, image_reader]
+            review_type = "IMAGE"
+        else:
+            prompt = get_document_review_prompt(
+                language_name,
+                check_name,
+                check_description,
+                use_citations=False,
+                tool_config=toolConfiguration,
+                feedback_summary=feedback_summary,
+            )
+            tools = [file_read]
+            review_type = "PDF"
+
+        system_prompt = (
+            f"You are an expert document reviewer. "
+            f"Analyze the provided files and evaluate the check item. "
+            f"All responses must be in {language_name}."
+        )
+
+        result = _run_agent_with_file_read_tool(
+            prompt=prompt,
+            file_paths=file_paths,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            base_tools=tools,
+            toolConfiguration=toolConfiguration,
+        )
+        result["reviewType"] = review_type
+        logger.debug("Used file_read tool processing")
+
+    # Validate and complete results
+    result = _validate_and_complete_result(result, has_images)
+
+    logger.info(f"Review completed with reviewType: {result['reviewType']}")
+
+    return result
 
 
 def list_tools_sync(client: MCPClient) -> List[Dict[str, Any]]:
@@ -314,29 +491,29 @@ def _run_agent_with_document_block(
 ) -> Dict[str, Any]:
     """
     Run Strands agent with document block.
-    
+
     Document block embeds PDF directly in the request.
     Citations will be enabled only if model supports it.
     """
-    
+
     model = ModelConfig.create(model_id)
-    
+
     logger.debug(
         f"Running agent with document block: {len(file_paths)} files, "
         f"citations.enabled={model.supports_citation}, model={model_id}"
     )
-    
+
     if not model.supports_citation:
         logger.info(
             f"Citations disabled for {model_id} "
             f"(model supports document block but not citations)"
         )
-    
+
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
-    
+
     custom_tools = create_custom_tools(toolConfiguration)
-    
+
     # Prepare document blocks
     content = []
     for file_path in file_paths:
@@ -346,10 +523,10 @@ def _run_agent_with_document_block(
         except Exception as e:
             logger.error(f"Failed to read file {file_path}: {e}")
             continue
-        
+
         filename = os.path.basename(file_path)
         sanitized_name = sanitize_file_name(filename)
-        
+
         doc_block = {
             "document": {
                 "name": sanitized_name,
@@ -358,11 +535,11 @@ def _run_agent_with_document_block(
                 "citations": {"enabled": model.supports_citation},
             }
         }
-        
+
         content.append(doc_block)
-    
+
     content.append({"text": prompt})
-    
+
     # Configure model
     bedrock_config = {
         "model_id": model_id,
@@ -370,34 +547,32 @@ def _run_agent_with_document_block(
         "temperature": temperature,
         "streaming": False,
     }
-    
+
     if model.supports_caching:
         bedrock_config["cache_prompt"] = "default"
         bedrock_config["cache_tools"] = "default"
-    
+
     agent = Agent(
         model=BedrockModel(**bedrock_config),
         tools=custom_tools,
         system_prompt=system_prompt,
         hooks=[history_collector],
     )
-    
+
     logger.debug("Executing agent with document block")
     response = agent(content)
-    
+
     result = _agent_message_to_dict(
-        response.message, 
-        response, 
-        use_citations=model.supports_citation
+        response.message, response, use_citations=model.supports_citation
     )
-    
+
     result["verificationDetails"] = {"sourcesDetails": history_collector.executions}
     review_meta = meta_tracker.get_review_meta(response)
     result["reviewMeta"] = review_meta
     result["inputTokens"] = review_meta["input_tokens"]
     result["outputTokens"] = review_meta["output_tokens"]
     result["totalCost"] = review_meta["total_cost"]
-    
+
     return result
 
 
@@ -900,7 +1075,7 @@ MUST BE IN {language_name}.
 
 
 # Main processing functions
-def process_review(
+def process_review_from_s3(
     document_bucket: str,
     document_paths: list,
     check_name: str,
@@ -911,177 +1086,64 @@ def process_review(
     feedback_summary: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Process a document review using Strands agent with local file reading.
-    Main dispatcher that chooses between citation and legacy processing.
+    Download files from S3 and execute review (for production environment).
+
+    Args:
+        document_bucket: S3 bucket name
+        document_paths: List of S3 object keys
+        check_name: Check item name
+        check_description: Check item description
+        language_name: Language name (default: "日本語")
+        model_id: Model ID (auto-selected if None)
+        toolConfiguration: Tool configuration
+        feedback_summary: Feedback summary
+
+    Returns:
+        Review result dict
     """
     logger.debug(f"Processing review for check: {check_name}")
-    logger.debug(f"Tool configuration: {toolConfiguration}")
-    if feedback_summary:
-        logger.debug("Feedback summary available for this check")
+    logger.debug(f"S3 mode: bucket={document_bucket}")
 
     # Create temporary directory for downloaded files
     temp_dir = tempfile.mkdtemp()
     logger.debug(f"Created temporary directory: {temp_dir}")
     local_file_paths = []
 
-    # Track file types
-    has_images = False
-
     try:
         # Download files from S3
-        logger.debug(f"Downloading {len(document_paths)} files from S3")
         s3_client = boto3.client("s3")
-
-        # Dictionary to map sanitized file paths to original file paths
-        sanitized_file_paths = []
+        logger.debug(f"Downloading {len(document_paths)} files from S3")
 
         for path in document_paths:
-            # Get original basename
             original_basename = os.path.basename(path)
-
-            # Create sanitized filename
             sanitized_basename = sanitize_file_name(original_basename)
-            if original_basename != sanitized_basename:
-                logger.debug(
-                    f"Sanitized filename '{original_basename}' to '{sanitized_basename}'"
-                )
-
-            # Download to sanitized path
-            ext = os.path.splitext(original_basename)[
-                1
-            ].lower()  # Preserve file extension
+            ext = os.path.splitext(original_basename)[1].lower()
             sanitized_path = os.path.join(temp_dir, sanitized_basename + ext)
+
             logger.debug(f"Downloading {path} to {sanitized_path}")
-
             s3_client.download_file(document_bucket, path, sanitized_path)
-            sanitized_file_paths.append(sanitized_path)
-            logger.debug(f"Downloaded {path} to {sanitized_path}")
+            local_file_paths.append(sanitized_path)
 
-            # Check if this is an image file
-            if ext in IMAGE_FILE_EXTENSIONS:
-                has_images = True
-                logger.debug(f"Detected image file: {original_basename}")
+        # Detect file types
+        has_images = _detect_image_file(local_file_paths)
 
-        # Use sanitized file paths for agent
-        local_file_paths = sanitized_file_paths
+        # Select model
+        selected_model_id = _select_model_for_files(has_images, model_id)
+        logger.debug(f"Selected model: {selected_model_id}")
 
-        # Select appropriate model based on file types
-        # Use provided model_id, or fallback to defaults
-        if model_id:
-            selected_model_id = model_id
-        else:
-            selected_model_id = IMAGE_MODEL_ID if has_images else DOCUMENT_MODEL_ID
-        
-        if has_images:
-            logger.debug(f"Using image processing model: {selected_model_id}")
-        else:
-            logger.debug(f"Using document processing model: {selected_model_id}")
-
-        # Processing method decision
-        use_document_block = _should_use_document_block(
-            document_paths, selected_model_id, has_images
-        )
-        logger.debug(
-            f"Processing method: "
-            f"{'document_block' if use_document_block else 'file_read_tool'}, "
-            f"model={selected_model_id}"
+        # Call common execution logic
+        result = _execute_review_core(
+            file_paths=local_file_paths,
+            has_images=has_images,
+            check_name=check_name,
+            check_description=check_description,
+            language_name=language_name,
+            model_id=selected_model_id,
+            toolConfiguration=toolConfiguration,
+            feedback_summary=feedback_summary,
         )
 
-        # Dispatch to appropriate processing method
-        if use_document_block:
-            # Document block path
-            prompt = get_document_review_prompt(
-                language_name, check_name, check_description, 
-                use_citations=False,  # Will be determined by model
-                tool_config=toolConfiguration,
-                feedback_summary=feedback_summary,
-            )
-            
-            system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-            
-            result = _run_agent_with_document_block(
-                prompt=prompt,
-                file_paths=local_file_paths,
-                model_id=selected_model_id,
-                system_prompt=system_prompt,
-                toolConfiguration=toolConfiguration,
-            )
-            result["reviewType"] = "PDF"
-            logger.debug("Used document block processing")
-            
-        else:
-            # File read tool path
-            if has_images:
-                prompt = get_image_review_prompt(
-                    language_name, check_name, check_description, 
-                    selected_model_id, toolConfiguration,
-                    feedback_summary=feedback_summary,
-                )
-                tools = [file_read, image_reader]
-                review_type = "IMAGE"
-            else:
-                prompt = get_document_review_prompt(
-                    language_name, check_name, check_description,
-                    use_citations=False,
-                    tool_config=toolConfiguration,
-                    feedback_summary=feedback_summary,
-                )
-                tools = [file_read]
-                review_type = "PDF"
-            
-            system_prompt = f"You are an expert document reviewer. Analyze the provided files and evaluate the check item. All responses must be in {language_name}."
-            
-            result = _run_agent_with_file_read_tool(
-                prompt=prompt,
-                file_paths=local_file_paths,
-                model_id=selected_model_id,
-                system_prompt=system_prompt,
-                base_tools=tools,
-                toolConfiguration=toolConfiguration,
-            )
-            result["reviewType"] = review_type
-            logger.debug("Used file_read tool processing")
-
-        # Ensure all required fields exist
-        logger.debug("Validating result fields")
-        if "result" not in result:
-            logger.debug("Adding missing 'result' field")
-            result["result"] = "fail"
-        if "confidence" not in result:
-            logger.debug("Adding missing 'confidence' field")
-            result["confidence"] = 0.5
-        if "explanation" not in result:
-            logger.debug("Adding missing 'explanation' field")
-            result["explanation"] = "No explanation provided"
-        if "shortExplanation" not in result:
-            logger.debug("Adding missing 'shortExplanation' field")
-            result["shortExplanation"] = "No short explanation provided"
-        if "verificationDetails" not in result:
-            logger.debug("Adding missing 'verificationDetails' field")
-            result["verificationDetails"] = {"sourcesDetails": []}
-        elif "sourcesDetails" not in result["verificationDetails"]:
-            logger.debug("Adding missing 'sourcesDetails' field")
-            result["verificationDetails"]["sourcesDetails"] = []
-
-        # Add file type specific fields if missing
-        if has_images:
-            if "usedImageIndexes" not in result:
-                logger.debug("Adding missing 'usedImageIndexes' field")
-                result["usedImageIndexes"] = []
-            if "boundingBoxes" not in result:
-                logger.debug("Adding missing 'boundingBoxes' field")
-                result["boundingBoxes"] = []
-        else:
-            if "extractedText" not in result:
-                logger.debug("Adding missing 'extractedText' field")
-                result["extractedText"] = ""
-            if "pageNumber" not in result:
-                logger.debug("Adding missing 'pageNumber' field")
-                result["pageNumber"] = 1
-
-        logger.info(
-            f"Document review completed successfully with reviewType: {result['reviewType']}"
-        )
+        logger.info(f"S3 review completed successfully")
         return result
 
     finally:
@@ -1095,3 +1157,101 @@ def process_review(
             logger.debug(f"Removing temporary directory: {temp_dir}")
             os.rmdir(temp_dir)
         logger.debug("Cleanup complete")
+
+
+def process_review_from_local(
+    document_paths: list[str],
+    check_name: str,
+    check_description: str,
+    language_name: str = "日本語",
+    model_id: str | None = None,
+    toolConfiguration: dict[str, Any] | None = None,
+    feedback_summary: str | None = None,
+) -> dict[str, Any]:
+    """
+    Execute review directly from local files (for eval environment).
+
+    Skips S3 download and uses local file paths as-is.
+
+    Args:
+        document_paths: List of absolute paths to local files
+        check_name: Check item name
+        check_description: Check item description
+        language_name: Language name (default: "日本語")
+        model_id: Model ID (auto-selected if None)
+        toolConfiguration: Tool configuration
+        feedback_summary: Feedback summary
+
+    Returns:
+        Review result dict
+    """
+    logger.debug(f"Processing review for check: {check_name}")
+    logger.debug(f"Local mode: {len(document_paths)} files")
+
+    # Verify file existence
+    for path in document_paths:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File not found: {path}")
+
+    # Detect file types
+    has_images = _detect_image_file(document_paths)
+
+    # Select model
+    selected_model_id = _select_model_for_files(has_images, model_id)
+    logger.debug(f"Selected model: {selected_model_id}")
+
+    # Call common execution logic
+    result = _execute_review_core(
+        file_paths=document_paths,
+        has_images=has_images,
+        check_name=check_name,
+        check_description=check_description,
+        language_name=language_name,
+        model_id=selected_model_id,
+        toolConfiguration=toolConfiguration,
+        feedback_summary=feedback_summary,
+    )
+
+    logger.info(f"Local review completed successfully")
+    return result
+
+
+def process_review(
+    document_bucket: str,
+    document_paths: list,
+    check_name: str,
+    check_description: str,
+    language_name: str = "日本語",
+    model_id: str = DOCUMENT_MODEL_ID,
+    toolConfiguration: dict[str, Any] | None = None,
+    feedback_summary: str | None = None,
+) -> dict[str, Any]:
+    """
+    Alias function for backward compatibility.
+
+    Existing interface called from index.py (Lambda handler).
+    Internally calls process_review_from_s3.
+
+    Args:
+        document_bucket: S3 bucket name
+        document_paths: List of S3 object keys
+        check_name: Check item name
+        check_description: Check item description
+        language_name: Language name
+        model_id: Model ID
+        toolConfiguration: Tool configuration
+        feedback_summary: Feedback summary
+
+    Returns:
+        Review result dict
+    """
+    return process_review_from_s3(
+        document_bucket=document_bucket,
+        document_paths=document_paths,
+        check_name=check_name,
+        check_description=check_description,
+        language_name=language_name,
+        model_id=model_id,
+        toolConfiguration=toolConfiguration,
+        feedback_summary=feedback_summary,
+    )

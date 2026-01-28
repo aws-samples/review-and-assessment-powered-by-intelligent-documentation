@@ -50,8 +50,8 @@ export class Api extends Construct {
     // Add VPC access to the Lambda function
     handlerRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName(
-        "service-role/AWSLambdaVPCAccessExecutionRole"
-      )
+        "service-role/AWSLambdaVPCAccessExecutionRole",
+      ),
     );
 
     // SecretsManagerへのアクセス権限を追加
@@ -70,7 +70,18 @@ export class Api extends Construct {
             "s3:ResourceAccount": [accountId],
           },
         },
-      })
+      }),
+    );
+
+    handlerRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "InvokeGatewayForAwsSecurityAudit",
+        effect: iam.Effect.ALLOW,
+        actions: ["bedrock-agentcore:InvokeGateway"],
+        resources: [
+          `arn:aws:bedrock-agentcore:${region}:${accountId}:gateway/*`,
+        ],
+      }),
     );
 
     // Lambda 関数の作成
@@ -80,7 +91,7 @@ export class Api extends Construct {
         path.join(__dirname, "../../../backend"),
         {
           platform: Platform.LINUX_ARM64,
-        }
+        },
       ),
       vpc: props.vpc,
       vpcSubnets: {
@@ -113,7 +124,7 @@ export class Api extends Construct {
         retention: logs.RetentionDays.ONE_WEEK,
         logGroupName: `/aws/apigateway/${stackId}-api-execution-logs`,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }
+      },
     );
 
     // API Gateway CloudWatch ロールの作成
@@ -124,10 +135,10 @@ export class Api extends Construct {
         assumedBy: new iam.ServicePrincipal("apigateway.amazonaws.com"),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
-            "service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+            "service-role/AmazonAPIGatewayPushToCloudWatchLogs",
           ),
         ],
-      }
+      },
     );
 
     // API Gateway の作成 - スタック名を含めて一意性を確保
@@ -141,7 +152,7 @@ export class Api extends Construct {
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
         accessLogDestination: new apigateway.LogGroupLogDestination(
-          accessLogGroup
+          accessLogGroup,
         ),
         accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
           caller: true,
@@ -220,7 +231,7 @@ export class Api extends Construct {
             "JWT authentication is implemented in the backend Lambda using Fastify",
         },
       ],
-      true
+      true,
     );
 
     // Add IAM role suppressions
@@ -233,7 +244,7 @@ export class Api extends Construct {
             "Managed policies are used for simplicity in this sample application",
         },
       ],
-      true
+      true,
     );
   }
 }
