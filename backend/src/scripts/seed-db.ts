@@ -10,6 +10,8 @@ import { ulid } from "ulid";
 
 const prisma = new PrismaClient();
 
+const defaultUserId = "user123";
+
 async function main(): Promise<void> {
   console.log("シードデータの投入を開始します...");
 
@@ -27,6 +29,7 @@ async function main(): Promise<void> {
       id: contractCheckListSetId,
       name: "基本契約書チェックリスト",
       description: "契約書の基本的な項目をチェックするためのセット",
+      userId: defaultUserId,
     },
   });
   console.log(
@@ -199,6 +202,7 @@ async function main(): Promise<void> {
       id: buildingCheckListSetId,
       name: "建築確認申請チェックリスト",
       description: "建築確認申請書類の審査用チェックリスト",
+      userId: defaultUserId,
     },
   });
   console.log(
@@ -432,6 +436,7 @@ async function main(): Promise<void> {
         id: setId,
         name: setData.name,
         description: setData.description,
+      userId: defaultUserId,
       },
     });
     createdCheckListSets.push(setId);

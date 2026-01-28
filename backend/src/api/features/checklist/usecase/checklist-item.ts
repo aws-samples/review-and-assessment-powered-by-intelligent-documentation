@@ -17,17 +17,16 @@ import {
 } from "../../../core/middleware/authorization";
 
 const assertChecklistSetOwner = async (params: {
-  user?: RequestUser;
+  user: RequestUser;
   setId: string;
   repo: CheckRepository;
   api: string;
   resourceId?: string;
 }): Promise<void> => {
-  if (!params.user) return;
   const checkListSet = await params.repo.findCheckListSetDetailById(
     params.setId
   );
-  const ownerUserId = checkListSet.documents?.[0]?.userId;
+  const ownerUserId = checkListSet.userId;
   assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
     api: params.api,
     resourceId: params.resourceId ?? params.setId,
@@ -37,7 +36,7 @@ const assertChecklistSetOwner = async (params: {
 
 export const createChecklistItem = async (params: {
   req: CreateChecklistItemRequest;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -80,7 +79,7 @@ export const createChecklistItem = async (params: {
 
 export const getCheckListItem = async (params: {
   itemId: string;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -103,7 +102,7 @@ export const getCheckListItem = async (params: {
 
 export const modifyCheckListItem = async (params: {
   req: UpdateChecklistItemRequest;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -145,7 +144,7 @@ export const modifyCheckListItem = async (params: {
 export const removeCheckListItem = async (params: {
   setId: string;
   itemId: string;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -176,7 +175,7 @@ export const removeCheckListItem = async (params: {
 export const bulkAssignToolConfiguration = async (params: {
   checkIds: string[];
   toolConfigurationId: string | null;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: { repo?: CheckRepository };
 }): Promise<number> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
@@ -184,23 +183,21 @@ export const bulkAssignToolConfiguration = async (params: {
     return 0;
   }
 
-  if (params.user) {
-    const setIds = new Set<string>();
-    for (const checkId of params.checkIds) {
-      const item = await repo.findCheckListItemById(checkId);
-      setIds.add(item.setId);
-    }
-    if (setIds.size > 1) {
-      throw new ValidationError("Mixed checklist set ids are not supported");
-    }
-    const [setId] = Array.from(setIds);
-    await assertChecklistSetOwner({
-      user: params.user,
-      setId,
-      repo,
-      api: "bulkAssignToolConfiguration",
-    });
+  const setIds = new Set<string>();
+  for (const checkId of params.checkIds) {
+    const item = await repo.findCheckListItemById(checkId);
+    setIds.add(item.setId);
   }
+  if (setIds.size > 1) {
+    throw new ValidationError("Mixed checklist set ids are not supported");
+  }
+  const [setId] = Array.from(setIds);
+  await assertChecklistSetOwner({
+    user: params.user,
+    setId,
+    repo,
+    api: "bulkAssignToolConfiguration",
+  });
   const updatedCount = await repo.bulkUpdateToolConfiguration({
     checkIds: params.checkIds,
     toolConfigurationId: params.toolConfigurationId,

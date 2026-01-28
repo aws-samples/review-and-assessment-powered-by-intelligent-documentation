@@ -16,7 +16,7 @@ describe("createChecklistItem authorization", () => {
   it("throws ForbiddenError when user is not owner", async () => {
     const repo = {
       findCheckListSetDetailById: vi.fn().mockResolvedValue({
-        documents: [{ userId: "owner-1" }],
+        userId: "owner-1",
       }),
       checkSetEditable: vi.fn().mockResolvedValue(true),
       validateParentItem: vi.fn().mockResolvedValue(true),
@@ -35,7 +35,7 @@ describe("createChecklistItem authorization", () => {
   it("allows owner to create checklist item", async () => {
     const repo = {
       findCheckListSetDetailById: vi.fn().mockResolvedValue({
-        documents: [{ userId: "owner-1" }],
+        userId: "owner-1",
       }),
       checkSetEditable: vi.fn().mockResolvedValue(true),
       validateParentItem: vi.fn().mockResolvedValue(true),
@@ -56,7 +56,7 @@ describe("checklist item edit/delete authorization", () => {
   it("throws ForbiddenError when non-owner modifies item", async () => {
     const repo = {
       findCheckListSetDetailById: vi.fn().mockResolvedValue({
-        documents: [{ userId: "owner-1" }],
+        userId: "owner-1",
       }),
       checkSetEditable: vi.fn().mockResolvedValue(true),
       findCheckListItemById: vi.fn().mockResolvedValue({
@@ -87,7 +87,7 @@ describe("checklist item edit/delete authorization", () => {
   it("throws ForbiddenError when non-owner deletes item", async () => {
     const repo = {
       findCheckListSetDetailById: vi.fn().mockResolvedValue({
-        documents: [{ userId: "owner-1" }],
+        userId: "owner-1",
       }),
       checkSetEditable: vi.fn().mockResolvedValue(true),
       deleteCheckListItemById: vi.fn().mockResolvedValue(undefined),

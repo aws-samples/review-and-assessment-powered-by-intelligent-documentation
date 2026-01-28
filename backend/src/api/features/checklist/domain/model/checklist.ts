@@ -58,6 +58,7 @@ export interface CheckListSetDetailModel {
   id: string;
   name: string;
   description: string;
+  userId: string;
   documents: ChecklistDocumentEntity[];
   processingStatus: CHECK_LIST_STATUS;
   isEditable: boolean;
@@ -68,10 +69,7 @@ export interface CheckListSetDetailModel {
 export interface ChecklistDocumentEntity {
   id: string;
   filename: string;
-  // DB側は s3Path カラムを使っているが、ドメインでは s3Key も参照される箇所があるため
-  // 両方を許容する（optional）ことで型不整合を解消する。
-  s3Key?: string;
-  s3Path?: string;
+  s3Key: string;
   fileType: string;
   uploadDate: Date;
   status: CHECK_LIST_STATUS;

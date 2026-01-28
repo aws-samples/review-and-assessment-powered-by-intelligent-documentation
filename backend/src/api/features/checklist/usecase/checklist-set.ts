@@ -39,7 +39,7 @@ const assertChecklistSetOwner = async (params: {
   const checkListSet = await params.repo.findCheckListSetDetailById(
     params.checkListSetId
   );
-  const ownerUserId = checkListSet.documents?.[0]?.userId;
+  const ownerUserId = checkListSet.userId;
   assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
     api: params.api,
     resourceId: params.resourceId ?? params.checkListSetId,
@@ -49,7 +49,7 @@ const assertChecklistSetOwner = async (params: {
 
 export const createChecklistSet = async (params: {
   req: CreateChecklistSetRequest;
-  userId?: string;
+  userId: string;
   deps?: {
     repo?: CheckRepository;
   };
@@ -109,7 +109,7 @@ export const duplicateChecklistSet = async (params: {
   sourceCheckListSetId: string;
   newName?: string;
   newDescription?: string;
-  userId?: string;
+  userId: string;
   deps?: {
     repo?: CheckRepository;
   };
@@ -230,7 +230,7 @@ export const removeChecklistSet = async (params: {
   // 所有者チェック（user が渡された場合のみ実行）
   if (params.user) {
     const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
-    const ownerUserId = checkListSet.documents?.[0]?.userId;
+    const ownerUserId = checkListSet.userId;
     assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
       api: "removeChecklistSet",
       resourceId: checkListSetId,
@@ -326,7 +326,7 @@ export const getChecklistSetById = async (params: {
 
   // 所有者チェック（user が渡された場合のみ実行）
   if (params.user) {
-    const ownerUserId = checkListSet.documents?.[0]?.userId;
+    const ownerUserId = checkListSet.userId;
     assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
       api: "getChecklistSetById",
       resourceId: checkListSetId,

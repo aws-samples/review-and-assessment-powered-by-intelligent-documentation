@@ -18,7 +18,7 @@ import { PaginatedResponse } from "../../../common/types";
 export interface CheckRepository {
   storeCheckListSet(params: {
     checkListSet: CheckListSetEntity;
-    ownerUserId?: string;
+    ownerUserId: string;
   }): Promise<void>;
   deleteCheckListSetById(params: { checkListSetId: string }): Promise<void>;
   findAllCheckListSets(params: {
@@ -70,7 +70,7 @@ export const makePrismaCheckRepository = async (
 
   const storeCheckListSet = async (params: {
     checkListSet: CheckListSetEntity;
-    ownerUserId?: string;
+    ownerUserId: string;
   }): Promise<void> => {
     const { checkListSet, ownerUserId } = params;
     const { id, name, description, documents, createdAt } = checkListSet;
@@ -80,15 +80,14 @@ export const makePrismaCheckRepository = async (
         id,
         name,
         description,
+        userId: ownerUserId,
         createdAt: createdAt,
         documents: {
           create: documents.map((doc: ChecklistDocumentEntity) => ({
             id: doc.id,
             filename: doc.filename,
-            // Prisma schema の s3Path は非 null の string なので、
-            // ドメイン側で s3Path があればそれを優先、なければ s3Key を代替として使い、
             // それでもなければ空文字を代入して型を満たす（データ整合上は本来あり得ないはず）。
-            s3Path: doc.s3Path ?? doc.s3Key ?? "",
+            s3Path: doc.s3Key,
             fileType: doc.fileType,
             uploadDate: doc.uploadDate,
             status: doc.status,
@@ -179,24 +178,6 @@ export const makePrismaCheckRepository = async (
     });
   };
 
-  type DBCheckListSet = {
-    id: string;
-    name: string;
-    description?: string | null;
-    createdAt: Date;
-    documents: Array<{
-      id: string;
-      filename: string;
-      s3Path: string;
-      fileType: string;
-      uploadDate: Date;
-      status: string;
-      errorDetail?: string | null;
-      userId?: string | null;
-    }>;
-    _count: { reviewJobs: number };
-  };
-
   const findAllCheckListSets = async (
     params: {
       page?: number;
@@ -242,6 +223,14 @@ export const makePrismaCheckRepository = async (
           };
           console.log("[Repository] Using pending filter condition");
           break;
+        case "processing":
+          whereCondition = {
+            documents: {
+              some: { status: "processing" },
+            },
+          };
+          console.log("[Repository] Using processing filter condition");
+          break;
       }
     }
 
@@ -249,12 +238,30 @@ export const makePrismaCheckRepository = async (
     if (ownerUserId) {
       // 既存の whereCondition と組み合わせる
       whereCondition = {
-        AND: [whereCondition, { documents: { some: { userId: ownerUserId } } }],
+        AND: [whereCondition, { userId: ownerUserId }],
       };
       console.log(`[Repository] Applying owner filter: ${ownerUserId}`);
     }
 
     // ページネーション用のクエリを並列実行
+    type DBCheckListSet = {
+      id: string;
+      name: string;
+      description?: string | null;
+      createdAt: Date;
+      documents: Array<{
+        id: string;
+        filename: string;
+        s3Path: string;
+        fileType: string;
+        uploadDate: Date;
+        status: string;
+        errorDetail?: string | null;
+        userId?: string | null;
+      }>;
+      _count: { reviewJobs: number };
+    };
+
     const [sets, total] = await Promise.all([
       client.checkListSet.findMany({
         where: whereCondition,
@@ -510,6 +517,7 @@ export const makePrismaCheckRepository = async (
       id: checkListSet.id,
       name: checkListSet.name,
       description: checkListSet.description ?? "",
+      userId: checkListSet.userId,
       documents: checkListSet.documents.map((doc: any) => ({
         id: doc.id,
         filename: doc.filename,

@@ -68,7 +68,7 @@ export const createChecklistSetHandler = async (
 ): Promise<void> => {
   await createChecklistSet({
     req: request.body,
-    userId: request.user?.userId,
+    userId: request.user!.userId,
   });
 
   reply.code(200).send({
@@ -111,7 +111,7 @@ export const duplicateChecklistSetHandler = async (
     newName: name,
     newDescription: description,
     // 新規作成物の所有者を設定するためにユーザーIDを渡す
-    userId: request.user?.userId,
+    userId: request.user!.userId,
   });
 
   reply.code(200).send({
@@ -289,7 +289,7 @@ export const getChecklistItemHandler = async (
   const { itemId } = request.params;
   const detail = await getCheckListItem({
     itemId,
-    user: request.user,
+    user: request.user!,
   });
 
   reply.code(200).send({
@@ -323,7 +323,7 @@ export const createChecklistItemHandler = async (
       Params: request.params,
       Body: request.body,
     },
-    user: request.user,
+    user: request.user!,
   });
 
   reply.code(200).send({
@@ -356,7 +356,7 @@ export const updateChecklistItemHandler = async (
       Params: { setId, itemId },
       Body: { name, description, resolveAmbiguity },
     },
-    user: request.user,
+    user: request.user!,
   });
 
   reply.code(200).send({
@@ -373,7 +373,7 @@ export const deleteChecklistItemHandler = async (
   await removeCheckListItem({
     setId,
     itemId,
-    user: request.user,
+    user: request.user!,
   });
   reply.code(200).send({
     success: true,
@@ -420,7 +420,7 @@ export const bulkAssignToolConfigurationHandler = async (
   const updatedCount = await bulkAssignToolConfiguration({
     checkIds: request.body.checkIds,
     toolConfigurationId: request.body.toolConfigurationId,
-    user: request.user,
+    user: request.user!,
   });
   reply.code(200).send({
     success: true,
