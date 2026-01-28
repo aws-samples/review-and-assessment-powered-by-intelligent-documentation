@@ -436,7 +436,7 @@ async function main(): Promise<void> {
         id: setId,
         name: setData.name,
         description: setData.description,
-      userId: defaultUserId,
+        userId: defaultUserId,
       },
     });
     createdCheckListSets.push(setId);

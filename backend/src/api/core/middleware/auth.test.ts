@@ -19,19 +19,21 @@ const makeReply = (): FastifyReply =>
   ({
     code: vi.fn().mockReturnThis(),
     send: vi.fn(),
-  } as unknown as FastifyReply);
+  }) as unknown as FastifyReply;
 
 const makeRequest = (authHeader?: string): FastifyRequest =>
   ({
     headers: authHeader ? { authorization: authHeader } : {},
-  } as FastifyRequest);
+  }) as FastifyRequest;
 
 describe("authMiddleware", () => {
   beforeEach(() => {
     verifyMock.mockReset();
-    (handleLocalDevelopmentAuth as unknown as { mockResolvedValue: (v: boolean) => void }).mockResolvedValue(
-      false
-    );
+    (
+      handleLocalDevelopmentAuth as unknown as {
+        mockResolvedValue: (v: boolean) => void;
+      }
+    ).mockResolvedValue(false);
   });
 
   it("returns 401 when authorization header is missing", async () => {
@@ -90,9 +92,11 @@ describe("authMiddleware", () => {
   it("skips jwt verification when local development auth is handled", async () => {
     const request = makeRequest("Bearer token");
     const reply = makeReply();
-    (handleLocalDevelopmentAuth as unknown as { mockResolvedValue: (v: boolean) => void }).mockResolvedValue(
-      true
-    );
+    (
+      handleLocalDevelopmentAuth as unknown as {
+        mockResolvedValue: (v: boolean) => void;
+      }
+    ).mockResolvedValue(true);
 
     await authMiddleware(request, reply);
 
