@@ -14,6 +14,7 @@ import {
   getReviewDocumentKey,
   getReviewImageKey,
 } from "../../../../checklist-workflow/common/storage-paths";
+import { sendMessage } from "../../../core/sqs";
 import { CreateReviewJobRequest } from "../routes/handlers";
 import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
 import {
@@ -24,7 +25,6 @@ import {
   ApplicationError,
   FileSizeExceededError,
 } from "../../../core/errors/application-errors";
-import { startStateMachineExecution } from "../../../core/sfn";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
 
@@ -102,7 +102,7 @@ export const getReviewImagesPresignedUrl = async (params: {
 };
 
 export const createReviewJob = async (params: {
-  requestBody: CreateReviewJobRequest;
+  requestBody: CreateReviewJobRequest & { userId: string; userName?: string };
   deps?: {
     checkRepo?: CheckRepository;
     reviewJobRepo?: ReviewJobRepository;
@@ -155,18 +155,21 @@ export const createReviewJob = async (params: {
 
   await reviewJobRepo.createReviewJob(reviewJob);
 
-  const stateMachineArn = process.env.REVIEW_PROCESSING_STATE_MACHINE_ARN;
-  if (!stateMachineArn) {
-    throw new ApplicationError(
-      "REVIEW_PROCESSING_STATE_MACHINE_ARN is not defined"
-    );
+  // レビュー処理キューへメッセージ送信
+  const queueUrl = process.env.REVIEW_QUEUE_URL;
+  if (!queueUrl) {
+    const error = new ApplicationError("REVIEW_QUEUE_URL is not defined");
+    throw error;
   }
 
-  // Invoke the state machine with file type information and userId for language preferences
-  await startStateMachineExecution(stateMachineArn, {
-    reviewJobId: reviewJob.id,
-    userId: params.requestBody.userId,
-  });
+  await sendMessage(
+    queueUrl,
+    {
+      reviewJobId: reviewJob.id,
+      userId: reviewJob.userId,
+    },
+    reviewJob.id
+  );
 };
 
 export const removeReviewJob = async (params: {
