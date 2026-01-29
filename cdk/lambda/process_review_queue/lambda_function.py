@@ -42,13 +42,13 @@ def lambda_handler(event, context):
     running_count = get_running_executions_count()
     available_slots = REVIEW_MAX_CONCURRENCY - running_count
 
-    logger.info('実行中: %d, 空き枠: %d', running_count, available_slots)
+    logger.info('Running executions: %d, available slots: %d', running_count, available_slots)
 
     # SQSからメッセージ受信
     messages = event['Records']  # SQSイベントの Records からメッセージを取得
 
     if not messages:
-        logger.info('受信メッセージなし')
+        logger.info('No messages received')
         return {'statusCode': 200, 'body': 'No messages to process'}
 
     if available_slots <= 0:
@@ -61,7 +61,7 @@ def lambda_handler(event, context):
         logger.error(err_msg)
         raise Exception(err_msg)
 
-    logger.info('受信メッセージ数: %d', len(messages))
+    logger.info('Received messages: %d', len(messages))
 
     # 各メッセージの処理
     for message in messages:
@@ -83,7 +83,7 @@ def get_running_executions_count():
             'status_filter': 'RUNNING',
             'max_results': REVIEW_MAX_CONCURRENCY + 1,
         }
-        err_msg = 'ListExecutions APIエラー: ' + \
+        err_msg = 'ListExecutions API error: ' + 
             json.dumps(error_message, ensure_ascii=False, indent=2)
         raise Exception(err_msg)
 
@@ -98,7 +98,7 @@ def receive_messages(max_messages):
     except ClientError:
         error_message = {'queue_url': SQS_QUEUE_URL, 'max_number_of_messages': max_messages,
                          'wait_time_seconds': SQS_WAIT_TIME_SECONDS}
-        err_msg = 'ReceiveMessage APIエラー: ' + \
+        err_msg = 'ReceiveMessage API error: ' + 
             json.dumps(error_message, ensure_ascii=False, indent=2)
         raise Exception(err_msg)
 
@@ -109,14 +109,14 @@ def change_message_visibility(receipt_handle, timeout_seconds):
         sqs_client.change_message_visibility(
             QueueUrl=SQS_QUEUE_URL, ReceiptHandle=receipt_handle, VisibilityTimeout=timeout_seconds
         )
-        logger.info('可視性タイムアウトを%d秒に変更', timeout_seconds)
+        logger.info('Changed visibility timeout to %d seconds', timeout_seconds)
     except ClientError:
         error_message = {
             'queue_url': SQS_QUEUE_URL,
             'receipt_handle': receipt_handle,
             'visibility_timeout': timeout_seconds,
         }
-        logger.exception('可視性タイムアウト変更エラー: %s', json.dumps(
+        logger.exception('Failed to change visibility timeout: %s', json.dumps(
             error_message, ensure_ascii=False, indent=2))
 
 
@@ -130,7 +130,7 @@ def execute_review_workflow_for_message(message):
         time.time() * MILLISECONDS_IN_SECOND - float(sent_timestamp))
 
     # キュー滞留時間（ミリ秒）
-    logger.info('キュー滞留時間（ミリ秒）: %d', queue_wait_ms)
+    logger.info('Queue wait time (ms): %d', queue_wait_ms)
 
     if queue_wait_ms >= MAX_QUEUE_COUNT:
         body = json.loads(message_body)
@@ -142,7 +142,7 @@ def execute_review_workflow_for_message(message):
         error_message = {'sqs_message_id': sqs_message_id,
                          'review_jobs': jobs, 'user_email': body.get('mail_to', '')}
         logger.error(
-            'キューの実行時間が制限(%d (ms))を超えました:  %s',
+            'Queue wait time exceeded threshold %d (ms): %s',
             MAX_QUEUE_COUNT,
             json.dumps(error_message, ensure_ascii=False, indent=2),
         )
@@ -155,35 +155,35 @@ def execute_review_workflow_for_message(message):
         # メッセージIDの確認と処理開始ログ
 
         if not sqs_message_id:
-            logger.warning('sqs_message_idが見つかりません')
+            logger.warning('sqs_message_id not found')
             return
 
-        logger.info('処理開始: %s', sqs_message_id)
+        logger.info('Start processing: %s', sqs_message_id)
 
         # StepFunction実行
         execution_arn = start_stepfunction_execution(
             sqs_message_id, message_body)
-        logger.info('StepFunction実行成功: %s', execution_arn)
+        logger.info('Step Function execution started: %s', execution_arn)
 
         # 処理成功 - メッセージ削除
         delete_message(receipt_handle)
-        logger.info('処理完了: %s', sqs_message_id)
+        logger.info('Processing completed: %s', sqs_message_id)
 
     except ClientError as e:
         error_code = e.response['Error']['Code']
 
         # StepFunction実行済みの場合はメッセージ削除
         if error_code == 'ExecutionAlreadyExists':
-            logger.info('StepFunction既に実行済み: %s', sqs_message_id)
+            logger.info('Step Function execution already exists: %s', sqs_message_id)
             delete_message(receipt_handle)
         # その他のエラーは②可視性タイムアウトを15秒に変更して再試行
         else:
-            err_msg = f"処理エラー sqs_message_id: {sqs_message_id}, error_code: {error_code}"
+            err_msg = f"Processing error sqs_message_id: {sqs_message_id}, error_code: {error_code}"
             change_message_visibility(receipt_handle, VISIBILITY_TIMEOUT_RETRY)
             raise Exception(err_msg)
     except Exception:
         # その他の予期しないエラーは②可視性タイムアウトを15秒に変更して再試行
-        err_msg = f"予期しないエラー: sqs_message_id: {sqs_message_id}"
+        err_msg = f"Unexpected error: sqs_message_id: {sqs_message_id}"
         change_message_visibility(receipt_handle, VISIBILITY_TIMEOUT_RETRY)
         raise Exception(err_msg)
 
@@ -221,6 +221,6 @@ def delete_message(receipt_handle):
     try:
         sqs_client.delete_message(
             QueueUrl=SQS_QUEUE_URL, ReceiptHandle=receipt_handle)
-        logger.info('SQSメッセージ削除成功')
+        logger.info('SQS message deleted')
     except ClientError as e:
-        logger.exception('メッセージ削除エラー: %s', e)
+        logger.exception('Failed to delete message: %s', e)
