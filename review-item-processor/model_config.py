@@ -190,7 +190,18 @@ _MODEL_REGISTRY = {
         supports_citation=True,
         supports_caching=True,
     ),
-    
+
+    # Claude 4.5 Opus
+    "global.anthropic.claude-opus-4-5-20251101-v1:0": ModelConfig(
+        model_id="global.anthropic.claude-opus-4-5-20251101-v1:0",
+        display_name="Claude 4.5 Opus (Global)",
+        input_per_1k=0.005,
+        output_per_1k=0.025,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
     # Claude 4 Opus
     "anthropic.claude-opus-4-20250514-v1:0": ModelConfig(
         model_id="anthropic.claude-opus-4-20250514-v1:0",
