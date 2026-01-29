@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE `check_list_sets` ADD COLUMN `user_id` VARCHAR(50) NULL;
 
 -- Data migration
