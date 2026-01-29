@@ -5,7 +5,7 @@ ALTER TABLE `check_list_sets` ADD COLUMN `user_id` VARCHAR(50) NULL;
 UPDATE `check_list_sets` AS cls
 JOIN (
   SELECT `check_list_set_id`, MIN(`user_id`) AS `user_id`
-  FROM `check_list_documents`
+  FROM `checklist_documents`
   WHERE `user_id` IS NOT NULL
   GROUP BY `check_list_set_id`
 ) AS docs ON docs.`check_list_set_id` = cls.`check_list_set_id`
