@@ -24,6 +24,7 @@ import {
   HiDuplicate,
   HiSparkles,
   HiCog,
+  HiLightningBolt,
 } from "react-icons/hi";
 import Button from "../../../components/Button";
 import Tooltip from "../../../components/Tooltip";
@@ -34,6 +35,9 @@ import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
 import { AmbiguityFilter } from "../types";
 import { useBulkAssignToolConfiguration } from "../hooks/useCheckListItemMutations";
+import { usePromptTemplates } from "../../prompt-template/hooks/usePromptTemplateQueries";
+import { PromptTemplateType } from "../../prompt-template/types";
+import { PromptTemplateSelector } from "../../prompt-template/components/PromptTemplateSelector";
 
 /**
  * チェックリストセット詳細ページ
@@ -64,6 +68,21 @@ export function CheckListSetDetailPage() {
   const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
   const isDetecting = checklistSet?.processingStatus === 'detecting';
   const { bulkAssignToolConfiguration } = useBulkAssignToolConfiguration();
+
+  // Next Action テンプレート
+  const { templates: nextActionTemplates, isLoading: isLoadingTemplates } = usePromptTemplates(
+    PromptTemplateType.NEXT_ACTION
+  );
+  const [selectedNextActionTemplateId, setSelectedNextActionTemplateId] = useState<string | undefined>(
+    undefined
+  );
+
+  // チェックリストセットのnextActionTemplateIdで初期化
+  useEffect(() => {
+    if (checklistSet?.nextActionTemplateId) {
+      setSelectedNextActionTemplateId(checklistSet.nextActionTemplateId);
+    }
+  }, [checklistSet?.nextActionTemplateId]);
 
   const { showConfirm, AlertModal } = useAlert();
 
@@ -243,6 +262,25 @@ export function CheckListSetDetailPage() {
           />
         </div>
       )}
+
+      {/* Next Action テンプレート選択 */}
+      <div className="mb-6 rounded-lg border border-light-gray bg-white p-6 shadow-md">
+        <div className="mb-4 flex items-center">
+          <HiLightningBolt className="mr-2 h-6 w-6 text-aws-font-color-light" />
+          <h2 className="text-xl font-medium text-aws-squid-ink-light">
+            {t("checklist.nextActionTemplate.title")}
+          </h2>
+        </div>
+        <p className="mb-4 text-sm text-aws-font-color-gray">
+          {t("checklist.nextActionTemplate.description")}
+        </p>
+        <PromptTemplateSelector
+          templates={nextActionTemplates}
+          selectedTemplateId={selectedNextActionTemplateId}
+          onChange={setSelectedNextActionTemplateId}
+          isLoading={isLoadingTemplates}
+        />
+      </div>
 
       <div className="mb-8 rounded-lg border border-light-gray bg-white p-6 shadow-md">
         {error ? (

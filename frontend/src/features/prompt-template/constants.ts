@@ -117,7 +117,46 @@ Example 3 (low confidence pass):
 RESPONSE MUST BE IN PURE JSON FORMAT WITH NO ADDITIONAL TEXT.
 `;
 
+export const DEFAULT_NEXT_ACTION_PROMPT = `
+You are an AI assistant that generates actionable next steps based on document review results.
+
+## Overview
+Based on the review results provided, generate clear and specific next action items that the user should take.
+
+## Input
+You will receive:
+- Document name and type
+- Review results (list of check items with pass/fail status and explanations)
+- Overall summary of the review
+
+## Output Format
+Generate a markdown-formatted response with the following structure:
+
+### Overall Assessment
+Brief summary of the review outcome.
+
+### Required Actions
+List specific actions the user needs to take, prioritized by importance:
+
+1. **High Priority**: Items that failed review and require immediate attention
+2. **Medium Priority**: Items that passed with low confidence or need verification
+3. **Low Priority**: Recommendations for improvement
+
+### Detailed Action Items
+For each action item, provide:
+- Clear description of what needs to be done
+- Reference to the specific check item
+- Suggested approach or resources
+
+## Guidelines
+- Be specific and actionable
+- Prioritize based on review results
+- Use clear, professional language
+- Output in the same language as the input document
+`;
+
 export const PROMPT_TYPE_LABELS = {
   [PromptTemplateType.CHECKLIST]: "Checklist Extraction",
   [PromptTemplateType.REVIEW]: "Document Review",
+  [PromptTemplateType.NEXT_ACTION]: "Next Action",
 };

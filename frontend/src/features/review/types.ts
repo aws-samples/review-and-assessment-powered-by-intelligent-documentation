@@ -35,6 +35,16 @@ export enum REVIEW_RESULT {
 }
 
 /**
+ * Next action status enum
+ */
+export type NEXT_ACTION_STATUS =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+/**
  * Review file type enum
  */
 export enum REVIEW_FILE_TYPE {
@@ -254,6 +264,8 @@ export interface ReviewJobDetail {
   totalInputTokens?: number;
   totalOutputTokens?: number;
   totalCost?: number;
+  nextAction?: string;
+  nextActionStatus?: NEXT_ACTION_STATUS;
 }
 
 /**

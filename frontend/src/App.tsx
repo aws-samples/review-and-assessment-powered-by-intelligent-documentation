@@ -23,6 +23,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ChecklistPromptTemplatesPage } from "./features/prompt-template/pages/ChecklistPromptTemplatesPage";
+import { NextActionPromptTemplatesPage } from "./features/prompt-template/pages/NextActionPromptTemplatesPage";
 import "./App.css";
 
 function App() {
@@ -87,6 +88,10 @@ function App() {
                   <Route
                     path="prompt-templates/checklist"
                     element={<ChecklistPromptTemplatesPage />}
+                  />
+                  <Route
+                    path="prompt-templates/next-action"
+                    element={<NextActionPromptTemplatesPage />}
                   />
 
                   <Route path="documents" element={<ReviewListPage />} />

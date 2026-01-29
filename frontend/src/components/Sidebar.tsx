@@ -156,6 +156,18 @@ export default function Sidebar() {
                         {t("sidebar.checklistPrompt")}
                       </Link>
                     </li>
+                    <li>
+                      <Link
+                        to="/prompt-templates/next-action"
+                        className={`mt-2 flex items-center rounded-md px-4 py-2 transition-colors ${
+                          isActive("/prompt-templates/next-action")
+                            ? "bg-aws-sea-blue-light text-aws-font-color-white-light"
+                            : "text-aws-font-color-white-light hover:bg-aws-sea-blue-hover-light"
+                        }`}
+                        onClick={() => setIsOpen(false)}>
+                        {t("sidebar.nextActionPrompt")}
+                      </Link>
+                    </li>
                   </ul>
                 )}
               </li>

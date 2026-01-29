@@ -242,6 +242,7 @@ export interface CheckListSetDetailModel {
   isEditable: boolean;
   errorSummary?: string;
   hasError: boolean;
+  nextActionTemplateId?: string;
 }
 
 /**

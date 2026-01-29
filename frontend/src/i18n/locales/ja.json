@@ -57,6 +57,7 @@
     "menu": "メニュー",
     "settings": "プロンプト管理",
     "checklistPrompt": "チェックリストプロンプト",
+    "nextActionPrompt": "ネクストアクションプロンプト",
     "toolConfiguration": "ツール設定"
   },
   "auth": {
@@ -166,7 +167,11 @@
     "assignToolConfiguration": "ツール設定を割り当て",
     "unassignToolConfiguration": "ツール設定の割り当てを解除",
     "noToolConfigurationsFound": "ツール設定が見つかりません。先に作成してください。",
-    "createToolConfiguration": "ツール設定を作成"
+    "createToolConfiguration": "ツール設定を作成",
+    "nextActionTemplate": {
+      "title": "ネクストアクションテンプレート",
+      "description": "レビュー完了時に生成されるネクストアクションのプロンプトを選択します"
+    }
   },
   "review": {
     "title": "審査ジョブ一覧",
@@ -283,6 +288,12 @@
         "exitCode": "終了コード",
         "truncated": "切り詰められました"
       }
+    },
+    "nextAction": {
+      "title": "ネクストアクション",
+      "processing": "ネクストアクションを生成中...",
+      "skipped": "ネクストアクションは未設定です",
+      "failed": "ネクストアクションの生成に失敗しました"
     }
   },
   "fileUploader": {
@@ -321,6 +332,8 @@
     "noTemplates": "テンプレートがありません。新規作成してください。",
     "checklistPromptManagement": "チェックリストプロンプト管理",
     "checklistPromptDescription": "チェックリスト生成に使用するプロンプトテンプレートを管理します",
+    "nextActionPromptManagement": "ネクストアクションプロンプト管理",
+    "nextActionPromptDescription": "レビュー完了後に生成されるネクストアクションのプロンプトテンプレートを管理します",
     "deleteConfirmation": "テンプレート「{{name}}」を削除してもよろしいですか？ この操作は元に戻せません。",
     "deleteTitle": "テンプレートの削除",
     "updateSuccess": "テンプレートを更新しました",

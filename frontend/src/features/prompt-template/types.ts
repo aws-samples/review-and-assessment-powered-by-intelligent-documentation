@@ -3,6 +3,7 @@ import { ApiResponse } from "../../types/api";
 export enum PromptTemplateType {
   CHECKLIST = "checklist",
   REVIEW = "review",
+  NEXT_ACTION = "next_action",
 }
 
 export interface PromptTemplate {

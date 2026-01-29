@@ -57,6 +57,7 @@
     "menu": "Menu",
     "settings": "Prompt Management",
     "checklistPrompt": "Checklist Prompt",
+    "nextActionPrompt": "Next Action Prompt",
     "toolConfiguration": "Tool Configuration"
   },
   "auth": {
@@ -166,7 +167,11 @@
     "assignToolConfiguration": "Assign Tool Configuration",
     "unassignToolConfiguration": "Unassign Tool Configuration",
     "noToolConfigurationsFound": "No tool configurations found. Please create one first.",
-    "createToolConfiguration": "Create Tool Configuration"
+    "createToolConfiguration": "Create Tool Configuration",
+    "nextActionTemplate": {
+      "title": "Next Action Template",
+      "description": "Select the prompt template for generating next actions after review completion"
+    }
   },
   "review": {
     "title": "Review Jobs",
@@ -283,6 +288,12 @@
         "exitCode": "Exit Code",
         "truncated": "Truncated"
       }
+    },
+    "nextAction": {
+      "title": "Next Action",
+      "processing": "Generating next action...",
+      "skipped": "Next action is not configured",
+      "failed": "Failed to generate next action"
     }
   },
   "fileUploader": {
@@ -321,6 +332,8 @@
     "noTemplates": "No templates available. Please create a new one.",
     "checklistPromptManagement": "Checklist Prompt Management",
     "checklistPromptDescription": "Manage prompt templates used for checklist generation",
+    "nextActionPromptManagement": "Next Action Prompt Management",
+    "nextActionPromptDescription": "Manage prompt templates for generating next actions after review completion",
     "deleteConfirmation": "Are you sure you want to delete template \"{{name}}\"? This action cannot be undone.",
     "deleteTitle": "Delete Template",
     "updateSuccess": "Template updated successfully",

@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 import ReviewResultTree from "../components/ReviewResultTree";
 import ReviewResultFilter from "../components/ReviewResultFilter";
 import { FilterType } from "../hooks/useReviewResultQueries";
@@ -8,6 +9,7 @@ import { useReviewJobDetail } from "../hooks/useReviewJobQueries";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import Slider from "../../../components/Slider";
 import { DetailSkeleton } from "../../../components/Skeleton";
+import Spinner from "../../../components/Spinner";
 import { REVIEW_JOB_STATUS } from "../types";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TotalReviewCostSummary from "../components/TotalReviewCostSummary";
@@ -176,6 +178,35 @@ export default function ReviewDetailPage() {
           filter={filter}
         />
       </div>
+
+      {/* Next Action Section */}
+      {job.status === REVIEW_JOB_STATUS.COMPLETED && (
+        <div className="mt-6 rounded-lg border border-light-gray bg-white p-6 shadow-md">
+          <h2 className="mb-4 text-xl font-medium text-aws-squid-ink-light">
+            {t("review.nextAction.title")}
+          </h2>
+          {job.nextActionStatus === "completed" && job.nextAction ? (
+            <div className="prose max-w-none">
+              <ReactMarkdown>{job.nextAction}</ReactMarkdown>
+            </div>
+          ) : job.nextActionStatus === "processing" ? (
+            <div className="flex items-center gap-2 text-aws-font-color-gray">
+              <Spinner size="sm" />
+              <span>{t("review.nextAction.processing")}</span>
+            </div>
+          ) : job.nextActionStatus === "skipped" ? (
+            <p className="text-aws-font-color-gray">
+              {t("review.nextAction.skipped")}
+            </p>
+          ) : job.nextActionStatus === "failed" ? (
+            <p className="text-red-500">{t("review.nextAction.failed")}</p>
+          ) : (
+            <p className="text-aws-font-color-gray">
+              {t("review.nextAction.skipped")}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
