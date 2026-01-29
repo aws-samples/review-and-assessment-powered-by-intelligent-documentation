@@ -3,7 +3,14 @@ import { exec } from "child_process";
 import { getDatabaseUrl } from "../utils/database";
 
 // Define allowed Prisma migration commands
-const ALLOWED_COMMANDS = ["deploy", "reset", "status", "up", "down"] as const;
+const ALLOWED_COMMANDS = [
+  "deploy",
+  "reset",
+  "status",
+  "up",
+  "down",
+  "resolve",
+] as const;
 type AllowedCommand = (typeof ALLOWED_COMMANDS)[number];
 
 /**
@@ -36,6 +43,25 @@ export const handler: Handler = async (event, _) => {
 
   if (command === "reset") {
     options = ["--force", "--skip-generate", "--skip-seed"];
+  }
+  if (command === "resolve") {
+    const resolveAction =
+      typeof event?.resolveAction === "string"
+        ? event.resolveAction.trim().toLowerCase()
+        : "";
+    const migrationName =
+      typeof event?.migrationName === "string"
+        ? event.migrationName.trim()
+        : "";
+    if (
+      (resolveAction !== "rolled-back" && resolveAction !== "applied") ||
+      migrationName.length === 0
+    ) {
+      throw new Error(
+        "resolve requires resolveAction ('rolled-back' | 'applied') and migrationName"
+      );
+    }
+    options = [`--${resolveAction}`, migrationName];
   }
 
   try {
