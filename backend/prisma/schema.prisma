@@ -36,13 +36,14 @@ model PromptTemplate {
 }
 
 model CheckListSet {
-  id          String              @id @map("check_list_set_id") @db.VarChar(26)
-  name        String              @db.VarChar(255)
-  description String?             @db.Text
-  checkLists  CheckList[]
-  documents   CheckListDocument[]
-  reviewJobs  ReviewJob[]
-  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
+  id                   String              @id @map("check_list_set_id") @db.VarChar(26)
+  name                 String              @db.VarChar(255)
+  description          String?             @db.Text
+  nextActionTemplateId String?             @map("next_action_template_id") @db.VarChar(26)
+  checkLists           CheckList[]
+  documents            CheckListDocument[]
+  reviewJobs           ReviewJob[]
+  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
 
   @@map("check_list_sets")
 }
@@ -123,21 +124,24 @@ model ReviewDocument {
 }
 
 model ReviewJob {
-  id                String           @id @map("review_job_id") @db.VarChar(26)
-  name              String           @db.VarChar(255)
-  status            String           @default("pending") @db.VarChar(20)
-  errorDetail       String?          @map("error_detail") @db.Text
-  checkListSetId    String           @map("check_list_set_id") @db.VarChar(26)
-  createdAt         DateTime         @map("created_at") @db.Timestamp(0)
-  updatedAt         DateTime         @map("updated_at") @db.Timestamp(0)
-  completedAt       DateTime?        @map("completed_at") @db.Timestamp(0)
-  userId            String?          @map("user_id") @db.VarChar(50)
-  totalInputTokens  Int?             @map("total_input_tokens")
-  totalOutputTokens Int?             @map("total_output_tokens")
-  totalCost         Decimal?         @map("total_cost") @db.Decimal(10, 4)
-  documents         ReviewDocument[]
-  checkListSet      CheckListSet     @relation(fields: [checkListSetId], references: [id])
-  reviewResults     ReviewResult[]
+  id                   String           @id @map("review_job_id") @db.VarChar(26)
+  name                 String           @db.VarChar(255)
+  status               String           @default("pending") @db.VarChar(20)
+  errorDetail          String?          @map("error_detail") @db.Text
+  checkListSetId       String           @map("check_list_set_id") @db.VarChar(26)
+  createdAt            DateTime         @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime         @map("updated_at") @db.Timestamp(0)
+  completedAt          DateTime?        @map("completed_at") @db.Timestamp(0)
+  userId               String?          @map("user_id") @db.VarChar(50)
+  totalInputTokens     Int?             @map("total_input_tokens")
+  totalOutputTokens    Int?             @map("total_output_tokens")
+  totalCost            Decimal?         @map("total_cost") @db.Decimal(10, 4)
+  nextAction           String?          @map("next_action") @db.Text
+  nextActionStatus     String?          @map("next_action_status") @db.VarChar(20)
+  nextActionTemplateId String?          @map("next_action_template_id") @db.VarChar(26)
+  documents            ReviewDocument[]
+  checkListSet         CheckListSet     @relation(fields: [checkListSetId], references: [id])
+  reviewResults        ReviewResult[]
 
   @@index([checkListSetId], map: "review_jobs_check_list_set_id_fkey")
   @@map("review_jobs")

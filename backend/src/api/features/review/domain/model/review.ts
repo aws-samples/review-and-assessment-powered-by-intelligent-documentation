@@ -39,6 +39,17 @@ export enum REVIEW_FILE_TYPE {
   IMAGE = "image",
 }
 
+/**
+ * Next Actionのステータス
+ */
+export enum NEXT_ACTION_STATUS {
+  PENDING = "pending",
+  PROCESSING = "processing",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  SKIPPED = "skipped",
+}
+
 export interface ReviewJobStats {
   total: number;
   passed: number;
@@ -108,6 +119,8 @@ export interface ReviewJobDetail {
   totalInputTokens?: number;
   totalOutputTokens?: number;
   totalCost?: number;
+  nextAction?: string;
+  nextActionStatus?: NEXT_ACTION_STATUS;
 }
 
 /**
