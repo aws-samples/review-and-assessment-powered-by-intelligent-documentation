@@ -14,7 +14,7 @@ import {
   getReviewDocumentKey,
   getReviewImageKey,
 } from "../../../../checklist-workflow/common/storage-paths";
-import { sendMessage } from "../../../core/sqs";
+import { getQueueDepth, sendMessage } from "../../../core/sqs";
 import { CreateReviewJobRequest } from "../routes/handlers";
 import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
 import {
@@ -27,6 +27,37 @@ import {
 } from "../../../core/errors/application-errors";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
+
+export const computeGlobalConcurrency = async (): Promise<{
+  isLimit: boolean;
+}> => {
+  console.info("computeGlobalConcurrency called");
+
+  const queueUrl = process.env.REVIEW_QUEUE_URL;
+  const maxDepth = Number(process.env.REVIEW_QUEUE_MAX_DEPTH ?? 0);
+
+  if (!queueUrl || maxDepth <= 0) {
+    console.info("Global concurrency check skipped", {
+      queueUrl,
+      maxDepth,
+    });
+    return { isLimit: false };
+  }
+
+  try {
+    const depth = await getQueueDepth(queueUrl);
+    console.info("SQS queue depth fetched", { queueUrl, depth });
+    if (depth.total >= maxDepth) {
+      console.warn("Global concurrency limit reached", { depth, maxDepth });
+      return { isLimit: true };
+    }
+  } catch (e) {
+    console.error("Failed to check global concurrency:", e);
+  }
+
+  console.info("Global concurrency check passed");
+  return { isLimit: false };
+};
 
 export const getAllReviewJobs = async (params: {
   page?: number;

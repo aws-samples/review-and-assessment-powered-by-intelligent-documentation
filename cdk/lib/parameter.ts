@@ -76,6 +76,7 @@ export const parameters = {
   // Review queue processor settings
   // (If not set here, defaults from parameter-schema.ts are used.)
   // reviewMaxConcurrency: 2, // Max concurrent Step Functions executions
+  // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
   // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
   // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
   // AgentCore Code Interpreter設定

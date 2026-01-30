@@ -89,14 +89,12 @@ const parameterSchema = z.object({
       "Review queue processor max concurrent Step Functions executions"
     ),
 
-  maxReviewExecutions: z
+  reviewQueueMaxDepth: z
     .number()
     .int()
     .min(1)
     .default(10)
-    .describe(
-      "Review queue processor max concurrent Step Functions executions"
-    ),
+    .describe("Review queue max depth for global concurrency checks"),
 
   reviewQueueMaxQueueCountMs: z
     .number()
@@ -258,18 +256,18 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  const maxReviewExecutions = app.node.tryGetContext(
-    "rapid.maxReviewExecutions"
-  );
-  if (maxReviewExecutions !== undefined) {
-    params.maxReviewExecutions = Number(maxReviewExecutions);
-  }
-
   const reviewMaxConcurrency = app.node.tryGetContext(
     "rapid.reviewMaxConcurrency"
   );
   if (reviewMaxConcurrency !== undefined) {
     params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
+  }
+
+  const reviewQueueMaxDepth = app.node.tryGetContext(
+    "rapid.reviewQueueMaxDepth"
+  );
+  if (reviewQueueMaxDepth !== undefined) {
+    params.reviewQueueMaxDepth = Number(reviewQueueMaxDepth);
   }
 
   const reviewQueueMaxQueueCountMs = app.node.tryGetContext(

@@ -16,7 +16,7 @@ import { PrismaMigration } from "./constructs/prisma-migration";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
 import { Parameters } from "./parameter-schema";
 import { execSync } from "child_process";
-import { ReviewQueueProcessor } from "./constructs/review-queue-functions";
+import { ReviewQueueProcessor } from "./constructs/review-queue";
 
 export interface RapidStackProps extends cdk.StackProps {
   readonly webAclId: string;
@@ -219,6 +219,8 @@ export class RapidStack extends cdk.Stack {
         ).toString(),
         AMBIGUITY_DETECTION_QUEUE_URL: ambiguityProcessor.queue.queueUrl,
         REVIEW_QUEUE_URL: reviewQueueProcessor.queue.queueUrl,
+        REVIEW_QUEUE_MAX_DEPTH:
+          props.parameters.reviewQueueMaxDepth.toString(),
       },
       auth: auth, // Authインスタンスを渡す
     });

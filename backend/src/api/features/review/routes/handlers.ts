@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import {
+  computeGlobalConcurrency,
   createReviewJob,
   getAllReviewJobs,
   getReviewJobById,
@@ -14,7 +15,6 @@ import {
   getReviewResults,
 } from "../usecase/review-result";
 import { getDocumentDownloadUrl } from "../usecase/document";
-import { computeGlobalConcurrency } from "../usecase/concurrency";
 
 export const getAllReviewJobsHandler = async (
   request: FastifyRequest<{
@@ -142,7 +142,6 @@ export const createReviewJobHandler = async (
   request: FastifyRequest<{ Body: CreateReviewJobRequest }>,
   reply: FastifyReply
 ): Promise<void> => {
-  // グローバル同時実行数チェック（SQSキュー深さ確認）
   const { isLimit } = await computeGlobalConcurrency();
   if (isLimit) {
     reply.code(429).send({
@@ -254,7 +253,7 @@ interface GetDownloadPresignedUrlRequest {
 }
 
 /**
- * ドキュメントのダウンロード用Presigned URLを取得するハンドラー
+ * ドキュメント�Eダウンロード用Presigned URLを取得するハンドラー
  */
 export const getDownloadPresignedUrlHandler = async (
   request: FastifyRequest<{ Querystring: GetDownloadPresignedUrlRequest }>,
