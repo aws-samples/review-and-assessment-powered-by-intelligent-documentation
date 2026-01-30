@@ -12,9 +12,10 @@ vi.mock("../../../core/sqs", () => ({
 }));
 
 vi.mock("../../../core/s3", async () => {
-  const actual = await vi.importActual<typeof import("../../../core/s3")>(
-    "../../../core/s3"
-  );
+  const actual =
+    await vi.importActual<typeof import("../../../core/s3")>(
+      "../../../core/s3"
+    );
   return {
     ...actual,
     getS3ObjectSize: vi.fn(),

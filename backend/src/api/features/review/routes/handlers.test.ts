@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createReviewJobHandler } from "./handlers";
-import { computeGlobalConcurrency, createReviewJob } from "../usecase/review-job";
+import {
+  computeGlobalConcurrency,
+  createReviewJob,
+} from "../usecase/review-job";
 import { REVIEW_FILE_TYPE } from "../domain/model/review";
 
 vi.mock("../usecase/review-job", () => ({
