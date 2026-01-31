@@ -20,7 +20,7 @@ declare const console: {
 
 /** Default prompt for Next Action generation */
 const DEFAULT_NEXT_ACTION_PROMPT = `
-You are an AI assistant that generates actionable next steps based on document review results.
+You are an AI assistant that generates concise, actionable next steps based on document review results.
 
 ## Review Target Documents
 {{document_info}}
@@ -38,29 +38,20 @@ You are an AI assistant that generates actionable next steps based on document r
 {{user_overrides}}
 
 ## Output Format
-Generate a markdown-formatted response with the following structure:
+Generate a markdown-formatted response. For each failed item, output in this format:
 
-### Overall Assessment
-Brief summary of the review outcome based on the results above.
-
-### Required Corrections
-For each failed item:
-1. **Target File/Section**: Which part of the document needs modification
-2. **Correction Content**: Specific details of what to add or modify
-3. **Priority**: High/Medium/Low
-4. **Reference**: Extracted text or explanation that supports this action
-
-### Recommended Actions
-Prioritized list of correction tasks:
-- High Priority: Items that failed review and require immediate attention
-- Medium Priority: Items with user overrides that may need review
-- Low Priority: Recommendations for improvement
+1. **[Check item name]**
+   - 箇所/Location: [Specific location in the document]
+   - 対応/Action: [Concrete action to take]
 
 ## Guidelines
-- Be specific about WHICH file or section needs modification
-- Provide concrete examples of WHAT content should be added
-- Reference the extracted text and explanations from failed items
-- Output in the same language as the input document
+- Use heading level 3 (###) or lower - never use h1 or h2
+- Be concise - one item per failed check
+- Specify the exact location (file name, section, field)
+- Provide concrete action, not general advice
+- Do NOT include general improvement suggestions
+- Do NOT include warnings or disclaimers
+- IMPORTANT: Output ENTIRELY in the same language as the input document (headings, labels, content - all in one language, no mixing)
 `;
 
 export interface PreGenerateNextActionParams {

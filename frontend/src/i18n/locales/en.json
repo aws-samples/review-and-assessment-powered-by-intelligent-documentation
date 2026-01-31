@@ -298,7 +298,9 @@
       "title": "Next Action",
       "processing": "Generating next action...",
       "skipped": "Next action is not configured",
-      "failed": "Failed to generate next action"
+      "failed": "Failed to generate next action",
+      "copy": "Copy",
+      "copied": "Copied!"
     }
   },
   "fileUploader": {

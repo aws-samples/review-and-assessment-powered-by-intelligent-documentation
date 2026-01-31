@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
+import { HiClipboardCopy, HiCheck } from "react-icons/hi";
 import ReviewResultTree from "../components/ReviewResultTree";
 import ReviewResultFilter from "../components/ReviewResultFilter";
 import { FilterType } from "../hooks/useReviewResultQueries";
@@ -22,6 +23,7 @@ export default function ReviewDetailPage() {
   // Start with showing fail items
   const [filter, setFilter] = useState<FilterType>("fail");
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.7);
+  const [copied, setCopied] = useState(false);
 
   // Get review job details
   const {
@@ -34,6 +36,15 @@ export default function ReviewDetailPage() {
   // When filter state changes
   const handleFilterChange = (newFilter: FilterType) => {
     setFilter(newFilter);
+  };
+
+  // Copy next action to clipboard
+  const handleCopyNextAction = () => {
+    if (job?.nextAction) {
+      navigator.clipboard.writeText(job.nextAction);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // Loading state
@@ -182,9 +193,28 @@ export default function ReviewDetailPage() {
       {/* Next Action Section */}
       {job.status === REVIEW_JOB_STATUS.COMPLETED && (
         <div className="mt-6 rounded-lg border border-light-gray bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-medium text-aws-squid-ink-light">
-            {t("review.nextAction.title")}
-          </h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-medium text-aws-squid-ink-light">
+              {t("review.nextAction.title")}
+            </h2>
+            {job.nextActionStatus === "completed" && job.nextAction && (
+              <button
+                onClick={handleCopyNextAction}
+                className="flex items-center gap-1 rounded px-2 py-1 text-sm text-aws-font-color-gray hover:bg-gray-100"
+                title={t("review.nextAction.copy")}>
+                {copied ? (
+                  <HiCheck className="text-green-500" />
+                ) : (
+                  <HiClipboardCopy />
+                )}
+                <span>
+                  {copied
+                    ? t("review.nextAction.copied")
+                    : t("review.nextAction.copy")}
+                </span>
+              </button>
+            )}
+          </div>
           {job.nextActionStatus === "completed" && job.nextAction ? (
             <div className="prose max-w-none">
               <ReactMarkdown>{job.nextAction}</ReactMarkdown>
