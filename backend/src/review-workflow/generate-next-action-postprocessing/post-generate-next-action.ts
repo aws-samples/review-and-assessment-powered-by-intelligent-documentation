@@ -118,12 +118,32 @@ export async function postGenerateNextAction(
       }
     }
 
-    // Save result to database
+    // Get current cost values to add NextAction costs
+    const currentJob = await db.reviewJob.findUnique({
+      where: { id: reviewJobId },
+      select: {
+        totalCost: true,
+        totalInputTokens: true,
+        totalOutputTokens: true,
+      },
+    });
+
+    const nextActionInputTokens = agentResult.metrics?.inputTokens ?? 0;
+    const nextActionOutputTokens = agentResult.metrics?.outputTokens ?? 0;
+    const nextActionCost = agentResult.metrics?.totalCost ?? 0;
+
+    // Save result to database with accumulated costs
     await db.reviewJob.update({
       where: { id: reviewJobId },
       data: {
         nextAction: agentResult.nextAction,
         nextActionStatus: NEXT_ACTION_STATUS.COMPLETED,
+        // Add NextAction costs to existing totals
+        totalInputTokens:
+          (currentJob?.totalInputTokens ?? 0) + nextActionInputTokens,
+        totalOutputTokens:
+          (currentJob?.totalOutputTokens ?? 0) + nextActionOutputTokens,
+        totalCost: Number(currentJob?.totalCost ?? 0) + nextActionCost,
         updatedAt: new Date(),
       },
     });
