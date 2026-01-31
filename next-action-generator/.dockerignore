@@ -1,0 +1,26 @@
+# Test files
+test_*.py
+*_test.py
+tests/
+sample.pdf
+
+# Development files
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+.venv/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
