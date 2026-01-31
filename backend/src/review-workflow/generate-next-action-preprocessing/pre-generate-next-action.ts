@@ -134,7 +134,6 @@ export interface PreGenerateNextActionResult {
   shouldGenerate: boolean;
   promptTemplate?: {
     prompt: string;
-    toolConfigurationId?: string;
   };
   templateData?: TemplateData;
   toolConfiguration?: ToolConfigurationOutput;
@@ -341,7 +340,6 @@ export async function preGenerateNextAction(
     shouldGenerate: true,
     promptTemplate: {
       prompt: promptToUse,
-      toolConfigurationId,
     },
     templateData,
     toolConfiguration,
