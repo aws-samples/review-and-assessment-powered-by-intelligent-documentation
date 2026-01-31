@@ -27,6 +27,7 @@ export interface CreatePromptTemplateRequest {
     description?: string;
     prompt: string;
     type: string;
+    toolConfigurationId?: string;
   };
 }
 
@@ -38,6 +39,7 @@ export interface UpdatePromptTemplateRequest {
     name?: string;
     description?: string;
     prompt?: string;
+    toolConfigurationId?: string | null;
   };
 }
 
@@ -122,7 +124,7 @@ export const createPromptTemplateHandler = async (
     return;
   }
 
-  const { name, description, prompt, type } = request.body;
+  const { name, description, prompt, type, toolConfigurationId } = request.body;
 
   const template = await createPromptTemplate({
     request: {
@@ -131,6 +133,7 @@ export const createPromptTemplateHandler = async (
       description,
       prompt,
       type: type as PromptTemplateType,
+      toolConfigurationId,
     },
   });
 
@@ -147,7 +150,7 @@ export const updatePromptTemplateHandler = async (
   reply: FastifyReply
 ): Promise<void> => {
   const { id } = request.params;
-  const { name, description, prompt } = request.body;
+  const { name, description, prompt, toolConfigurationId } = request.body;
 
   try {
     const template = await updatePromptTemplate({
@@ -156,6 +159,7 @@ export const updatePromptTemplateHandler = async (
         name,
         description,
         prompt,
+        toolConfigurationId,
       },
     });
 

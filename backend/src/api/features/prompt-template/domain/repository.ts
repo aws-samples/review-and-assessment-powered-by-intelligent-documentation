@@ -37,6 +37,7 @@ export const makePrismaPromptTemplateRepository = async (
       description: template.description || undefined,
       prompt: template.prompt,
       type: template.type as PromptTemplateType,
+      toolConfigurationId: template.toolConfigurationId || undefined,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
     }));
@@ -60,6 +61,7 @@ export const makePrismaPromptTemplateRepository = async (
       description: template.description || undefined,
       prompt: template.prompt,
       type: template.type as PromptTemplateType,
+      toolConfigurationId: template.toolConfigurationId || undefined,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
     };
@@ -77,6 +79,7 @@ export const makePrismaPromptTemplateRepository = async (
         description: template.description,
         prompt: template.prompt,
         type: template.type,
+        toolConfigurationId: template.toolConfigurationId,
         createdAt: template.createdAt,
         updatedAt: template.updatedAt,
       },
@@ -93,6 +96,7 @@ export const makePrismaPromptTemplateRepository = async (
         name: template.name,
         description: template.description,
         prompt: template.prompt,
+        toolConfigurationId: template.toolConfigurationId ?? null,
         updatedAt: template.updatedAt,
       },
     });

@@ -361,7 +361,9 @@
       "user_overrides": "Items with user overrides",
       "document_info": "Review target document info",
       "all_results": "All review results"
-    }
+    },
+    "toolConfiguration": "Tool Configuration",
+    "noToolConfiguration": "No Tool Configuration"
   },
   "mcpServer": {
     "title": "MCP Server Settings",

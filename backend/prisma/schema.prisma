@@ -21,17 +21,20 @@ model UserPreference {
 }
 
 model PromptTemplate {
-  id          String   @id @map("template_id") @db.VarChar(26)
-  userId      String   @map("user_id") @db.VarChar(50)
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
-  prompt      String   @db.Text
-  type        String   @db.VarChar(50) // "checklist", "review" など
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  id                  String             @id @map("template_id") @db.VarChar(26)
+  userId              String             @map("user_id") @db.VarChar(50)
+  name                String             @db.VarChar(255)
+  description         String?            @db.Text
+  prompt              String             @db.Text
+  type                String             @db.VarChar(50) // "checklist", "review", "next_action"
+  toolConfigurationId String?            @map("tool_configuration_id") @db.VarChar(26)
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamp(0)
+  toolConfiguration   ToolConfiguration? @relation(fields: [toolConfigurationId], references: [id], onDelete: SetNull)
 
   @@unique([userId, name, type])
   @@index([userId, type])
+  @@index([toolConfigurationId])
   @@map("prompt_templates")
 }
 
@@ -50,15 +53,16 @@ model CheckListSet {
 }
 
 model ToolConfiguration {
-  id              String      @id @map("tool_configuration_id") @db.VarChar(26)
-  name            String      @db.VarChar(255)
-  description     String?     @db.Text
-  knowledgeBase   Json?       @map("knowledge_base")
-  codeInterpreter Boolean     @default(false) @map("code_interpreter")
-  mcpConfig       Json?       @map("mcp_config")
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+  id              String           @id @map("tool_configuration_id") @db.VarChar(26)
+  name            String           @db.VarChar(255)
+  description     String?          @db.Text
+  knowledgeBase   Json?            @map("knowledge_base")
+  codeInterpreter Boolean          @default(false) @map("code_interpreter")
+  mcpConfig       Json?            @map("mcp_config")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamp(0)
   checkLists      CheckList[]
+  promptTemplates PromptTemplate[]
 
   @@map("tool_configurations")
 }

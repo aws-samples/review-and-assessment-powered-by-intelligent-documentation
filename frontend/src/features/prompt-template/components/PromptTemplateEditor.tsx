@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormTextField } from "../../../components/FormTextField";
 import { FormTextArea } from "../../../components/FormTextArea";
+import { FormSelect } from "../../../components/FormSelect";
 import { Button } from "../../../components/Button";
 import {
   PromptTemplate,
@@ -9,6 +10,7 @@ import {
   UpdatePromptTemplateRequest,
 } from "../types";
 import { DEFAULT_CHECKLIST_PROMPT, DEFAULT_REVIEW_PROMPT, DEFAULT_NEXT_ACTION_PROMPT } from "../constants";
+import { useToolConfigurations } from "../../tool-configuration/hooks/useToolConfigurationQueries";
 
 // Next Action用テンプレート変数の定義
 const NEXT_ACTION_TEMPLATE_VARIABLES = [
@@ -50,7 +52,13 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
             ? DEFAULT_NEXT_ACTION_PROMPT
             : "")
   );
+  const [toolConfigurationId, setToolConfigurationId] = useState<string | undefined>(
+    template?.toolConfigurationId
+  );
   const [isDirty, setIsDirty] = useState(false);
+
+  // NEXT_ACTIONタイプの場合のみツール設定を取得
+  const { toolConfigurations } = useToolConfigurations();
 
   // テンプレート変数をカーソル位置に挿入
   const handleInsertVariable = (variable: string) => {
@@ -80,6 +88,7 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
       setName(template.name);
       setDescription(template.description || "");
       setPrompt(template.prompt);
+      setToolConfigurationId(template.toolConfigurationId);
       setIsDirty(false);
     }
   }, [template]);
@@ -94,6 +103,9 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
       name,
       description,
       prompt,
+      toolConfigurationId: type === PromptTemplateType.NEXT_ACTION
+        ? toolConfigurationId ?? null
+        : undefined,
     });
     setIsDirty(false);
   };
@@ -136,6 +148,27 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
             handleChange();
           }}
         />
+
+        {/* NEXT_ACTIONタイプの場合のみツール設定選択を表示 */}
+        {type === PromptTemplateType.NEXT_ACTION && (
+          <FormSelect
+            id="tool-configuration"
+            name="toolConfiguration"
+            label={t("promptTemplate.toolConfiguration")}
+            value={toolConfigurationId || ""}
+            onChange={(e) => {
+              setToolConfigurationId(e.target.value || undefined);
+              handleChange();
+            }}
+            options={[
+              { value: "", label: t("promptTemplate.noToolConfiguration") },
+              ...toolConfigurations.map((tc) => ({
+                value: tc.id,
+                label: tc.name,
+              })),
+            ]}
+          />
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">

@@ -40,6 +40,7 @@ export const createPromptTemplate = async (params: {
     description?: string;
     prompt: string;
     type: PromptTemplateType;
+    toolConfigurationId?: string;
   };
   deps?: {
     repo?: PromptTemplateRepository;
@@ -58,6 +59,7 @@ export const updatePromptTemplate = async (params: {
     name?: string;
     description?: string;
     prompt?: string;
+    toolConfigurationId?: string | null;
   };
   deps?: {
     repo?: PromptTemplateRepository;

@@ -361,7 +361,9 @@
       "user_overrides": "ユーザーが判定を変更した項目",
       "document_info": "審査対象ドキュメント情報",
       "all_results": "全審査結果"
-    }
+    },
+    "toolConfiguration": "ツール設定",
+    "noToolConfiguration": "ツール設定なし"
   },
   "mcpServer": {
     "title": "MCPサーバー設定",

@@ -13,6 +13,7 @@ export interface PromptTemplateEntity {
   description?: string;
   prompt: string;
   type: PromptTemplateType;
+  toolConfigurationId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +25,7 @@ export const PromptTemplateDomain = {
     description?: string;
     prompt: string;
     type: PromptTemplateType;
+    toolConfigurationId?: string;
   }): PromptTemplateEntity => {
     return {
       id: ulid(),
@@ -32,6 +34,7 @@ export const PromptTemplateDomain = {
       description: req.description,
       prompt: req.prompt,
       type: req.type,
+      toolConfigurationId: req.toolConfigurationId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -43,6 +46,7 @@ export const PromptTemplateDomain = {
       name?: string;
       description?: string;
       prompt?: string;
+      toolConfigurationId?: string | null;
     }
   ): PromptTemplateEntity => {
     return {
@@ -51,6 +55,10 @@ export const PromptTemplateDomain = {
       description:
         req.description !== undefined ? req.description : existing.description,
       prompt: req.prompt !== undefined ? req.prompt : existing.prompt,
+      toolConfigurationId:
+        req.toolConfigurationId !== undefined
+          ? req.toolConfigurationId ?? undefined
+          : existing.toolConfigurationId,
       updatedAt: new Date(),
     };
   },

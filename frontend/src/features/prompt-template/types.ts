@@ -13,6 +13,7 @@ export interface PromptTemplate {
   description?: string;
   prompt: string;
   type: PromptTemplateType;
+  toolConfigurationId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,12 +23,14 @@ export interface CreatePromptTemplateRequest {
   description?: string;
   prompt: string;
   type: PromptTemplateType;
+  toolConfigurationId?: string;
 }
 
 export interface UpdatePromptTemplateRequest {
   name?: string;
   description?: string;
   prompt?: string;
+  toolConfigurationId?: string | null;
 }
 
 export type GetPromptTemplatesResponse = ApiResponse<{
