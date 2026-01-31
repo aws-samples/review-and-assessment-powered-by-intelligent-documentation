@@ -60,80 +60,68 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
 
       <div className="divide-y divide-light-gray">
         {/* System Default Option */}
-        <div
-          className={`cursor-pointer p-4 transition-colors ${
+        <label
+          className={`flex cursor-pointer items-center p-4 transition-colors ${
             !selectedTemplateId
               ? "bg-aws-sea-blue-light bg-opacity-10"
               : "hover:bg-aws-paper-light"
-          }`}
-          onClick={handleSelectDefault}>
-          <div className="flex items-center">
-            <input
-              type="radio"
-              id="template-default"
-              name="promptTemplate"
-              checked={!selectedTemplateId}
-              onChange={handleSelectDefault}
-              className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
-            />
-            <label
-              htmlFor="template-default"
-              className="ml-3 block cursor-pointer text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-              <span className="font-medium">
-                {t("checklist.systemDefault", "System Default")}
-              </span>
-              <p className="mt-1 text-sm text-aws-font-color-gray">
-                {t(
-                  "checklist.systemDefaultDescription",
-                  "Standard template for checklist extraction"
-                )}
-              </p>
-            </label>
+          }`}>
+          <input
+            type="radio"
+            name="promptTemplate"
+            checked={!selectedTemplateId}
+            onChange={handleSelectDefault}
+            className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
+          />
+          <div className="ml-3 text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
+            <span className="font-medium">
+              {t("checklist.systemDefault", "System Default")}
+            </span>
+            <p className="mt-1 text-sm text-aws-font-color-gray">
+              {t(
+                "checklist.systemDefaultDescription",
+                "Standard template for checklist extraction"
+              )}
+            </p>
           </div>
-        </div>
+        </label>
 
         {/* Available Templates */}
         {templates.map((template) => (
           <div
             key={template.id}
-            className={`cursor-pointer p-4 transition-colors ${
+            className={`flex items-center justify-between p-4 transition-colors ${
               selectedTemplateId === template.id
                 ? "bg-aws-sea-blue-light bg-opacity-10"
                 : "hover:bg-aws-paper-light"
-            }`}
-            onClick={() => handleSelectTemplate(template)}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  id={`template-${template.id}`}
-                  name="promptTemplate"
-                  checked={selectedTemplateId === template.id}
-                  onChange={() => handleSelectTemplate(template)}
-                  className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
-                />
-                <label
-                  htmlFor={`template-${template.id}`}
-                  className="ml-3 block flex-grow cursor-pointer text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
-                  <span className="font-medium">{template.name}</span>
-                  {template.description && (
-                    <p className="mt-1 text-sm text-aws-font-color-gray">
-                      {template.description}
-                    </p>
-                  )}
-                  <p className="mt-1 text-xs text-aws-font-color-gray">
-                    {t("checklist.lastUpdated", "Last updated")}:{" "}
-                    {new Date(template.updatedAt).toLocaleString()}
+            }`}>
+            <label className="flex flex-grow cursor-pointer items-center">
+              <input
+                type="radio"
+                name="promptTemplate"
+                checked={selectedTemplateId === template.id}
+                onChange={() => handleSelectTemplate(template)}
+                className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
+              />
+              <div className="ml-3 text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
+                <span className="font-medium">{template.name}</span>
+                {template.description && (
+                  <p className="mt-1 text-sm text-aws-font-color-gray">
+                    {template.description}
                   </p>
-                </label>
+                )}
+                <p className="mt-1 text-xs text-aws-font-color-gray">
+                  {t("checklist.lastUpdated", "Last updated")}:{" "}
+                  {new Date(template.updatedAt).toLocaleString()}
+                </p>
               </div>
-              <button
-                onClick={(e) => handlePreviewTemplate(template, e)}
-                className="ml-2 flex items-center rounded-full p-2 text-aws-font-color-blue hover:bg-aws-paper-light hover:text-aws-sea-blue-light"
-                aria-label={t("checklist.previewTemplate", "Preview template")}>
-                <FiEye className="h-5 w-5" />
-              </button>
-            </div>
+            </label>
+            <button
+              onClick={(e) => handlePreviewTemplate(template, e)}
+              className="ml-2 flex items-center rounded-full p-2 text-aws-font-color-blue hover:bg-aws-paper-light hover:text-aws-sea-blue-light"
+              aria-label={t("checklist.previewTemplate", "Preview template")}>
+              <FiEye className="h-5 w-5" />
+            </button>
           </div>
         ))}
 
