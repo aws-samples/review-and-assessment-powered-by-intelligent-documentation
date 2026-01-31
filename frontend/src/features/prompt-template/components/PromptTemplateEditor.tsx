@@ -8,7 +8,7 @@ import {
   PromptTemplateType,
   UpdatePromptTemplateRequest,
 } from "../types";
-import { DEFAULT_CHECKLIST_PROMPT, DEFAULT_REVIEW_PROMPT } from "../constants";
+import { DEFAULT_CHECKLIST_PROMPT, DEFAULT_REVIEW_PROMPT, DEFAULT_NEXT_ACTION_PROMPT } from "../constants";
 
 interface PromptTemplateEditorProps {
   template?: PromptTemplate;
@@ -34,7 +34,9 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
         ? DEFAULT_CHECKLIST_PROMPT
         : type === PromptTemplateType.REVIEW
           ? DEFAULT_REVIEW_PROMPT
-          : "")
+          : type === PromptTemplateType.NEXT_ACTION
+            ? DEFAULT_NEXT_ACTION_PROMPT
+            : "")
   );
   const [isDirty, setIsDirty] = useState(false);
 
@@ -67,6 +69,9 @@ export const PromptTemplateEditor: React.FC<PromptTemplateEditorProps> = ({
       setIsDirty(true);
     } else if (type === PromptTemplateType.REVIEW) {
       setPrompt(DEFAULT_REVIEW_PROMPT);
+      setIsDirty(true);
+    } else if (type === PromptTemplateType.NEXT_ACTION) {
+      setPrompt(DEFAULT_NEXT_ACTION_PROMPT);
       setIsDirty(true);
     }
   };
