@@ -5,33 +5,38 @@
  */
 
 import { getPrismaClient } from "../../api/core/db";
+import { getS3Client } from "../../api/core/s3";
 import { NEXT_ACTION_STATUS } from "../../api/features/review/domain/model/review";
+import { S3TempStorage } from "../../utils/s3-temp";
 
 declare const console: {
   log: (...data: any[]) => void;
   error: (...data: any[]) => void;
 };
 
+/** Agent result after resolving S3 temp reference */
+interface ResolvedAgentResult {
+  status: string;
+  nextAction?: string | null;
+  metrics?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    totalCost?: number;
+    durationMs?: number;
+    modelId?: string;
+  };
+  toolExecutions?: Array<{
+    toolName: string;
+    input: any;
+    output: any;
+    durationMs: number;
+  }>;
+}
+
 export interface PostGenerateNextActionParams {
   reviewJobId: string;
-  agentResult: {
-    status: string;
-    nextAction?: string | null;
-    metrics?: {
-      inputTokens?: number;
-      outputTokens?: number;
-      totalTokens?: number;
-      totalCost?: number;
-      durationMs?: number;
-      modelId?: string;
-    };
-    toolExecutions?: Array<{
-      toolName: string;
-      input: any;
-      output: any;
-      durationMs: number;
-    }>;
-  };
+  agentResult: ResolvedAgentResult | any; // Can be S3 temp reference or actual data
 }
 
 export interface PostGenerateNextActionResult {
@@ -43,7 +48,7 @@ export interface PostGenerateNextActionResult {
 export async function postGenerateNextAction(
   params: PostGenerateNextActionParams
 ): Promise<PostGenerateNextActionResult> {
-  const { reviewJobId, agentResult } = params;
+  const { reviewJobId, agentResult: rawAgentResult } = params;
   console.log(
     `[PostGenerateNextAction] Starting for reviewJobId: ${reviewJobId}`
   );
@@ -51,6 +56,18 @@ export async function postGenerateNextAction(
   const db = await getPrismaClient();
 
   try {
+    // Resolve S3 temp reference if needed
+    const s3TempStorage = new S3TempStorage(
+      getS3Client(),
+      process.env.TEMP_BUCKET || ""
+    );
+    const agentResult: ResolvedAgentResult =
+      await s3TempStorage.resolve(rawAgentResult);
+
+    console.log(
+      `[PostGenerateNextAction] Resolved agent result status: ${agentResult.status}`
+    );
+
     // Handle skipped case
     if (agentResult.status === "skipped") {
       console.log(`[PostGenerateNextAction] Agent reported skipped status`);
