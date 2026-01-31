@@ -63,6 +63,28 @@ export function useDuplicateChecklistSet() {
 }
 
 /**
+ * Next Action テンプレート更新フック
+ */
+export function useUpdateNextActionTemplate() {
+  const { mutateAsync, status, error } = useApiClient().useMutation<
+    { success: boolean },
+    { nextActionTemplateId: string | null }
+  >("patch", "/checklist-sets");
+
+  function updateNextActionTemplate(
+    setId: string,
+    nextActionTemplateId: string | null
+  ) {
+    return mutateAsync(
+      { nextActionTemplateId },
+      `/checklist-sets/${setId}/next-action-template`
+    );
+  }
+
+  return { updateNextActionTemplate, status, error };
+}
+
+/**
  * 曖昧検知実行フック
  */
 export function useDetectAmbiguity() {

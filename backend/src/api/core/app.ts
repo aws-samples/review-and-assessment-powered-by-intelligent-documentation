@@ -17,6 +17,7 @@ export function createApp(): FastifyInstance {
   // CORSの設定
   app.register(cors, {
     origin: process.env.CORS_ORIGIN || "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
 
   // レスポンスロガープラグインを登録

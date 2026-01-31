@@ -170,7 +170,12 @@
     "createToolConfiguration": "Create Tool Configuration",
     "nextActionTemplate": {
       "title": "Next Action Template",
-      "description": "Select the prompt template for generating next actions after review completion"
+      "description": "Select the prompt template for generating next actions after review completion",
+      "enable": "Enable Next Action",
+      "enabled": "Next Action enabled",
+      "disabled": "Next Action disabled",
+      "updated": "Next Action template updated",
+      "updateError": "Failed to update Next Action template"
     }
   },
   "review": {
