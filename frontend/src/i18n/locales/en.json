@@ -345,7 +345,18 @@
     "createNewTemplate": "Create New Template",
     "templateName": "Template Name",
     "prompt": "Prompt",
-    "resetToDefault": "Reset to Default"
+    "resetToDefault": "Reset to Default",
+    "templateVariables": "Template Variables",
+    "insert": "Insert",
+    "variables": {
+      "checklist_name": "Name of the checklist",
+      "pass_count": "Number of passed items",
+      "fail_count": "Number of failed items",
+      "failed_items": "Details of failed items",
+      "user_overrides": "Items with user overrides",
+      "document_info": "Review target document info",
+      "all_results": "All review results"
+    }
   },
   "mcpServer": {
     "title": "MCP Server Settings",

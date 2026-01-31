@@ -345,7 +345,18 @@
     "createNewTemplate": "新規テンプレート作成",
     "templateName": "テンプレート名",
     "prompt": "プロンプト",
-    "resetToDefault": "デフォルトに戻す"
+    "resetToDefault": "デフォルトに戻す",
+    "templateVariables": "テンプレート変数",
+    "insert": "挿入",
+    "variables": {
+      "checklist_name": "チェックリストの名前",
+      "pass_count": "合格した項目数",
+      "fail_count": "不合格の項目数",
+      "failed_items": "不合格項目の詳細",
+      "user_overrides": "ユーザーが判定を変更した項目",
+      "document_info": "審査対象ドキュメント情報",
+      "all_results": "全審査結果"
+    }
   },
   "mcpServer": {
     "title": "MCPサーバー設定",
