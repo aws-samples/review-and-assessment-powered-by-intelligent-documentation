@@ -112,9 +112,11 @@ interface DocumentInfo {
 interface ToolConfigurationOutput {
   id: string;
   name: string;
-  knowledgeBases?: KnowledgeBaseConfig[];
-  enableCodeInterpreter?: boolean;
-  mcpServers?: McpServerConfig[];
+  knowledgeBase?: KnowledgeBaseConfig[];
+  codeInterpreter?: boolean;
+  mcpConfig?: {
+    mcpServers: McpServerConfig[];
+  };
 }
 
 interface KnowledgeBaseConfig {
@@ -307,17 +309,17 @@ export async function preGenerateNextAction(
 
       // Add knowledge bases if configured
       if (config.knowledgeBase?.length) {
-        toolConfiguration.knowledgeBases = config.knowledgeBase;
+        toolConfiguration.knowledgeBase = config.knowledgeBase;
       }
 
       // Add code interpreter if enabled
       if (config.codeInterpreter) {
-        toolConfiguration.enableCodeInterpreter = true;
+        toolConfiguration.codeInterpreter = true;
       }
 
       // Add MCP servers if configured
       if (config.mcpConfig?.mcpServers?.length) {
-        toolConfiguration.mcpServers = config.mcpConfig.mcpServers;
+        toolConfiguration.mcpConfig = config.mcpConfig;
       }
 
       console.log(
