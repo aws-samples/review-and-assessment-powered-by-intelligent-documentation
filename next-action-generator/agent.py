@@ -17,6 +17,34 @@ from template_expander import expand_template_variables
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
 
+
+def _extract_text_from_message(message: Any) -> str:
+    """
+    Extract text content from agent response message.
+
+    The message structure is typically:
+    {'role': 'assistant', 'content': [{'text': '...'}]}
+    """
+    # Try to get content attribute or dict key
+    if hasattr(message, 'content'):
+        content = message.content
+    elif isinstance(message, dict) and 'content' in message:
+        content = message['content']
+    else:
+        return str(message)
+
+    # Extract text from content list
+    if isinstance(content, list):
+        texts = []
+        for item in content:
+            if isinstance(item, dict) and 'text' in item:
+                texts.append(item['text'])
+            elif hasattr(item, 'text'):
+                texts.append(item.text)
+        return '\n'.join(texts)
+
+    return str(content)
+
 # Configuration
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 DEFAULT_MODEL_ID = os.environ.get(
@@ -116,7 +144,7 @@ def process_next_action(
 
         result = {
             "status": "success",
-            "nextAction": str(response.message),
+            "nextAction": _extract_text_from_message(response.message),
             "metrics": {
                 "inputTokens": input_tokens,
                 "outputTokens": output_tokens,
