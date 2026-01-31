@@ -34,7 +34,11 @@ class ModelConfig:
         if "." in self.model_id:
             return self.model_id.split(".", 1)[-1]
         return self.model_id
-    
+
+    def calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+        """Calculate cost based on token usage"""
+        return (input_tokens / 1000 * self.input_per_1k) + (output_tokens / 1000 * self.output_per_1k)
+
     @staticmethod
     def create(model_id: str) -> ModelConfig:
         """
