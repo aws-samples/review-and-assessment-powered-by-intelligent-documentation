@@ -63,25 +63,22 @@ export function useDuplicateChecklistSet() {
 }
 
 /**
- * Next Action テンプレート更新フック
+ * Next Action 設定更新フック
  */
-export function useUpdateNextActionTemplate() {
+export function useUpdateNextActionSettings() {
   const { mutateAsync, status, error } = useApiClient().useMutation<
     { success: boolean },
-    { nextActionTemplateId: string | null }
+    { enableNextAction: boolean; nextActionTemplateId: string | null }
   >("patch", "/checklist-sets");
 
-  function updateNextActionTemplate(
+  function updateNextActionSettings(
     setId: string,
-    nextActionTemplateId: string | null
+    settings: { enableNextAction: boolean; nextActionTemplateId: string | null }
   ) {
-    return mutateAsync(
-      { nextActionTemplateId },
-      `/checklist-sets/${setId}/next-action-template`
-    );
+    return mutateAsync(settings, `/checklist-sets/${setId}/next-action-settings`);
   }
 
-  return { updateNextActionTemplate, status, error };
+  return { updateNextActionSettings, status, error };
 }
 
 /**

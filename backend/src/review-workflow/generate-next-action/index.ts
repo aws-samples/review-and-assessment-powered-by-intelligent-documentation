@@ -37,6 +37,51 @@ const ANTHROPIC_VERSION = "bedrock-2023-05-31";
 /** Maximum retry attempts for Bedrock API calls */
 const MAX_RETRIES = 3;
 
+/** Default prompt for Next Action generation */
+const DEFAULT_NEXT_ACTION_PROMPT = `
+You are an AI assistant that generates actionable next steps based on document review results.
+
+## Review Target Documents
+{{document_info}}
+
+## Checklist: {{checklist_name}}
+
+## Review Results Summary
+- Passed: {{pass_count}} items
+- Failed: {{fail_count}} items
+
+## Failed Item Details
+{{failed_items}}
+
+## User Judgment Overrides
+{{user_overrides}}
+
+## Output Format
+Generate a markdown-formatted response with the following structure:
+
+### Overall Assessment
+Brief summary of the review outcome based on the results above.
+
+### Required Corrections
+For each failed item:
+1. **Target File/Section**: Which part of the document needs modification
+2. **Correction Content**: Specific details of what to add or modify
+3. **Priority**: High/Medium/Low
+4. **Reference**: Extracted text or explanation that supports this action
+
+### Recommended Actions
+Prioritized list of correction tasks:
+- High Priority: Items that failed review and require immediate attention
+- Medium Priority: Items with user overrides that may need review
+- Low Priority: Recommendations for improvement
+
+## Guidelines
+- Be specific about WHICH file or section needs modification
+- Provide concrete examples of WHAT content should be added
+- Reference the extracted text and explanations from failed items
+- Output in the same language as the input document
+`;
+
 // ============================================================================
 // RUNTIME CONFIGURATION
 // ============================================================================
@@ -95,16 +140,28 @@ function expandTemplateVariables(
   let result = template;
 
   // {{failed_items}}
-  result = result.replace(/\{\{failed_items\}\}/g, formatFailedItems(data.failedItems));
+  result = result.replace(
+    /\{\{failed_items\}\}/g,
+    formatFailedItems(data.failedItems)
+  );
 
   // {{user_overrides}}
-  result = result.replace(/\{\{user_overrides\}\}/g, formatUserOverrides(data.userOverrides));
+  result = result.replace(
+    /\{\{user_overrides\}\}/g,
+    formatUserOverrides(data.userOverrides)
+  );
 
   // {{all_results}}
-  result = result.replace(/\{\{all_results\}\}/g, formatAllResults(data.allResults));
+  result = result.replace(
+    /\{\{all_results\}\}/g,
+    formatAllResults(data.allResults)
+  );
 
   // {{document_info}}
-  result = result.replace(/\{\{document_info\}\}/g, formatDocumentInfo(data.documents));
+  result = result.replace(
+    /\{\{document_info\}\}/g,
+    formatDocumentInfo(data.documents)
+  );
 
   // {{checklist_name}}
   result = result.replace(/\{\{checklist_name\}\}/g, data.checklistName);
@@ -125,9 +182,7 @@ function formatFailedItems(items: ReviewResultWithCheckList[]): string {
 
   return items
     .map((item) => {
-      const parts = [
-        `- **${item.checkList.name}**: Failed`,
-      ];
+      const parts = [`- **${item.checkList.name}**: Failed`];
 
       if (item.confidenceScore !== null) {
         parts[0] += ` (Confidence: ${(item.confidenceScore * 100).toFixed(0)}%)`;
@@ -144,7 +199,9 @@ function formatFailedItems(items: ReviewResultWithCheckList[]): string {
       if (item.extractedText) {
         const extracted = parseExtractedText(item.extractedText);
         if (extracted.length > 0) {
-          parts.push(`  Extracted text: "${extracted.slice(0, 3).join('", "')}"`);
+          parts.push(
+            `  Extracted text: "${extracted.slice(0, 3).join('", "')}"`
+          );
         }
       }
 
@@ -160,7 +217,12 @@ function formatUserOverrides(items: ReviewResultWithCheckList[]): string {
 
   return items
     .map((item) => {
-      const aiResult = item.result === "pass" ? "Pass" : item.result === "fail" ? "Fail" : "Unknown";
+      const aiResult =
+        item.result === "pass"
+          ? "Pass"
+          : item.result === "fail"
+            ? "Fail"
+            : "Unknown";
       const overriddenTo = item.result === "pass" ? "Fail" : "Pass"; // User overrode to opposite
 
       const parts = [
@@ -183,7 +245,12 @@ function formatAllResults(items: ReviewResultWithCheckList[]): string {
 
   return items
     .map((item) => {
-      const result = item.result === "pass" ? "Pass" : item.result === "fail" ? "Fail" : "Pending";
+      const result =
+        item.result === "pass"
+          ? "Pass"
+          : item.result === "fail"
+            ? "Fail"
+            : "Pending";
       const override = item.userOverride ? " (User Override)" : "";
 
       return `- **${item.checkList.name}**: ${result}${override}`;
@@ -257,11 +324,12 @@ export async function generateNextAction(
       };
     }
 
-    // 2. Check if nextActionTemplateId is set
+    // 2. Check if Next Action is enabled
+    const enableNextAction = reviewJob.checkListSet.enableNextAction;
     const nextActionTemplateId = reviewJob.checkListSet.nextActionTemplateId;
 
-    if (!nextActionTemplateId) {
-      console.log(`[GenerateNextAction] No template configured, skipping`);
+    if (!enableNextAction) {
+      console.log(`[GenerateNextAction] Next Action is disabled, skipping`);
 
       // Update status to skipped
       await db.reviewJob.update({
@@ -275,7 +343,7 @@ export async function generateNextAction(
       return {
         success: true,
         status: NEXT_ACTION_STATUS.SKIPPED,
-        message: "No next action template configured",
+        message: "Next Action is disabled",
       };
     }
 
@@ -288,27 +356,41 @@ export async function generateNextAction(
       },
     });
 
-    // 4. Get prompt template
-    const template = await db.promptTemplate.findUnique({
-      where: { id: nextActionTemplateId },
-    });
+    // 4. Get prompt template (use default if not specified)
+    let promptToUse: string;
 
-    if (!template) {
-      console.error(`[GenerateNextAction] Template not found: ${nextActionTemplateId}`);
-
-      await db.reviewJob.update({
-        where: { id: reviewJobId },
-        data: {
-          nextActionStatus: NEXT_ACTION_STATUS.FAILED,
-          updatedAt: new Date(),
-        },
+    if (nextActionTemplateId) {
+      const template = await db.promptTemplate.findUnique({
+        where: { id: nextActionTemplateId },
       });
 
-      return {
-        success: false,
-        status: NEXT_ACTION_STATUS.FAILED,
-        message: "Prompt template not found",
-      };
+      if (!template) {
+        console.error(
+          `[GenerateNextAction] Template not found: ${nextActionTemplateId}`
+        );
+
+        await db.reviewJob.update({
+          where: { id: reviewJobId },
+          data: {
+            nextActionStatus: NEXT_ACTION_STATUS.FAILED,
+            updatedAt: new Date(),
+          },
+        });
+
+        return {
+          success: false,
+          status: NEXT_ACTION_STATUS.FAILED,
+          message: "Prompt template not found",
+        };
+      }
+
+      promptToUse = template.prompt;
+      console.log(
+        `[GenerateNextAction] Using custom template: ${nextActionTemplateId}`
+      );
+    } else {
+      promptToUse = DEFAULT_NEXT_ACTION_PROMPT;
+      console.log(`[GenerateNextAction] Using default prompt`);
     }
 
     // 5. Get review results
@@ -334,7 +416,7 @@ export async function generateNextAction(
     const failCount = reviewResults.filter((r) => r.result === "fail").length;
 
     // 7. Expand template variables
-    const expandedPrompt = expandTemplateVariables(template.prompt, {
+    const expandedPrompt = expandTemplateVariables(promptToUse, {
       failedItems: failedItems as ReviewResultWithCheckList[],
       userOverrides: userOverrides as ReviewResultWithCheckList[],
       allResults: reviewResults as ReviewResultWithCheckList[],
@@ -344,7 +426,9 @@ export async function generateNextAction(
       failCount,
     });
 
-    console.log(`[GenerateNextAction] Expanded prompt length: ${expandedPrompt.length}`);
+    console.log(
+      `[GenerateNextAction] Expanded prompt length: ${expandedPrompt.length}`
+    );
 
     // 8. Call Bedrock to generate next action
     const nextAction = await callBedrock(expandedPrompt);

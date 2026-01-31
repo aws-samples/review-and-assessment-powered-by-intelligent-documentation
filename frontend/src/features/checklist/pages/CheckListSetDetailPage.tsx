@@ -6,7 +6,7 @@ import {
   useDeleteChecklistSet,
   useDuplicateChecklistSet,
   useDetectAmbiguity,
-  useUpdateNextActionTemplate,
+  useUpdateNextActionSettings,
 } from "../hooks/useCheckListSetMutations";
 import { useAlert } from "../../../hooks/useAlert";
 import CheckListItemAddModal from "../components/CheckListItemAddModal";
@@ -69,7 +69,7 @@ export function CheckListSetDetailPage() {
   const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
   const isDetecting = checklistSet?.processingStatus === 'detecting';
   const { bulkAssignToolConfiguration } = useBulkAssignToolConfiguration();
-  const { updateNextActionTemplate } = useUpdateNextActionTemplate();
+  const { updateNextActionSettings } = useUpdateNextActionSettings();
 
   // Next Action テンプレート
   const { templates: nextActionTemplates, isLoading: isLoadingTemplates } = usePromptTemplates(
@@ -80,16 +80,13 @@ export function CheckListSetDetailPage() {
     undefined
   );
 
-  // チェックリストセットのnextActionTemplateIdで初期化
+  // チェックリストセットのenableNextAction/nextActionTemplateIdで初期化
   useEffect(() => {
-    if (checklistSet?.nextActionTemplateId) {
-      setEnableNextAction(true);
-      setSelectedNextActionTemplateId(checklistSet.nextActionTemplateId);
-    } else {
-      setEnableNextAction(false);
-      setSelectedNextActionTemplateId(undefined);
+    if (checklistSet) {
+      setEnableNextAction(checklistSet.enableNextAction ?? false);
+      setSelectedNextActionTemplateId(checklistSet.nextActionTemplateId || undefined);
     }
-  }, [checklistSet?.nextActionTemplateId]);
+  }, [checklistSet?.enableNextAction, checklistSet?.nextActionTemplateId]);
 
   // Next Action トグル変更時
   const handleEnableNextActionChange = async (enabled: boolean) => {
@@ -97,20 +94,19 @@ export function CheckListSetDetailPage() {
     setEnableNextAction(enabled);
 
     try {
+      // 有効化/無効化時は現在選択されているテンプレートIDを維持
+      await updateNextActionSettings(id, {
+        enableNextAction: enabled,
+        nextActionTemplateId: selectedNextActionTemplateId || null,
+      });
+
       if (enabled) {
-        // 有効化: システムデフォルト（空文字）またはテンプレートがあれば最初のものを設定
-        const templateId = nextActionTemplates.length > 0 ? nextActionTemplates[0].id : null;
-        await updateNextActionTemplate(id, templateId);
-        setSelectedNextActionTemplateId(templateId || undefined);
         addToast(t("checklist.nextActionTemplate.enabled"), "success");
       } else {
-        // 無効化: nullを設定
-        await updateNextActionTemplate(id, null);
-        setSelectedNextActionTemplateId(undefined);
         addToast(t("checklist.nextActionTemplate.disabled"), "success");
       }
     } catch (error) {
-      console.error("Failed to update next action template", error);
+      console.error("Failed to update next action settings", error);
       setEnableNextAction(!enabled); // ロールバック
       addToast(t("checklist.nextActionTemplate.updateError"), "error");
     }
@@ -122,10 +118,13 @@ export function CheckListSetDetailPage() {
     setSelectedNextActionTemplateId(templateId);
 
     try {
-      await updateNextActionTemplate(id, templateId || null);
+      await updateNextActionSettings(id, {
+        enableNextAction,
+        nextActionTemplateId: templateId || null,
+      });
       addToast(t("checklist.nextActionTemplate.updated"), "success");
     } catch (error) {
-      console.error("Failed to update next action template", error);
+      console.error("Failed to update next action settings", error);
       addToast(t("checklist.nextActionTemplate.updateError"), "error");
     }
   };

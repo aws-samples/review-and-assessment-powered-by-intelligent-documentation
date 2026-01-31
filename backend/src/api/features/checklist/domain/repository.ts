@@ -57,8 +57,9 @@ export interface CheckRepository {
     checkIds: string[];
     toolConfigurationId: string | null;
   }): Promise<number>;
-  updateNextActionTemplateId(params: {
+  updateNextActionSettings(params: {
     setId: string;
+    enableNextAction: boolean;
     nextActionTemplateId: string | null;
   }): Promise<void>;
 }
@@ -424,6 +425,7 @@ export const makePrismaCheckRepository = async (
         id: true,
         name: true,
         description: true,
+        enableNextAction: true,
         nextActionTemplateId: true,
         documents: true,
       },
@@ -487,6 +489,7 @@ export const makePrismaCheckRepository = async (
       isEditable,
       errorSummary,
       hasError: failedDocuments.length > 0,
+      enableNextAction: checkListSet.enableNextAction,
       nextActionTemplateId: checkListSet.nextActionTemplateId || undefined,
     };
   };
@@ -671,13 +674,15 @@ export const makePrismaCheckRepository = async (
     return result.count;
   };
 
-  const updateNextActionTemplateId = async (params: {
+  const updateNextActionSettings = async (params: {
     setId: string;
+    enableNextAction: boolean;
     nextActionTemplateId: string | null;
   }): Promise<void> => {
     await client.checkListSet.update({
       where: { id: params.setId },
       data: {
+        enableNextAction: params.enableNextAction,
         nextActionTemplateId: params.nextActionTemplateId,
       },
     });
@@ -699,6 +704,6 @@ export const makePrismaCheckRepository = async (
     checkSetEditable,
     updateAmbiguityReview,
     bulkUpdateToolConfiguration,
-    updateNextActionTemplateId,
+    updateNextActionSettings,
   };
 };

@@ -39,6 +39,7 @@ model CheckListSet {
   id                   String              @id @map("check_list_set_id") @db.VarChar(26)
   name                 String              @db.VarChar(255)
   description          String?             @db.Text
+  enableNextAction     Boolean             @default(false) @map("enable_next_action")
   nextActionTemplateId String?             @map("next_action_template_id") @db.VarChar(26)
   checkLists           CheckList[]
   documents            CheckListDocument[]

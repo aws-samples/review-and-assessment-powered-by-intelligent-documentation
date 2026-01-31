@@ -17,7 +17,7 @@ import {
   duplicateChecklistSetHandler,
   detectAmbiguityHandler,
   bulkAssignToolConfigurationHandler,
-  updateNextActionTemplateHandler,
+  updateNextActionSettingsHandler,
 } from "./handlers";
 
 /**
@@ -92,8 +92,8 @@ export function registerChecklistRoutes(fastify: FastifyInstance): void {
     handler: bulkAssignToolConfigurationHandler,
   });
 
-  // Next Actionテンプレート更新エンドポイント
-  fastify.patch("/checklist-sets/:setId/next-action-template", {
-    handler: updateNextActionTemplateHandler,
+  // Next Action設定更新エンドポイント
+  fastify.patch("/checklist-sets/:setId/next-action-settings", {
+    handler: updateNextActionSettingsHandler,
   });
 }
