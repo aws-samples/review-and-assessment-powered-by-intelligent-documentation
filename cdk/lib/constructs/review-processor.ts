@@ -13,6 +13,7 @@ import { DockerPrismaFunction } from "./docker-prisma-function";
 import { Platform } from "aws-cdk-lib/aws-ecr-assets";
 import { DatabaseConnectionProps } from "./database";
 import { Agent } from "./agent";
+import { NextActionAgent } from "./next-action-agent";
 export interface ReviewProcessorProps {
   documentBucket: s3.IBucket;
   tempBucket: s3.IBucket; // S3 Temp Storage bucket
@@ -50,12 +51,19 @@ export interface ReviewProcessorProps {
    * @default true
    */
   enableCodeInterpreter: boolean;
+
+  /**
+   * NextAction生成に使用するAIモデルID
+   * @default "global.anthropic.claude-sonnet-4-20250514-v1:0"
+   */
+  nextActionModelId: string;
 }
 
 export class ReviewProcessor extends Construct {
   public readonly stateMachine: sfn.StateMachine;
   public readonly reviewLambda: lambda.Function;
   public readonly reviewAgent: Agent;
+  public readonly nextActionAgent: NextActionAgent;
   public readonly securityGroup: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: ReviewProcessorProps) {
@@ -108,7 +116,7 @@ export class ReviewProcessor extends Construct {
       }
     );
 
-    // AgentCore Runtime を作成
+    // AgentCore Runtime を作成 (Review Agent)
     this.reviewAgent = new Agent(this, "ReviewAgent", {
       bedrockRegion: props.bedrockRegion,
       documentBucket: props.documentBucket,
@@ -116,6 +124,14 @@ export class ReviewProcessor extends Construct {
       documentProcessingModelId: props.documentProcessingModelId,
       imageReviewModelId: props.imageReviewModelId,
       enableCitations: props.enableCitations,
+      enableCodeInterpreter: props.enableCodeInterpreter,
+    });
+
+    // NextAction AgentCore Runtime を作成
+    this.nextActionAgent = new NextActionAgent(this, "NextActionAgent", {
+      bedrockRegion: props.bedrockRegion,
+      tempBucket: props.tempBucket,
+      nextActionModelId: props.nextActionModelId,
       enableCodeInterpreter: props.enableCodeInterpreter,
     });
 
@@ -136,6 +152,31 @@ export class ReviewProcessor extends Construct {
 
     // Grant permissions to invoke AgentCore
     this.reviewAgent.grantInvoke(invokeAgentLambda);
+
+    // Lambda function for invoking NextAction AgentCore
+    const invokeNextActionAgentLambda = new lambda.Function(
+      this,
+      "InvokeNextActionAgentFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_22_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "lambda/invoke-next-action-agent"),
+          {
+            exclude: ["*.ts", "*.d.ts", "tsconfig.json", "node_modules"],
+          }
+        ),
+        timeout: cdk.Duration.minutes(5),
+        environment: {
+          AGENT_RUNTIME_ARN: this.nextActionAgent.runtimeArn,
+          BEDROCK_REGION: props.bedrockRegion,
+        },
+        architecture: lambda.Architecture.ARM_64,
+      }
+    );
+
+    // Grant permissions to invoke NextAction AgentCore
+    this.nextActionAgent.grantInvoke(invokeNextActionAgentLambda);
 
     // Lambda関数にS3バケットへのアクセス権限を付与
     props.documentBucket.grantReadWrite(this.reviewLambda);
@@ -269,15 +310,63 @@ export class ReviewProcessor extends Construct {
       },
     });
 
-    // Next Action生成Lambda
-    const generateNextActionTask = new tasks.LambdaInvoke(
+    // Next Action生成 - 3ステップワークフロー
+
+    // Step 1: Pre-processing - データ準備
+    const preGenerateNextActionTask = new tasks.LambdaInvoke(
       this,
-      "GenerateNextAction",
+      "PreGenerateNextAction",
       {
         lambdaFunction: this.reviewLambda,
         payload: sfn.TaskInput.fromObject({
-          action: "generateNextAction",
+          action: "preGenerateNextAction",
           reviewJobId: sfn.JsonPath.stringAt("$.reviewJobId"),
+          userId: sfn.JsonPath.stringAt("$$.Execution.Input.userId"),
+        }),
+        resultPath: "$.preGenerateResult",
+        resultSelector: {
+          "Payload.$": "$.Payload",
+        },
+      }
+    );
+
+    // Step 2: AgentCore processing - Strands Agentによる生成
+    const invokeNextActionAgentTask = new tasks.LambdaInvoke(
+      this,
+      "InvokeNextActionAgent",
+      {
+        lambdaFunction: invokeNextActionAgentLambda,
+        payload: sfn.TaskInput.fromObject({
+          "reviewJobId.$": "$.reviewJobId",
+          "preGenerateResult.$": "$.preGenerateResult",
+        }),
+        resultPath: "$.agentResult",
+      }
+    );
+
+    // リトライ設定を追加
+    invokeNextActionAgentTask.addRetry({
+      errors: [
+        "RetryException",
+        "ThrottlingException",
+        "ServiceQuotaExceededException",
+        "TooManyRequestsException",
+      ],
+      interval: cdk.Duration.seconds(2),
+      maxAttempts: 5,
+      backoffRate: 2,
+    });
+
+    // Step 3: Post-processing - 結果の保存
+    const postGenerateNextActionTask = new tasks.LambdaInvoke(
+      this,
+      "PostGenerateNextAction",
+      {
+        lambdaFunction: this.reviewLambda,
+        payload: sfn.TaskInput.fromObject({
+          action: "postGenerateNextAction",
+          reviewJobId: sfn.JsonPath.stringAt("$.reviewJobId"),
+          agentResult: sfn.JsonPath.stringAt("$.agentResult.Payload"),
         }),
         resultPath: "$.nextActionResult",
         resultSelector: {
@@ -285,6 +374,11 @@ export class ReviewProcessor extends Construct {
         },
       }
     );
+
+    // Next Actionワークフローを連鎖させる
+    const nextActionWorkflow = preGenerateNextActionTask
+      .next(invokeNextActionAgentTask)
+      .next(postGenerateNextActionTask);
 
     // エラーハンドリングLambda
     const handleErrorTask = new tasks.LambdaInvoke(this, "HandleError", {
@@ -311,7 +405,15 @@ export class ReviewProcessor extends Construct {
       errors: ["States.ALL"],
       resultPath: "$.error",
     });
-    generateNextActionTask.addCatch(handleErrorTask, {
+    preGenerateNextActionTask.addCatch(handleErrorTask, {
+      errors: ["States.ALL"],
+      resultPath: "$.error",
+    });
+    invokeNextActionAgentTask.addCatch(handleErrorTask, {
+      errors: ["States.ALL"],
+      resultPath: "$.error",
+    });
+    postGenerateNextActionTask.addCatch(handleErrorTask, {
       errors: ["States.ALL"],
       resultPath: "$.error",
     });
@@ -320,7 +422,7 @@ export class ReviewProcessor extends Construct {
     const definition = prepareReviewTask
       .next(processItemsMap)
       .next(finalizeReviewTask)
-      .next(generateNextActionTask);
+      .next(nextActionWorkflow);
 
     // IAMロールの作成
     const stateMachineRole = new iam.Role(this, "StateMachineRole", {

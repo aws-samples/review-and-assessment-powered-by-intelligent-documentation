@@ -57,7 +57,7 @@ export const PromptTemplateDomain = {
       prompt: req.prompt !== undefined ? req.prompt : existing.prompt,
       toolConfigurationId:
         req.toolConfigurationId !== undefined
-          ? req.toolConfigurationId ?? undefined
+          ? (req.toolConfigurationId ?? undefined)
           : existing.toolConfigurationId,
       updatedAt: new Date(),
     };
