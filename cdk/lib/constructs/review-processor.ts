@@ -263,8 +263,28 @@ export class ReviewProcessor extends Construct {
         reviewJobId: sfn.JsonPath.stringAt("$.reviewJobId"),
         processedItems: sfn.JsonPath.stringAt("$.processedItems"),
       }),
-      outputPath: "$.Payload",
+      resultPath: "$.finalizeResult",
+      resultSelector: {
+        "Payload.$": "$.Payload",
+      },
     });
+
+    // Next Action生成Lambda
+    const generateNextActionTask = new tasks.LambdaInvoke(
+      this,
+      "GenerateNextAction",
+      {
+        lambdaFunction: this.reviewLambda,
+        payload: sfn.TaskInput.fromObject({
+          action: "generateNextAction",
+          reviewJobId: sfn.JsonPath.stringAt("$.reviewJobId"),
+        }),
+        resultPath: "$.nextActionResult",
+        resultSelector: {
+          "Payload.$": "$.Payload",
+        },
+      }
+    );
 
     // エラーハンドリングLambda
     const handleErrorTask = new tasks.LambdaInvoke(this, "HandleError", {
@@ -291,11 +311,16 @@ export class ReviewProcessor extends Construct {
       errors: ["States.ALL"],
       resultPath: "$.error",
     });
+    generateNextActionTask.addCatch(handleErrorTask, {
+      errors: ["States.ALL"],
+      resultPath: "$.error",
+    });
 
     // ワークフロー定義
     const definition = prepareReviewTask
       .next(processItemsMap)
-      .next(finalizeReviewTask);
+      .next(finalizeReviewTask)
+      .next(generateNextActionTask);
 
     // IAMロールの作成
     const stateMachineRole = new iam.Role(this, "StateMachineRole", {

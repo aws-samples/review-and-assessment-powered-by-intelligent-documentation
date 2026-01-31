@@ -8,6 +8,7 @@ import {
   getChecklistSetById,
   duplicateChecklistSet,
   startAmbiguityDetection,
+  updateNextActionTemplate,
 } from "../usecase/checklist-set";
 import { deleteS3Object } from "../../../core/s3";
 import {
@@ -408,5 +409,29 @@ export const bulkAssignToolConfigurationHandler = async (
   reply.code(200).send({
     success: true,
     updatedCount,
+  });
+};
+
+/**
+ * Next Actionテンプレート更新ハンドラー
+ */
+export const updateNextActionTemplateHandler = async (
+  request: FastifyRequest<{
+    Params: { setId: string };
+    Body: { nextActionTemplateId: string | null };
+  }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { setId } = request.params;
+  const { nextActionTemplateId } = request.body;
+
+  await updateNextActionTemplate({
+    checkListSetId: setId,
+    nextActionTemplateId,
+  });
+
+  reply.code(200).send({
+    success: true,
+    data: {},
   });
 };

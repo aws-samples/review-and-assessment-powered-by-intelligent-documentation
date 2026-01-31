@@ -305,3 +305,19 @@ export const startAmbiguityDetection = async (params: {
     userId: params.userId,
   });
 };
+
+export const updateNextActionTemplate = async (params: {
+  checkListSetId: string;
+  nextActionTemplateId: string | null;
+  deps?: {
+    repo?: CheckRepository;
+  };
+}): Promise<void> => {
+  const repo = params.deps?.repo || (await makePrismaCheckRepository());
+  const { checkListSetId, nextActionTemplateId } = params;
+
+  await repo.updateNextActionTemplateId({
+    setId: checkListSetId,
+    nextActionTemplateId,
+  });
+};

@@ -120,38 +120,44 @@ RESPONSE MUST BE IN PURE JSON FORMAT WITH NO ADDITIONAL TEXT.
 export const DEFAULT_NEXT_ACTION_PROMPT = `
 You are an AI assistant that generates actionable next steps based on document review results.
 
-## Overview
-Based on the review results provided, generate clear and specific next action items that the user should take.
+## Review Target Documents
+{{document_info}}
 
-## Input
-You will receive:
-- Document name and type
-- Review results (list of check items with pass/fail status and explanations)
-- Overall summary of the review
+## Checklist: {{checklist_name}}
+
+## Review Results Summary
+- Passed: {{pass_count}} items
+- Failed: {{fail_count}} items
+
+## Failed Item Details
+{{failed_items}}
+
+## User Judgment Overrides
+{{user_overrides}}
 
 ## Output Format
 Generate a markdown-formatted response with the following structure:
 
 ### Overall Assessment
-Brief summary of the review outcome.
+Brief summary of the review outcome based on the results above.
 
-### Required Actions
-List specific actions the user needs to take, prioritized by importance:
+### Required Corrections
+For each failed item:
+1. **Target File/Section**: Which part of the document needs modification
+2. **Correction Content**: Specific details of what to add or modify
+3. **Priority**: High/Medium/Low
+4. **Reference**: Extracted text or explanation that supports this action
 
-1. **High Priority**: Items that failed review and require immediate attention
-2. **Medium Priority**: Items that passed with low confidence or need verification
-3. **Low Priority**: Recommendations for improvement
-
-### Detailed Action Items
-For each action item, provide:
-- Clear description of what needs to be done
-- Reference to the specific check item
-- Suggested approach or resources
+### Recommended Actions
+Prioritized list of correction tasks:
+- High Priority: Items that failed review and require immediate attention
+- Medium Priority: Items with user overrides that may need review
+- Low Priority: Recommendations for improvement
 
 ## Guidelines
-- Be specific and actionable
-- Prioritize based on review results
-- Use clear, professional language
+- Be specific about WHICH file or section needs modification
+- Provide concrete examples of WHAT content should be added
+- Reference the extracted text and explanations from failed items
 - Output in the same language as the input document
 `;
 
