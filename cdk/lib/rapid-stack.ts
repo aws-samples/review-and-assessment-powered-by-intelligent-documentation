@@ -145,6 +145,7 @@ export class RapidStack extends cdk.Stack {
       bedrockRegion: props.parameters.bedrockRegion,
       enableCitations: props.parameters.enableCitations,
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
+      nextActionModelId: props.parameters.nextActionModelId,
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）

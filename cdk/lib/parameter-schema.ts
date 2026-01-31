@@ -35,6 +35,11 @@ const parameterSchema = z.object({
     .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("画像レビューに使用するAIモデルID"),
 
+  nextActionModelId: z
+    .string()
+    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
+    .describe("NextAction生成に使用するAIモデルID"),
+
   // 新しいパラメータを追加する場合はここに定義します
   // 例: newParameter: z.string().default("default"),
   // 例: isEnabled: z.boolean().default(false),
