@@ -75,7 +75,10 @@ export function useUpdateNextActionSettings() {
     setId: string,
     settings: { enableNextAction: boolean; nextActionTemplateId: string | null }
   ) {
-    return mutateAsync(settings, `/checklist-sets/${setId}/next-action-settings`);
+    return mutateAsync(
+      settings,
+      `/checklist-sets/${setId}/next-action-settings`
+    );
   }
 
   return { updateNextActionSettings, status, error };
