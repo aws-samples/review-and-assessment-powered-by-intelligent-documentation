@@ -35,7 +35,7 @@
     "@fastify/cors": "^11.0.1",
     "@modelcontextprotocol/sdk": "1.25.2",
     "@prisma/client": "^6.10.1",
-    "fastify": "^5.3.2",
+    "fastify": "^5.7.3",
     "jose": "^5.10.0",
     "mysql2": "^3.6.1",
     "pdf-lib": "^1.17.1",
