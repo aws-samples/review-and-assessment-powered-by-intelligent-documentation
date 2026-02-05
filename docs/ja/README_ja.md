@@ -240,6 +240,22 @@ export const parameters = {
 
 - [開発者ガイド](./developer-guide.md): 技術仕様、アーキテクチャ、開発環境設定
 
+## ユーザー権限と管理者セットアップ
+
+### 権限(管理者 / 一般ユーザー)
+
+- **管理者**: すべてのチェックリストセット/レビューを閲覧・操作可能 (owner 制限なし).
+- **一般ユーザー**: 自分が所有するリソースのみアクセス可能.
+
+### 管理者の初期セットアップ
+
+Cognito のカスタム属性 `rapid_role` が `admin` の場合、管理者として扱われます。
+
+1. Cognito User Pool で対象ユーザーの `rapid_role` を `admin` に設定
+2. ID トークンに `custom:rapid_role=admin` が含まれることを確認
+
+ローカル開発では `RAPID_LOCAL_DEV=true` で管理者として動作します。
+
 ## コンタクト
 
 - [Takehiro Suzuki](https://github.com/statefb)
