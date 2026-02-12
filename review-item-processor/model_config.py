@@ -202,6 +202,17 @@ _MODEL_REGISTRY = {
         supports_caching=True,
     ),
 
+    # Claude Opus 4.6
+    "global.anthropic.claude-opus-4-6-v1": ModelConfig(
+        model_id="global.anthropic.claude-opus-4-6-v1",
+        display_name="Claude Opus 4.6 (Global)",
+        input_per_1k=0.005,
+        output_per_1k=0.025,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
     # Claude 4 Opus
     "anthropic.claude-opus-4-20250514-v1:0": ModelConfig(
         model_id="anthropic.claude-opus-4-20250514-v1:0",
