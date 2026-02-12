@@ -26,12 +26,12 @@
     "remove:unused": "eslint . --ext .ts --fix --fix-type problem"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.787.0",
-    "@aws-sdk/client-s3": "^3.787.0",
-    "@aws-sdk/client-secrets-manager": "^3.777.0",
-    "@aws-sdk/client-sfn": "^3.787.0",
-    "@aws-sdk/client-sqs": "^3.883.0",
-    "@aws-sdk/s3-request-presigner": "^3.787.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.987.0",
+    "@aws-sdk/client-s3": "^3.987.0",
+    "@aws-sdk/client-secrets-manager": "^3.987.0",
+    "@aws-sdk/client-sfn": "^3.987.0",
+    "@aws-sdk/client-sqs": "^3.987.0",
+    "@aws-sdk/s3-request-presigner": "^3.987.0",
     "@fastify/cors": "^11.0.1",
     "@modelcontextprotocol/sdk": "1.26.0",
     "@prisma/client": "^6.10.1",
