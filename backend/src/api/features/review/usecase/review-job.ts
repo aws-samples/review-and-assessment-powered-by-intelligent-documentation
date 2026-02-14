@@ -14,6 +14,7 @@ import {
   getReviewDocumentKey,
   getReviewImageKey,
 } from "../../../../checklist-workflow/common/storage-paths";
+import { getQueueDepth, sendMessage } from "../../../core/sqs";
 import { CreateReviewJobRequest } from "../routes/handlers";
 import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
 import {
@@ -24,9 +25,39 @@ import {
   ApplicationError,
   FileSizeExceededError,
 } from "../../../core/errors/application-errors";
-import { startStateMachineExecution } from "../../../core/sfn";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
+
+export const computeGlobalConcurrency = async (): Promise<{
+  isLimit: boolean;
+}> => {
+  console.info("computeGlobalConcurrency called");
+
+  const queueUrl = process.env.REVIEW_QUEUE_URL;
+  const maxDepth = Number(process.env.REVIEW_QUEUE_MAX_DEPTH ?? 0);
+
+  if (!queueUrl || maxDepth <= 0) {
+    console.info("Global concurrency check skipped", {
+      queueUrl,
+      maxDepth,
+    });
+    return { isLimit: false };
+  }
+
+  try {
+    const depth = await getQueueDepth(queueUrl);
+    console.info("SQS queue depth fetched", { queueUrl, depth });
+    if (depth.total >= maxDepth) {
+      console.warn("Global concurrency limit reached", { depth, maxDepth });
+      return { isLimit: true };
+    }
+  } catch (e) {
+    console.error("Failed to check global concurrency:", e);
+  }
+
+  console.info("Global concurrency check passed");
+  return { isLimit: false };
+};
 
 export const getAllReviewJobs = async (params: {
   page?: number;
@@ -102,7 +133,7 @@ export const getReviewImagesPresignedUrl = async (params: {
 };
 
 export const createReviewJob = async (params: {
-  requestBody: CreateReviewJobRequest;
+  requestBody: CreateReviewJobRequest & { userId: string; userName?: string };
   deps?: {
     checkRepo?: CheckRepository;
     reviewJobRepo?: ReviewJobRepository;
@@ -153,20 +184,23 @@ export const createReviewJob = async (params: {
     },
   });
 
-  await reviewJobRepo.createReviewJob(reviewJob);
-
-  const stateMachineArn = process.env.REVIEW_PROCESSING_STATE_MACHINE_ARN;
-  if (!stateMachineArn) {
-    throw new ApplicationError(
-      "REVIEW_PROCESSING_STATE_MACHINE_ARN is not defined"
-    );
+  // レビュー処理キューへメッセージ送信
+  const queueUrl = process.env.REVIEW_QUEUE_URL;
+  if (!queueUrl) {
+    const error = new ApplicationError("REVIEW_QUEUE_URL is not defined");
+    throw error;
   }
 
-  // Invoke the state machine with file type information and userId for language preferences
-  await startStateMachineExecution(stateMachineArn, {
-    reviewJobId: reviewJob.id,
-    userId: params.requestBody.userId,
-  });
+  await sendMessage(
+    queueUrl,
+    {
+      reviewJobId: reviewJob.id,
+      userId: reviewJob.userId,
+    },
+    reviewJob.id
+  );
+
+  await reviewJobRepo.createReviewJob(reviewJob);
 };
 
 export const removeReviewJob = async (params: {
