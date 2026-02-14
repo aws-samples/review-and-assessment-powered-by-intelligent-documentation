@@ -102,6 +102,8 @@ export interface ReviewJobDetail {
     s3Path: string;
     fileType: REVIEW_FILE_TYPE;
   }>;
+  // ジョブ作成者（所有者） - 存在しない場合もあるためオプショナル
+  userId?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
