@@ -38,7 +38,7 @@ export const getAllReviewJobs = async (params: {
   sortOrder?: "asc" | "desc";
   status?: string;
   // オプショナルでリクエストユーザーを受け取り、一般ユーザの場合は ownerUserId を使って絞る
-  user?: RequestUser | null;
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
@@ -182,7 +182,7 @@ export const createReviewJob = async (params: {
 
 export const removeReviewJob = async (params: {
   reviewJobId: string;
-  user?: RequestUser | null;
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
@@ -191,7 +191,7 @@ export const removeReviewJob = async (params: {
 
   // 取得して所有者チェックを行う
   const job = await repo.findReviewJobById({ reviewJobId: params.reviewJobId });
-  assertHasOwnerAccessOrThrow(params.user || null, job.userId, {
+  assertHasOwnerAccessOrThrow(params.user, job.userId, {
     api: "removeReviewJob",
     resourceId: params.reviewJobId,
     logger: console,
@@ -217,7 +217,7 @@ export const modifyJobStatus = async (params: {
 };
 export const getReviewJobById = async (params: {
   reviewJobId: string;
-  user?: RequestUser | null;
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
@@ -228,7 +228,7 @@ export const getReviewJobById = async (params: {
   });
 
   // 所有者チェック（一般ユーザは自分のジョブのみ参照可能）
-  assertHasOwnerAccessOrThrow(params.user || null, job.userId, {
+  assertHasOwnerAccessOrThrow(params.user, job.userId, {
     api: "getReviewJobById",
     resourceId: params.reviewJobId,
     logger: console,

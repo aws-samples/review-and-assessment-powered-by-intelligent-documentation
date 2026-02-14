@@ -29,13 +29,12 @@ import {
 } from "../../../core/middleware/authorization";
 
 const assertChecklistSetOwner = async (params: {
-  user?: RequestUser;
+  user: RequestUser;
   checkListSetId: string;
   repo: CheckRepository;
   api: string;
   resourceId?: string;
 }): Promise<void> => {
-  if (!params.user) return;
   const checkListSet = await params.repo.findCheckListSetDetailById(
     params.checkListSetId
   );
@@ -218,7 +217,7 @@ export const duplicateChecklistSet = async (params: {
 
 export const removeChecklistSet = async (params: {
   checkListSetId: string;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -227,16 +226,13 @@ export const removeChecklistSet = async (params: {
 
   const { checkListSetId } = params;
 
-  // 所有者チェック（user が渡された場合のみ実行）
-  if (params.user) {
-    const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
-    const ownerUserId = checkListSet.userId;
-    assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
-      api: "removeChecklistSet",
-      resourceId: checkListSetId,
-      logger: console,
-    });
-  }
+  const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
+  const ownerUserId = checkListSet.userId;
+  assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
+    api: "removeChecklistSet",
+    resourceId: checkListSetId,
+    logger: console,
+  });
 
   await repo.deleteCheckListSetById({
     checkListSetId,
@@ -288,7 +284,7 @@ export const getChecklistItems = async (params: {
   parentId?: string;
   includeAllChildren?: boolean;
   ambiguityFilter?: AmbiguityFilter;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -315,7 +311,7 @@ export const getChecklistItems = async (params: {
 
 export const getChecklistSetById = async (params: {
   checkListSetId: string;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -324,15 +320,12 @@ export const getChecklistSetById = async (params: {
   const { checkListSetId } = params;
   const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
 
-  // 所有者チェック（user が渡された場合のみ実行）
-  if (params.user) {
-    const ownerUserId = checkListSet.userId;
-    assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
-      api: "getChecklistSetById",
-      resourceId: checkListSetId,
-      logger: console,
-    });
-  }
+  const ownerUserId = checkListSet.userId;
+  assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
+    api: "getChecklistSetById",
+    resourceId: checkListSetId,
+    logger: console,
+  });
 
   return checkListSet;
 };
@@ -340,7 +333,7 @@ export const getChecklistSetById = async (params: {
 export const startAmbiguityDetection = async (params: {
   checkListSetId: string;
   userId: string;
-  user?: RequestUser;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
     sqsQueueUrl?: string;

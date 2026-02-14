@@ -4,6 +4,9 @@ import {
   CreateChecklistSetRequest,
 } from "../../routes/handlers";
 import { ParsedChecklistItem } from "../../../../../checklist-workflow/common/types";
+
+// Added PrismaCheckList to avoid Prisma type dependency in the domain layer and to
+// handle nullable/JSON fields conversion explicitly within the domain.
 export type PrismaCheckList = {
   id: string;
   checkListSetId: string;
