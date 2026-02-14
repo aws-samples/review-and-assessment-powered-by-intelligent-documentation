@@ -7,7 +7,7 @@ import { NagSuppressions } from "cdk-nag/lib/nag-suppressions";
 import { Construct } from "constructs";
 import * as path from "path";
 
-export interface ReviewQuequeProcessorProps {
+export interface ReviewQueueProcessorProps {
   /**
    * Environment variables for the review queue consumer Lambda.
    */
@@ -26,11 +26,18 @@ export class ReviewQueueProcessor extends Construct {
   constructor(
     scope: Construct,
     id: string,
-    props: ReviewQuequeProcessorProps = {}
+    props: ReviewQueueProcessorProps = {},
   ) {
     super(scope, id);
 
+    const dlq = new sqs.Queue(this, "ReviewDLQ", {
+      queueName: `${cdk.Stack.of(this).stackName}-ReviewDLQ.fifo`,
+      fifo: true,
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
     this.queue = new sqs.Queue(this, "MainQueue", {
+      queueName: `${cdk.Stack.of(this).stackName}-ReviewQueue.fifo`,
       encryption: sqs.QueueEncryption.SQS_MANAGED,
       enforceSSL: true,
       fifo: true,
@@ -39,6 +46,10 @@ export class ReviewQueueProcessor extends Construct {
       deliveryDelay: cdk.Duration.seconds(0),
       contentBasedDeduplication: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      deadLetterQueue: {
+        queue: dlq,
+        maxReceiveCount: 5,
+      },
     });
 
     this.lambdaFunction = new lambda.Function(this, "PythonFunction", {
@@ -71,7 +82,7 @@ export class ReviewQueueProcessor extends Construct {
         effect: iam.Effect.ALLOW,
         actions: ["lambda:InvokeFunction"],
         resources: ["*"],
-      })
+      }),
     );
 
     this.lambdaFunction.addToRolePolicy(
@@ -79,7 +90,7 @@ export class ReviewQueueProcessor extends Construct {
         effect: iam.Effect.ALLOW,
         actions: ["states:ListExecutions", "states:StartExecution"],
         resources: ["*"],
-      })
+      }),
     );
 
     this.queue.grantConsumeMessages(this.lambdaFunction);

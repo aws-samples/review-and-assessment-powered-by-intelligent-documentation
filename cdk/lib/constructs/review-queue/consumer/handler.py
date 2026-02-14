@@ -20,18 +20,21 @@ REVIEW_QUEUE_URL = os.environ["REVIEW_QUEUE_URL"]
 ERROR_LAMBDA_NAME = os.environ["ERROR_LAMBDA_NAME"]
 
 REVIEW_MAX_CONCURRENCY = int(
-    os.environ.get("REVIEW_MAX_CONCURRENCY", str(DEFAULT_REVIEW_MAX_CONCURRENCY))
+    os.environ.get("REVIEW_MAX_CONCURRENCY", str(
+        DEFAULT_REVIEW_MAX_CONCURRENCY))
 )
 MAX_QUEUE_WAIT_MS = int(
-    os.environ.get("MAX_QUEUE_COUNT", str(DEFAULT_MAX_QUEUE_WAIT_MS))
+    os.environ.get("MAX_QUEUE_WAIT_MS", str(DEFAULT_MAX_QUEUE_WAIT_MS))
 )
 VISIBILITY_TIMEOUT_PROCESSING = int(
     os.environ.get(
-        "VISIBILITY_TIMEOUT_PROCESSING", str(DEFAULT_VISIBILITY_TIMEOUT_PROCESSING)
+        "VISIBILITY_TIMEOUT_PROCESSING", str(
+            DEFAULT_VISIBILITY_TIMEOUT_PROCESSING)
     )
 )
 VISIBILITY_TIMEOUT_RETRY = int(
-    os.environ.get("VISIBILITY_TIMEOUT_RETRY", str(DEFAULT_VISIBILITY_TIMEOUT_RETRY))
+    os.environ.get("VISIBILITY_TIMEOUT_RETRY", str(
+        DEFAULT_VISIBILITY_TIMEOUT_RETRY))
 )
 
 sfn_client = boto3.client("stepfunctions")
@@ -109,7 +112,8 @@ def process_message(message):
     except ClientError as error:
         error_code = error.response.get("Error", {}).get("Code", "Unknown")
         if error_code == "ExecutionAlreadyExists":
-            logger.info("Step Function execution already exists: %s", message_id)
+            logger.info(
+                "Step Function execution already exists: %s", message_id)
             return True
         logger.exception(
             "Failed to start Step Function execution: %s", error_code
@@ -117,7 +121,8 @@ def process_message(message):
         change_message_visibility(receipt_handle, VISIBILITY_TIMEOUT_RETRY)
         return False
     except Exception:
-        logger.exception("Unexpected error while processing message: %s", message_id)
+        logger.exception(
+            "Unexpected error while processing message: %s", message_id)
         change_message_visibility(receipt_handle, VISIBILITY_TIMEOUT_RETRY)
         return False
 
@@ -158,7 +163,8 @@ def change_message_visibility(receipt_handle, timeout_seconds):
             ReceiptHandle=receipt_handle,
             VisibilityTimeout=timeout_seconds,
         )
-        logger.info("Changed visibility timeout to %d seconds", timeout_seconds)
+        logger.info("Changed visibility timeout to %d seconds",
+                    timeout_seconds)
     except ClientError:
         logger.exception("Failed to change visibility timeout")
 
