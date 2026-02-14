@@ -126,7 +126,7 @@ export class ReviewProcessor extends Construct {
       code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent"), {
         exclude: ["*.ts", "*.d.ts", "tsconfig.json", "node_modules"],
       }),
-      timeout: cdk.Duration.minutes(5),
+      timeout: cdk.Duration.minutes(15),
       environment: {
         AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
         BEDROCK_REGION: props.bedrockRegion,
