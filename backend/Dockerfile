@@ -15,6 +15,9 @@ RUN npm ci --omit=dev && npm run prisma:generate
 COPY . .
 RUN npm run build
 
+# Install MCP Proxy for AWS (for Gateway IAM authentication)
+RUN /usr/local/bin/uv tool install mcp-proxy-for-aws
+
 # 環境変数の設定
 ENV PORT=8080
 ENV AWS_LWA_READINESS_CHECK_PATH=/health

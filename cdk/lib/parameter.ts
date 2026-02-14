@@ -34,6 +34,8 @@ export const parameters = {
   // documentProcessingModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
   // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
   // documentProcessingModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
+  // documentProcessingModelId: "global.anthropic.claude-opus-4-5-20251101-v1:0", // Claude 4.5 Opus (Global)
+  // documentProcessingModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
   // documentProcessingModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // documentProcessingModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
@@ -45,6 +47,8 @@ export const parameters = {
   // imageReviewModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
   // imageReviewModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
   // imageReviewModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
+  // imageReviewModelId: "global.anthropic.claude-opus-4-5-20251101-v1:0", // Claude 4.5 Opus (Global)
+  // imageReviewModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
   // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
@@ -73,12 +77,6 @@ export const parameters = {
   // ---------------------------------------------------
   // reviewMapConcurrency: 1, // レビュープロセッサのMap State並行処理数（デフォルト：1）
   // checklistInlineMapConcurrency: 1, // チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）
-  // Review queue processor settings
-  // (If not set here, defaults from parameter-schema.ts are used.)
-  // reviewMaxConcurrency: 2, // Max concurrent Step Functions executions
-  // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
-  // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
-  // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
   // AgentCore Code Interpreter設定
   // ---------------------------------------------------
   // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
@@ -89,4 +87,10 @@ export const parameters = {
   // 例: "rate(12 hours)" - 12時間ごと
   // ---------------------------------------------------
   // feedbackAggregatorScheduleExpression: "cron(0 10 * * ? *)", // 毎日10:00 UTC
+  // Review queue processor settings
+  // (If not set here, defaults from parameter-schema.ts are used.)
+  // reviewMaxConcurrency: 2, // Max concurrent Step Functions executions
+  // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
+  // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
+  // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
 };

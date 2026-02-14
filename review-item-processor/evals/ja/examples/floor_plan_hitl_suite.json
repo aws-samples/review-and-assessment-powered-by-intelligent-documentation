@@ -1,0 +1,38 @@
+[
+  {
+    "name": "TC001-high-confidence-pass",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Aの1階廊下消火器設置確認",
+      "check_description": "建物A(ページ1)の1階廊下にABC型消火器が2台以上設置され、有効期限内であることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "pass"
+    }
+  },
+  {
+    "name": "TC002-high-confidence-fail",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Aの非常灯バッテリーバックアップ時間確認",
+      "check_description": "建物A(ページ1)の非常灯のバッテリーバックアップ時間が最低120分以上あることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    }
+  },
+  {
+    "name": "TC004-evidence-absent",
+    "input": {
+      "document_paths": ["floor_plan_safety_reports.pdf"],
+      "check_name": "建物Aのスプリンクラーシステム確認",
+      "check_description": "建物A(ページ1)にスプリンクラーシステムが設置されていることを確認",
+      "language_name": "日本語"
+    },
+    "expected_output": {
+      "result": "fail"
+    }
+  }
+]

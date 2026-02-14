@@ -184,8 +184,6 @@ export const createReviewJob = async (params: {
     },
   });
 
-  await reviewJobRepo.createReviewJob(reviewJob);
-
   // レビュー処理キューへメッセージ送信
   const queueUrl = process.env.REVIEW_QUEUE_URL;
   if (!queueUrl) {
@@ -201,6 +199,8 @@ export const createReviewJob = async (params: {
     },
     reviewJob.id
   );
+
+  await reviewJobRepo.createReviewJob(reviewJob);
 };
 
 export const removeReviewJob = async (params: {

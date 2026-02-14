@@ -1,0 +1,16 @@
+# TypeScript build artifacts
+*.js
+*.d.ts
+!jest.config.js
+
+# CDK
+cdk.out/
+*.assets.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
