@@ -88,7 +88,7 @@ export const deleteChecklistSetHandler = async (
   await removeChecklistSet({
     checkListSetId: checklistSetId,
     // 所有者チェックを usecase に委譲するため request.user を渡す
-    user: request.user,
+    user: request.user!,
   });
   reply.code(200).send({
     success: true,
@@ -246,7 +246,7 @@ export async function getChecklistItemsHandler(
       parentId: parentId,
       includeAllChildren: includeAllChildren === "true",
       ambiguityFilter: parsedAmbiguityFilter,
-      user: request.user,
+      user: request.user!,
     });
 
     reply.code(200).send({
@@ -273,7 +273,7 @@ export const getChecklistSetByIdHandler = async (
   const detail = await getChecklistSetById({
     checkListSetId: setId,
     // 所有者チェックを usecase に委譲するため request.user を渡す
-    user: request.user,
+    user: request.user!,
   });
 
   reply.code(200).send({
@@ -399,7 +399,7 @@ export const detectAmbiguityHandler = async (
   await startAmbiguityDetection({
     checkListSetId: setId,
     userId,
-    user: request.user,
+    user: request.user!,
   });
 
   reply.code(202).send({
