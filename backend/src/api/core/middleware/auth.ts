@@ -80,6 +80,6 @@ export async function authMiddleware(
 // FastifyのTypeScriptの型定義を拡張
 declare module "fastify" {
   interface FastifyRequest {
-    user?: RequestUser;
+    user: RequestUser;
   }
 }
