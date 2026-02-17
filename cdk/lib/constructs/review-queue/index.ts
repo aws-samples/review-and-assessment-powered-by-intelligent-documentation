@@ -33,6 +33,7 @@ export class ReviewQueueProcessor extends Construct {
     const dlq = new sqs.Queue(this, "ReviewDLQ", {
       queueName: `${cdk.Stack.of(this).stackName}-ReviewDLQ.fifo`,
       fifo: true,
+      enforceSSL: true,
       retentionPeriod: cdk.Duration.days(14),
     });
 
