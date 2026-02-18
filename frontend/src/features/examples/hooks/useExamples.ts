@@ -9,7 +9,7 @@ import examplesMetadata from "../data/examples-metadata.json";
 export function useExamples(language: "en" | "ja", selectedTags: ExampleTag[]) {
   const examples = useMemo(() => {
     // 言語に基づいてサンプルを取得
-    const languageExamples = examplesMetadata[language] as Example[];
+    const languageExamples = (examplesMetadata[language] ?? []) as Example[];
 
     // タグが選択されていない場合は全てを返す
     if (selectedTags.length === 0) {
