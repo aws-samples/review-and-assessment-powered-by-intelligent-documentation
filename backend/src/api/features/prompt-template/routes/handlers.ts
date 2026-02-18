@@ -52,7 +52,7 @@ export const getPromptTemplatesHandler = async (
   reply: FastifyReply
 ): Promise<void> => {
   const { type } = request.params;
-  const userId = request.user?.sub;
+  const userId = request.user?.userId;
 
   if (!userId) {
     reply.code(401).send({
@@ -110,7 +110,7 @@ export const createPromptTemplateHandler = async (
   request: FastifyRequest<CreatePromptTemplateRequest>,
   reply: FastifyReply
 ): Promise<void> => {
-  const userId = request.user?.sub;
+  const userId = request.user?.userId;
 
   if (!userId) {
     reply.code(401).send({

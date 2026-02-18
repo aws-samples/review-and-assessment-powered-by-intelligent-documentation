@@ -238,6 +238,37 @@ For the latest pricing information, please visit the [Amazon Bedrock Pricing pag
 
 - [Developer Guide](./docs/en/developer-guide.md): Technical specifications, architecture, development environment setup
 
+## User Roles and Admin Setup
+
+### Role Behavior (Admin / General User)
+
+- **Admin**: Can view and operate on all checklist sets and review jobs (no owner restriction).
+- **General user**: Can access only resources they own (owner-restricted).
+
+| Resource | Owner | Action | Admin | General User |
+| --- | --- | --- | --- | --- |
+| Checklist | Self-created | View | O | O |
+| Checklist | Self-created | Edit | O | O |
+| Checklist | Self-created | Delete | O | O |
+| Checklist | Created by others | View | O | X |
+| Checklist | Created by others | Edit | O | X |
+| Checklist | Created by others | Delete | O | X |
+| Review | Self-created | View | O | O |
+| Review | Self-created | Edit | O | O |
+| Review | Self-created | Delete | O | O |
+| Review | Created by others | View | O | X |
+| Review | Created by others | Edit | O | X |
+| Review | Created by others | Delete | O | X |
+
+### Admin Initial Setup
+
+This project uses a Cognito custom attribute `rapid_role`. When the ID token contains `custom:rapid_role=admin`, the backend treats the user as an admin.
+
+1. In the Cognito User Pool, set the custom attribute `rapid_role` to `admin` for the target user.
+2. Confirm the ID token includes `custom:rapid_role=admin` after login.
+
+For local development, setting `RAPID_LOCAL_DEV=true` makes requests run as an admin user.
+
 ## Contact
 
 - [Takehiro Suzuki](https://github.com/statefb)
