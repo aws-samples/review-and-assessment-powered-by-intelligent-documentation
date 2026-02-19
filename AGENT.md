@@ -3,10 +3,14 @@
 ## Quick Reference: Skills
 
 Use these skills for common workflows:
-- **`/plan-feature`** - Planning phase with architecture patterns
-- **`/build-and-format`** - Build verification and formatting
-- **`/test-database-feature`** - Database testing with repositories
+- **`/plan-backend-frontend`** - Plan backend API and frontend features with RAPID architecture
+- **`/build-and-format`** - Build verification and code formatting
+- **`/test-database-feature`** - Repository integration tests with local database
 - **`/deploy-cdk-stack`** - AWS deployment (only when explicitly asked)
+- **`/modify-cdk-workflows`** - CDK Step Functions workflow modifications
+- **`/modify-agent-prompts`** - Agent prompts, models, and tool configuration
+- **`/add-example`** - Add example use cases with thumbnails and link verification
+- **`/ui-css-patterns`** - UI/CSS design patterns and component reference
 
 ## Project Overview
 
@@ -27,7 +31,7 @@ This is an all-TypeScript project with the following structure:
 
 ### Planning Phase
 
-Use **`/plan-feature`** skill for structured planning with architecture patterns.
+Use **`/plan-backend-frontend`** skill for structured planning with architecture patterns.
 
 Key requirements:
 - ALWAYS examine existing implementation first - speculation is prohibited
