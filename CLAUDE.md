@@ -2,14 +2,26 @@
 
 ## Critical Rules
 
+<<<<<<< HEAD
 - **NO package.json in root directory** - 3 separate TS packages + 1 Python package
 - **Python: use `uv`** for all package management (never pip/python directly)
 - **BEFORE COMMITTING** - format and build all changed packages (CI will fail):
+=======
+- **NO package.json in root directory** - This project has 3 separate TypeScript packages + 1 Python package
+- **Python: ALWAYS use `uv`** for package management (never pip or native python commands)
+- **BEFORE COMMITTING: Format and build all changed packages** - CI will fail otherwise:
+
+>>>>>>> c162a202 (Optimize Claude Code skills against authoring best practices)
   ```bash
   cd frontend && npm run format && npm run build   # Frontend
   cd backend && npm run format && npm run build     # Backend
   cd cdk && npm run build                           # CDK
   ```
+<<<<<<< HEAD
+=======
+
+- **See AGENT.md** for comprehensive development guidelines, architecture, and coding standards
+>>>>>>> c162a202 (Optimize Claude Code skills against authoring best practices)
 
 ## Project Structure
 
@@ -32,7 +44,18 @@ beacon/
 - **`/add-example`** - Add example use cases with thumbnails
 - **`/ui-css-patterns`** - UI/CSS patterns and component reference
 
+<<<<<<< HEAD
 ## Backend
+=======
+- **`/plan-backend-frontend`** - Plan backend API and frontend features with RAPID layered architecture
+- **`/build-and-format`** - Build verification and code formatting across all components
+- **`/test-database-feature`** - Repository integration tests with local MySQL database
+- **`/deploy-cdk-stack`** - Deploy AWS infrastructure using CDK (only when explicitly asked)
+- **`/modify-cdk-workflows`** - Modify CDK Step Functions workflows (ReviewProcessor/ChecklistProcessor)
+- **`/modify-agent-prompts`** - Modify review-item-processor agent prompts, models, and tools
+- **`/add-example`** - Add new example use cases with file setup, thumbnails, and link verification
+- **`/ui-css-patterns`** - UI/CSS design patterns, color semantics, and component reference
+>>>>>>> c162a202 (Optimize Claude Code skills against authoring best practices)
 
 - **TypeScript only** (ESM) -- JavaScript prohibited
 - **vitest only** -- jest prohibited
@@ -45,7 +68,16 @@ beacon/
   - Example tests: `backend/src/api/features/{feature}/__tests__/`
 - Test commands: `cd backend && npm test` (all) or `npm run test -- <suite>` (specific)
 
+<<<<<<< HEAD
 ## Frontend
+=======
+| Task                 | Location          |
+| -------------------- | ----------------- |
+| Architecture details | AGENT.md          |
+| Coding standards     | AGENT.md          |
+| Development workflow | AGENT.md + Skills |
+| Common commands      | Skills            |
+>>>>>>> c162a202 (Optimize Claude Code skills against authoring best practices)
 
 - **TypeScript only** -- JavaScript prohibited
 - **Icons**: use react-icons only -- SVG files prohibited
