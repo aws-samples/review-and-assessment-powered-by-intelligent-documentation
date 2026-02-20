@@ -18,7 +18,14 @@ cd ../cdk && npm ci            # CDK dependencies installed
 
 ## Deployment Sequence
 
-### Full Deployment
+### Quick Deploy (Recommended)
+
+```bash
+cd cdk
+npm run deploy
+```
+
+### Full Deployment (Manual Steps)
 
 ```bash
 cd backend && npm ci && npm run prisma:generate && npm run build

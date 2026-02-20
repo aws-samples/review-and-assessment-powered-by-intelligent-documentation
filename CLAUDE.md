@@ -60,4 +60,4 @@ beacon/
 
 - Parameters: `cdk/lib/parameter.ts` (user config) + `cdk/lib/parameter-schema.ts` (schema/validation)
 - To add a parameter: add to schema in `parameter-schema.ts` with Zod validation and default
-- Deploy: use `/deploy-cdk-stack` skill
+- Deploy: `cd cdk && npm run deploy` or use `/deploy-cdk-stack` skill

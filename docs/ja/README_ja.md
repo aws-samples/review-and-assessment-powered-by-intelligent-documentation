@@ -100,37 +100,39 @@
 
 ```
 git clone https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git
-```
-
-- バックエンドの準備
-
-```
 cd review-and-assessment-powered-by-intelligent-documentation
+```
+
+- 必要に応じて、[parameter.ts](./cdk/lib/parameter.ts) を編集してください。詳細は[パラメータカスタマイズ](#パラメータカスタマイズ)をご覧ください。
+- CDK をデプロイする前に、デプロイ先のリージョンに対して一度ブートストラップを実行する必要があります。
+
+```
+cd cdk
+npx cdk bootstrap
+```
+
+- デプロイ（全パッケージのビルドとデプロイを自動で実行します）
+
+```
+npm run deploy
+```
+
+<details><summary>手動でステップごとにデプロイする場合</summary>
+
+```bash
+# バックエンドの準備
 cd backend
 npm ci
 npm run prisma:generate
 npm run build
-```
 
-- CDK パッケージのインストール
-
-```
+# CDK パッケージのインストールとデプロイ
 cd ../cdk
 npm ci
-```
-
-- 必要に応じて、[parameter.ts](./cdk/parameter.ts) を編集してください。詳細は[パラメータカスタマイズ](#パラメータカスタマイズ)をご覧ください。
-- CDK をデプロイする前に、デプロイ先のリージョンに対して一度ブートストラップを実行する必要があります。
-
-```
-npx cdk bootstrap
-```
-
-- サンプルプロジェクトをデプロイ
-
-```
 npx cdk deploy --require-approval never --all
 ```
+
+</details>
 
 - 以下のような出力が表示されます。Web アプリの URL は `RapidStack.FrontendURL` に出力されますので、ブラウザからアクセスしてください。
 
