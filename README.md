@@ -99,37 +99,39 @@ This method allows you to deploy directly from your browser using AWS CloudShell
 
 ```
 git clone https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git
-```
-
-- Prepare the backend
-
-```
 cd review-and-assessment-powered-by-intelligent-documentation
-cd backend
-npm ci
-npm run prisma:generate
-npm run build
-```
-
-- Install CDK packages
-
-```
-cd ../cdk
-npm ci
 ```
 
 - Edit [parameter.ts](./cdk/lib/parameter.ts) as needed. See [Parameter Customization](#parameter-customization) for details.
 - Before deploying CDK, you need to bootstrap once for the target region.
 
 ```
+cd cdk
 npx cdk bootstrap
 ```
 
-- Deploy the sample project
+- Deploy (builds all packages and deploys automatically)
 
 ```
+npm run deploy
+```
+
+<details><summary>Manual step-by-step deployment</summary>
+
+```bash
+# Prepare the backend
+cd backend
+npm ci
+npm run prisma:generate
+npm run build
+
+# Install CDK packages and deploy
+cd ../cdk
+npm ci
 npx cdk deploy --require-approval never --all
 ```
+
+</details>
 
 - You will see output like the following. Access the Web application URL displayed in `RapidStack.FrontendURL` from your browser.
 
