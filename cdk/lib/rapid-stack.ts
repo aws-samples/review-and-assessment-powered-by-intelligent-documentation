@@ -164,7 +164,7 @@ export class RapidStack extends cdk.Stack {
           STATE_MACHINE_ARN: reviewProcessor.stateMachine.stateMachineArn,
           REVIEW_MAX_CONCURRENCY:
             props.parameters.reviewMaxConcurrency.toString(),
-          MAX_QUEUE_COUNT:
+          MAX_QUEUE_WAIT_MS:
             props.parameters.reviewQueueMaxQueueCountMs.toString(),
           ERROR_LAMBDA_NAME: reviewProcessor.reviewLambda.functionName,
           LOG_LEVEL: props.parameters.reviewQueueLogLevel,

@@ -1,110 +1,54 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createReviewJob } from "./review-job";
-import { ApplicationError } from "../../../core/errors/application-errors";
-import { REVIEW_FILE_TYPE } from "../domain/model/review";
-import { sendMessage } from "../../../core/sqs";
-import { getS3ObjectSize } from "../../../core/s3";
-import { validateFileSize } from "../../../core/file-validation";
-import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
+import { describe, it, expect, vi } from "vitest";
+import { getAllReviewJobs } from "./review-job";
+import type { PaginatedResponse } from "../../../common/types";
+import type { ReviewJobSummary } from "../domain/model/review";
+import type { ReviewJobRepository } from "../domain/repository";
 
-vi.mock("../../../core/sqs", () => ({
-  sendMessage: vi.fn(),
-}));
+const emptyResult: PaginatedResponse<ReviewJobSummary> = {
+  items: [],
+  total: 0,
+  page: 1,
+  limit: 10,
+  totalPages: 0,
+};
 
-vi.mock("../../../core/s3", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../../core/s3")>(
-      "../../../core/s3"
-    );
-  return {
-    ...actual,
-    getS3ObjectSize: vi.fn(),
-  };
+const createReviewJobRepositoryMock = (): ReviewJobRepository => ({
+  findAllReviewJobs: vi.fn().mockResolvedValue(emptyResult),
+  findReviewJobById: vi.fn(),
+  createReviewJob: vi.fn(),
+  deleteReviewJobById: vi.fn(),
+  updateJobStatus: vi.fn(),
+  updateJobCostInfo: vi.fn(),
 });
 
-vi.mock("../../../core/file-validation", () => ({
-  validateFileSize: vi.fn(),
-}));
+describe("getAllReviewJobs", () => {
+  it("passes ownerUserId for non-admin users", async () => {
+    const repo = createReviewJobRepositoryMock();
 
-vi.mock("../domain/service/review-job-factory", () => ({
-  createInitialReviewJobModel: vi.fn(),
-}));
-
-describe("createReviewJob", () => {
-  const baseRequestBody = {
-    name: "review",
-    checkListSetId: "checklist-1",
-    documents: [
-      {
-        id: "doc-1",
-        filename: "doc.pdf",
-        s3Key: "uploads/doc.pdf",
-        fileType: REVIEW_FILE_TYPE.PDF,
-      },
-    ],
-    userId: "user-456",
-    userName: "Test User",
-  };
-
-  const envBackup = { ...process.env };
-  const checkRepoStub = {} as any;
-
-  beforeEach(() => {
-    process.env = { ...envBackup, DOCUMENT_BUCKET: "bucket" };
-    vi.mocked(getS3ObjectSize).mockResolvedValue(123);
-    vi.mocked(validateFileSize).mockReturnValue(true);
-    vi.mocked(createInitialReviewJobModel).mockResolvedValue({
-      id: "job-123",
-      userId: "user-456",
-    });
-  });
-
-  afterEach(() => {
-    process.env = { ...envBackup };
-    vi.clearAllMocks();
-  });
-
-  it("throws when REVIEW_QUEUE_URL is missing", async () => {
-    delete process.env.REVIEW_QUEUE_URL;
-
-    await expect(
-      createReviewJob({
-        requestBody: baseRequestBody,
-        deps: {
-          checkRepo: checkRepoStub,
-          reviewJobRepo: {
-            createReviewJob: vi.fn(),
-          },
-        },
-      })
-    ).rejects.toBeInstanceOf(ApplicationError);
-
-    expect(sendMessage).not.toHaveBeenCalled();
-  });
-
-  it("sends a queue message with the review job id as group id", async () => {
-    process.env.REVIEW_QUEUE_URL = "https://sqs.example/queue";
-
-    const createReviewJobRepo = {
-      createReviewJob: vi.fn(),
-    };
-
-    await createReviewJob({
-      requestBody: baseRequestBody,
-      deps: {
-        checkRepo: checkRepoStub,
-        reviewJobRepo: createReviewJobRepo,
-      },
+    await getAllReviewJobs({
+      page: 1,
+      limit: 10,
+      user: { userId: "user-1", isAdmin: false },
+      deps: { repo },
     });
 
-    expect(sendMessage).toHaveBeenCalledWith(
-      "https://sqs.example/queue",
-      {
-        reviewJobId: "job-123",
-        userId: "user-456",
-      },
-      "job-123"
+    expect(repo.findAllReviewJobs).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerUserId: "user-1" })
     );
-    expect(createReviewJobRepo.createReviewJob).toHaveBeenCalled();
+  });
+
+  it("does not pass ownerUserId for admin users", async () => {
+    const repo = createReviewJobRepositoryMock();
+
+    await getAllReviewJobs({
+      page: 1,
+      limit: 10,
+      user: { userId: "admin-1", isAdmin: true },
+      deps: { repo },
+    });
+
+    expect(repo.findAllReviewJobs).toHaveBeenCalledWith(
+      expect.not.objectContaining({ ownerUserId: "admin-1" })
+    );
   });
 });

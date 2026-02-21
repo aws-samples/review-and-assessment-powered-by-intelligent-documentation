@@ -8,3 +8,4 @@ gitlab.md
 memory-bank/
 .serena
 .venv
+.playwright-mcp/

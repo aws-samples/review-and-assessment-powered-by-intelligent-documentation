@@ -27,6 +27,8 @@ import {
 } from "../../../core/errors/application-errors";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
+import type { RequestUser } from "../../../core/middleware/authorization";
+import { assertHasOwnerAccessOrThrow } from "../../../core/middleware/authorization";
 
 export const computeGlobalConcurrency = async (): Promise<{
   isLimit: boolean;
@@ -65,17 +67,25 @@ export const getAllReviewJobs = async (params: {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   status?: string;
+  // オプショナルでリクエストユーザーを受け取り、一般ユーザの場合は ownerUserId を使って絞る
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
 }): Promise<PaginatedResponse<ReviewJobSummary>> => {
   const repo = params.deps?.repo || (await makePrismaReviewJobRepository());
+
+  // 一般ユーザの場合は自身のジョブのみ返す（管理者は全件）
+  const ownerUserId =
+    params.user && !params.user.isAdmin ? params.user.userId : undefined;
+
   const result = await repo.findAllReviewJobs({
     page: params.page,
     limit: params.limit,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
     status: params.status,
+    ownerUserId,
   });
   return result;
 };
@@ -205,11 +215,21 @@ export const createReviewJob = async (params: {
 
 export const removeReviewJob = async (params: {
   reviewJobId: string;
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
 }): Promise<void> => {
   const repo = params.deps?.repo || (await makePrismaReviewJobRepository());
+
+  // 取得して所有者チェックを行う
+  const job = await repo.findReviewJobById({ reviewJobId: params.reviewJobId });
+  assertHasOwnerAccessOrThrow(params.user, job.userId, {
+    api: "removeReviewJob",
+    resourceId: params.reviewJobId,
+    logger: console,
+  });
+
   await repo.deleteReviewJobById({
     reviewJobId: params.reviewJobId,
   });
@@ -230,12 +250,22 @@ export const modifyJobStatus = async (params: {
 };
 export const getReviewJobById = async (params: {
   reviewJobId: string;
+  user: RequestUser;
   deps?: {
     repo?: ReviewJobRepository;
   };
 }): Promise<ReviewJobDetail> => {
   const repo = params.deps?.repo || (await makePrismaReviewJobRepository());
-  return await repo.findReviewJobById({
+  const job = await repo.findReviewJobById({
     reviewJobId: params.reviewJobId,
   });
+
+  // 所有者チェック（一般ユーザは自分のジョブのみ参照可能）
+  assertHasOwnerAccessOrThrow(params.user, job.userId, {
+    api: "getReviewJobById",
+    resourceId: params.reviewJobId,
+    logger: console,
+  });
+
+  return job;
 };

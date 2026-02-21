@@ -6,6 +6,10 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
+    "build:backend": "cd ../backend && npm ci && npm run prisma:generate && npm run build",
+    "build:lambda": "cd lib/constructs/lambda/invoke-agent && npm ci && npm run build",
+    "build:all": "npm run build:backend && npm run build:lambda && npm run build",
+    "deploy": "npm run build:all && npm ci && npx cdk deploy --all --require-approval never",
     "preinstall": "cd ../backend && npm ci && npm run prisma:generate",
     "postinstall": "cd lib/constructs/lambda/invoke-agent && npm ci && npm run build"
   },

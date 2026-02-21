@@ -202,6 +202,67 @@ _MODEL_REGISTRY = {
         supports_caching=True,
     ),
 
+    # Claude Sonnet 4.6
+    "global.anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="global.anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6 (Global)",
+        input_per_1k=0.003,
+        output_per_1k=0.015,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
+    "us.anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="us.anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6 (US)",
+        input_per_1k=0.0033,
+        output_per_1k=0.0165,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
+    "eu.anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="eu.anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6 (EU)",
+        input_per_1k=0.0033,
+        output_per_1k=0.0165,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
+    "jp.anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="jp.anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6 (JP)",
+        input_per_1k=0.0033,
+        output_per_1k=0.0165,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
+    "au.anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="au.anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6 (AU)",
+        input_per_1k=0.0033,
+        output_per_1k=0.0165,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
+    "anthropic.claude-sonnet-4-6": ModelConfig(
+        model_id="anthropic.claude-sonnet-4-6",
+        display_name="Claude Sonnet 4.6",
+        input_per_1k=0.003,
+        output_per_1k=0.015,
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+
     # Claude Opus 4.6
     "global.anthropic.claude-opus-4-6-v1": ModelConfig(
         model_id="global.anthropic.claude-opus-4-6-v1",

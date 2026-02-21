@@ -99,37 +99,39 @@ This method allows you to deploy directly from your browser using AWS CloudShell
 
 ```
 git clone https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git
-```
-
-- Prepare the backend
-
-```
 cd review-and-assessment-powered-by-intelligent-documentation
-cd backend
-npm ci
-npm run prisma:generate
-npm run build
-```
-
-- Install CDK packages
-
-```
-cd ../cdk
-npm ci
 ```
 
 - Edit [parameter.ts](./cdk/lib/parameter.ts) as needed. See [Parameter Customization](#parameter-customization) for details.
 - Before deploying CDK, you need to bootstrap once for the target region.
 
 ```
+cd cdk
 npx cdk bootstrap
 ```
 
-- Deploy the sample project
+- Deploy (builds all packages and deploys automatically)
 
 ```
+npm run deploy
+```
+
+<details><summary>Manual step-by-step deployment</summary>
+
+```bash
+# Prepare the backend
+cd backend
+npm ci
+npm run prisma:generate
+npm run build
+
+# Install CDK packages and deploy
+cd ../cdk
+npm ci
 npx cdk deploy --require-approval never --all
 ```
+
+</details>
 
 - You will see output like the following. Access the Web application URL displayed in `RapidStack.FrontendURL` from your browser.
 
@@ -241,6 +243,37 @@ For the latest pricing information, please visit the [Amazon Bedrock Pricing pag
 ## Developer Information
 
 - [Developer Guide](./docs/en/developer-guide.md): Technical specifications, architecture, development environment setup
+
+## User Roles and Admin Setup
+
+### Role Behavior (Admin / General User)
+
+- **Admin**: Can view and operate on all checklist sets and review jobs (no owner restriction).
+- **General user**: Can access only resources they own (owner-restricted).
+
+| Resource | Owner | Action | Admin | General User |
+| --- | --- | --- | --- | --- |
+| Checklist | Self-created | View | O | O |
+| Checklist | Self-created | Edit | O | O |
+| Checklist | Self-created | Delete | O | O |
+| Checklist | Created by others | View | O | X |
+| Checklist | Created by others | Edit | O | X |
+| Checklist | Created by others | Delete | O | X |
+| Review | Self-created | View | O | O |
+| Review | Self-created | Edit | O | O |
+| Review | Self-created | Delete | O | O |
+| Review | Created by others | View | O | X |
+| Review | Created by others | Edit | O | X |
+| Review | Created by others | Delete | O | X |
+
+### Admin Initial Setup
+
+This project uses a Cognito custom attribute `rapid_role`. When the ID token contains `custom:rapid_role=admin`, the backend treats the user as an admin.
+
+1. In the Cognito User Pool, set the custom attribute `rapid_role` to `admin` for the target user.
+2. Confirm the ID token includes `custom:rapid_role=admin` after login.
+
+For local development, setting `RAPID_LOCAL_DEV=true` makes requests run as an admin user.
 
 ## Contact
 

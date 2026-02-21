@@ -50,6 +50,7 @@ export const getAllReviewJobsHandler = async (
     sortBy: validSortBy,
     sortOrder,
     status,
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -156,7 +157,7 @@ export const createReviewJobHandler = async (
   await createReviewJob({
     requestBody: {
       ...request.body,
-      userId: request.user?.sub ? request.user?.sub : "",
+      userId: request.user?.userId,
     },
   });
   reply.code(201).send({
@@ -172,6 +173,7 @@ export const deleteReviewJobHandler = async (
   const { jobId } = request.params;
   await removeReviewJob({
     reviewJobId: jobId,
+    user: request.user,
   });
   reply.code(200).send({
     success: true,
@@ -197,6 +199,7 @@ export const getReviewResultItemsHandler = async (
       ? (request.query.filter as REVIEW_RESULT)
       : undefined,
     includeAllChildren: request.query.includeAllChildren === "true",
+    user: request.user,
   });
   reply.code(200).send({
     success: true,
@@ -224,6 +227,7 @@ export const overrideReviewResultHandler = async (
     resultId,
     result,
     userComment,
+    user: request.user,
   });
 
   reply.code(200).send({
@@ -238,6 +242,7 @@ export const getReviewJobByIdHandler = async (
   const { jobId } = request.params;
   const job = await getReviewJobById({
     reviewJobId: jobId,
+    user: request.user,
   });
 
   reply.code(200).send({

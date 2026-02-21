@@ -23,10 +23,32 @@ import { startStateMachineExecution } from "../../../core/sfn";
 import { sendMessage } from "../../../core/sqs";
 import { validateFileSize } from "../../../core/file-validation";
 import { MAX_FILE_SIZE } from "../../../constants/index";
+import {
+  assertHasOwnerAccessOrThrow,
+  RequestUser,
+} from "../../../core/middleware/authorization";
+
+const assertChecklistSetOwner = async (params: {
+  user: RequestUser;
+  checkListSetId: string;
+  repo: CheckRepository;
+  api: string;
+  resourceId?: string;
+}): Promise<void> => {
+  const checkListSet = await params.repo.findCheckListSetDetailById(
+    params.checkListSetId
+  );
+  const ownerUserId = checkListSet.userId;
+  assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
+    api: params.api,
+    resourceId: params.resourceId ?? params.checkListSetId,
+    logger: console,
+  });
+};
 
 export const createChecklistSet = async (params: {
   req: CreateChecklistSetRequest;
-  userId?: string;
+  userId: string;
   deps?: {
     repo?: CheckRepository;
   };
@@ -37,6 +59,7 @@ export const createChecklistSet = async (params: {
   const checkListSet = CheckListSetDomain.fromCreateRequest(req);
   await repo.storeCheckListSet({
     checkListSet,
+    ownerUserId: params.userId,
   });
 
   const stateMachineArn = process.env.DOCUMENT_PROCESSING_STATE_MACHINE_ARN;
@@ -85,6 +108,7 @@ export const duplicateChecklistSet = async (params: {
   sourceCheckListSetId: string;
   newName?: string;
   newDescription?: string;
+  userId: string;
   deps?: {
     repo?: CheckRepository;
   };
@@ -107,6 +131,7 @@ export const duplicateChecklistSet = async (params: {
   // 3. 新しいチェックリストセットを保存
   await repo.storeCheckListSet({
     checkListSet: newCheckListSet,
+    ownerUserId: params.userId,
   });
 
   // 4. 元のチェックリストの項目を全て取得
@@ -145,7 +170,7 @@ export const duplicateChecklistSet = async (params: {
     itemsByLevel.set(0, rootItems);
 
     // 処理済みの親IDを追跡
-    let processedIds = new Set(rootItems.map((item) => item.id));
+    const processedIds = new Set(rootItems.map((item) => item.id));
 
     // 残りのアイテム
     let remainingItems = newItems.filter((item) => item.parentId);
@@ -192,6 +217,7 @@ export const duplicateChecklistSet = async (params: {
 
 export const removeChecklistSet = async (params: {
   checkListSetId: string;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -199,6 +225,15 @@ export const removeChecklistSet = async (params: {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
 
   const { checkListSetId } = params;
+
+  const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
+  const ownerUserId = checkListSet.userId;
+  assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
+    api: "removeChecklistSet",
+    resourceId: checkListSetId,
+    logger: console,
+  });
+
   await repo.deleteCheckListSetById({
     checkListSetId,
   });
@@ -210,6 +245,7 @@ export const getAllChecklistSets = async (params: {
   limit?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  ownerUserId?: string;
   deps?: {
     repo?: CheckRepository;
   };
@@ -222,6 +258,7 @@ export const getAllChecklistSets = async (params: {
     limit: params.limit,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
+    ownerUserId: params.ownerUserId,
   });
   return result;
 };
@@ -247,11 +284,19 @@ export const getChecklistItems = async (params: {
   parentId?: string;
   includeAllChildren?: boolean;
   ambiguityFilter?: AmbiguityFilter;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
 }): Promise<CheckListItemDetail[]> => {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
+
+  await assertChecklistSetOwner({
+    user: params.user,
+    checkListSetId: params.checkListSetId,
+    repo,
+    api: "getChecklistItems",
+  });
 
   const { checkListSetId, parentId, includeAllChildren, ambiguityFilter } =
     params;
@@ -266,6 +311,7 @@ export const getChecklistItems = async (params: {
 
 export const getChecklistSetById = async (params: {
   checkListSetId: string;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
   };
@@ -273,12 +319,21 @@ export const getChecklistSetById = async (params: {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
   const { checkListSetId } = params;
   const checkListSet = await repo.findCheckListSetDetailById(checkListSetId);
+
+  const ownerUserId = checkListSet.userId;
+  assertHasOwnerAccessOrThrow(params.user, ownerUserId, {
+    api: "getChecklistSetById",
+    resourceId: checkListSetId,
+    logger: console,
+  });
+
   return checkListSet;
 };
 
 export const startAmbiguityDetection = async (params: {
   checkListSetId: string;
   userId: string;
+  user: RequestUser;
   deps?: {
     repo?: CheckRepository;
     sqsQueueUrl?: string;
@@ -287,6 +342,13 @@ export const startAmbiguityDetection = async (params: {
   const repo = params.deps?.repo || (await makePrismaCheckRepository());
   const queueUrl =
     params.deps?.sqsQueueUrl || process.env.AMBIGUITY_DETECTION_QUEUE_URL!;
+
+  await assertChecklistSetOwner({
+    user: params.user,
+    checkListSetId: params.checkListSetId,
+    repo,
+    api: "startAmbiguityDetection",
+  });
 
   // Update document status to detecting
   const checkListSet = await repo.findCheckListSetDetailById(

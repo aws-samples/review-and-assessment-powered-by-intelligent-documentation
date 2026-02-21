@@ -62,7 +62,7 @@ describe("createReviewJobHandler", () => {
     await createReviewJobHandler(
       {
         body: requestBody,
-        user: { sub: "user-123" },
+        user: { userId: "user-123", isAdmin: false },
       } as any,
       reply as any
     );

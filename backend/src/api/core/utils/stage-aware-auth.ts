@@ -21,7 +21,17 @@ export const isLocalDevelopment = (): boolean => {
  * @param request Fastifyリクエストオブジェクト
  */
 export const setupLocalDevelopmentUser = (request: FastifyRequest): void => {
+  // RequestUser 型に合わせて最低限のプロパティを設定する
   request.user = {
+    userId: "local-dev-user-id",
+    isAdmin: true,
+    rawClaims: {
+      sub: "local-dev-user-id",
+      email: "local-dev@example.com",
+      name: "Local Development User",
+      "cognito:groups": ["Developers"],
+    },
+    // 互換性のため従来のクレームも保持しておく
     sub: "local-dev-user-id",
     email: "local-dev@example.com",
     name: "Local Development User",

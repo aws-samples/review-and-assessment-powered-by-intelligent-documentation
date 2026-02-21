@@ -106,31 +106,38 @@ git clone https://github.com/aws-samples/review-and-assessment-powered-by-intell
 
 ```
 cd review-and-assessment-powered-by-intelligent-documentation
+```
+
+- 必要に応じて、[parameter.ts](./cdk/lib/parameter.ts) を編集してください。詳細は[パラメータカスタマイズ](#パラメータカスタマイズ)をご覧ください。
+- CDK をデプロイする前に、デプロイ先のリージョンに対して一度ブートストラップを実行する必要があります。
+
+```
+cd cdk
+npx cdk bootstrap
+```
+
+- デプロイ（全パッケージのビルドとデプロイを自動で実行します）
+
+```
+npm run deploy
+```
+
+<details><summary>手動でステップごとにデプロイする場合</summary>
+
+```bash
+# バックエンドの準備
 cd backend
 npm ci
 npm run prisma:generate
 npm run build
-```
 
-- CDK パッケージのインストール
-
-```
+# CDK パッケージのインストールとデプロイ
 cd ../cdk
 npm ci
-```
-
-- 必要に応じて、[parameter.ts](./cdk/parameter.ts) を編集してください。詳細は[パラメータカスタマイズ](#パラメータカスタマイズ)をご覧ください。
-- CDK をデプロイする前に、デプロイ先のリージョンに対して一度ブートストラップを実行する必要があります。
-
-```
-npx cdk bootstrap
-```
-
-- サンプルプロジェクトをデプロイ
-
-```
 npx cdk deploy --require-approval never --all
 ```
+
+</details>
 
 - 以下のような出力が表示されます。Web アプリの URL は `RapidStack.FrontendURL` に出力されますので、ブラウザからアクセスしてください。
 
@@ -239,6 +246,41 @@ export const parameters = {
 ## 開発者向け情報
 
 - [開発者ガイド](./developer-guide.md): 技術仕様、アーキテクチャ、開発環境設定
+
+## ユーザー権限と管理者セットアップ
+
+### 権限(管理者 / 一般ユーザー)
+
+- **管理者**: すべてのチェックリストセット/レビューを閲覧・操作可能 (owner 制限なし).
+- **一般ユーザー**: 自分が所有するリソースのみアクセス可能.
+
+
+
+
+
+| 対象 | 作成者 | 操作 | 管理者 | 一般ユーザー |
+| --- | --- | --- | --- | --- |
+| チェックリスト | 自分が作成 | 閲覧 | ○ | ○ |
+| チェックリスト | 自分が作成 | 編集 | ○ | ○ |
+| チェックリスト | 自分が作成 | 削除 | ○ | ○ |
+| チェックリスト | 他者が作成 | 閲覧 | ○ | × |
+| チェックリスト | 他者が作成 | 編集 | ○ | × |
+| チェックリスト | 他者が作成 | 削除 | ○ | × |
+| 審査 | 自分が作成 | 閲覧 | ○ | ○ |
+| 審査 | 自分が作成 | 編集 | ○ | ○ |
+| 審査 | 自分が作成 | 削除 | ○ | ○ |
+| 審査 | 他者が作成 | 閲覧 | ○ | × |
+| 審査 | 他者が作成 | 編集 | ○ | × |
+| 審査 | 他者が作成 | 削除 | ○ | × |
+
+### 管理者の初期セットアップ
+
+Cognito のカスタム属性 `rapid_role` が `admin` の場合、管理者として扱われます。
+
+1. Cognito User Pool で対象ユーザーの `rapid_role` を `admin` に設定
+2. ID トークンに `custom:rapid_role=admin` が含まれることを確認
+
+ローカル開発では `RAPID_LOCAL_DEV=true` で管理者として動作します。
 
 ## コンタクト
 

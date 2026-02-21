@@ -13,7 +13,7 @@ export default function ExamplesPage() {
   const { t, i18n } = useTranslation();
   const [selectedTags, setSelectedTags] = useState<ExampleTag[]>([]);
 
-  const currentLanguage = i18n.language as "en" | "ja";
+  const currentLanguage = (i18n.language.startsWith("ja") ? "ja" : "en") as "en" | "ja";
   const examples = useExamples(currentLanguage, selectedTags);
 
   const handleTagToggle = (tag: ExampleTag) => {

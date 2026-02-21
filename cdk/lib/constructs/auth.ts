@@ -4,6 +4,8 @@ import {
   UserPoolClient,
   UserPoolDomain,
   AccountRecovery,
+  StringAttribute,
+  ClientAttributes,
   IUserPool,
   IUserPoolClient,
 } from "aws-cdk-lib/aws-cognito";
@@ -149,6 +151,9 @@ export class Auth extends Construct {
         email: true,
       },
       accountRecovery: AccountRecovery.EMAIL_ONLY,
+      customAttributes: {
+        rapid_role: new StringAttribute({ minLen: 0, maxLen: 2048 }),
+      },
       removalPolicy: RemovalPolicy.DESTROY, // 開発環境用。本番環境ではRETAINを検討
     });
 
@@ -179,6 +184,9 @@ export class Auth extends Construct {
    * UserPoolClientを作成する
    */
   private createUserPoolClient(userPool: UserPool): UserPoolClient {
+    const standardReadAttributes = { email: true, emailVerified: true };
+    const standardWriteAttributes = { email: true };
+
     return userPool.addClient("Client", {
       idTokenValidity: Duration.days(1),
       accessTokenValidity: Duration.hours(1),
@@ -188,6 +196,12 @@ export class Auth extends Construct {
         userSrp: true,
         adminUserPassword: true,
       },
+      readAttributes: new ClientAttributes()
+        .withStandardAttributes(standardReadAttributes)
+        .withCustomAttributes("rapid_role"),
+      writeAttributes: new ClientAttributes().withStandardAttributes(
+        standardWriteAttributes
+      ),
       preventUserExistenceErrors: true,
       enableTokenRevocation: true,
     });
