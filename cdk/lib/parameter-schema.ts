@@ -18,7 +18,6 @@ const parameterSchema = z.object({
       "8000:0000:0000:0000:0000:0000:0000:0000/1",
     ]), // デフォルトはすべてのIPv6を許可
 
-  // Bedrock設定
   bedrockRegion: z
     .string()
     .default("us-west-2")
@@ -80,6 +79,35 @@ const parameterSchema = z.object({
       "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
     ),
 
+  // Review queue processor settings
+  reviewMaxConcurrency: z
+    .number()
+    .int()
+    .min(1)
+    .default(2)
+    .describe(
+      "Review queue processor max concurrent Step Functions executions"
+    ),
+
+  reviewQueueMaxDepth: z
+    .number()
+    .int()
+    .min(1)
+    .default(10)
+    .describe("Review queue max depth for global concurrency checks"),
+
+  reviewQueueMaxQueueCountMs: z
+    .number()
+    .int()
+    .min(1000)
+    .default(86_400_000)
+    .describe("Review queue max wait time in ms before error handling"),
+
+  reviewQueueLogLevel: z
+    .string()
+    .default("WARNING")
+    .describe("Review queue lambda log level"),
+
   // AgentCore Code Interpreter設定
   enableCodeInterpreter: z
     .boolean()
@@ -90,7 +118,9 @@ const parameterSchema = z.object({
   feedbackAggregatorScheduleExpression: z
     .string()
     .default("cron(0 2 * * ? *)")
-    .describe("Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"),
+    .describe(
+      "Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"
+    ),
 });
 
 // パラメータの型定義（型安全性のため）
@@ -226,7 +256,35 @@ export function extractContextParameters(app: any): Record<string, any> {
     );
   }
 
-  // Bedrockリージョン設定の取得
+  const reviewMaxConcurrency = app.node.tryGetContext(
+    "rapid.reviewMaxConcurrency"
+  );
+  if (reviewMaxConcurrency !== undefined) {
+    params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
+  }
+
+  const reviewQueueMaxDepth = app.node.tryGetContext(
+    "rapid.reviewQueueMaxDepth"
+  );
+  if (reviewQueueMaxDepth !== undefined) {
+    params.reviewQueueMaxDepth = Number(reviewQueueMaxDepth);
+  }
+
+  const reviewQueueMaxQueueCountMs = app.node.tryGetContext(
+    "rapid.reviewQueueMaxQueueCountMs"
+  );
+  if (reviewQueueMaxQueueCountMs !== undefined) {
+    params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
+  }
+
+  const reviewQueueLogLevel = app.node.tryGetContext(
+    "rapid.reviewQueueLogLevel"
+  );
+  if (reviewQueueLogLevel !== undefined) {
+    params.reviewQueueLogLevel = reviewQueueLogLevel;
+  }
+
+  // Bedrock設定
   const bedrockRegion = app.node.tryGetContext("rapid.bedrockRegion");
   if (bedrockRegion !== undefined) {
     params.bedrockRegion = bedrockRegion;
@@ -237,7 +295,8 @@ export function extractContextParameters(app: any): Record<string, any> {
     "rapid.feedbackAggregatorScheduleExpression"
   );
   if (feedbackAggregatorScheduleExpression !== undefined) {
-    params.feedbackAggregatorScheduleExpression = feedbackAggregatorScheduleExpression;
+    params.feedbackAggregatorScheduleExpression =
+      feedbackAggregatorScheduleExpression;
   }
 
   return params;

@@ -17,7 +17,7 @@
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.312",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
-    "aws-cdk": "2.1031.1",
+    "aws-cdk": "^2.1100.1",
     "cdk-nag": "^2.37.55",
     "esbuild": "^0.25.12",
     "jest": "^29.7.0",

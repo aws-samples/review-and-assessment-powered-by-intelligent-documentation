@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import {
+  computeGlobalConcurrency,
   createReviewJob,
   getAllReviewJobs,
   getReviewJobById,
@@ -142,6 +143,17 @@ export const createReviewJobHandler = async (
   request: FastifyRequest<{ Body: CreateReviewJobRequest }>,
   reply: FastifyReply
 ): Promise<void> => {
+  const { isLimit } = await computeGlobalConcurrency();
+  if (isLimit) {
+    reply.code(429).send({
+      success: false,
+      error: "System is busy",
+      code: "REVIEW_GLOBAL_CONCURRENCY_EXCEEDED",
+      data: {},
+    });
+    return;
+  }
+
   await createReviewJob({
     requestBody: {
       ...request.body,
@@ -246,7 +258,7 @@ interface GetDownloadPresignedUrlRequest {
 }
 
 /**
- * ドキュメントのダウンロード用Presigned URLを取得するハンドラー
+ * ドキュメント�Eダウンロード用Presigned URLを取得するハンドラー
  */
 export const getDownloadPresignedUrlHandler = async (
   request: FastifyRequest<{ Querystring: GetDownloadPresignedUrlRequest }>,

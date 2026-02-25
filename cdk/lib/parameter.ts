@@ -88,7 +88,6 @@ export const parameters = {
   // AgentCore Code Interpreter設定
   // ---------------------------------------------------
   // enableCodeInterpreter: false, // AgentCore Code Interpreterを無効にする（デフォルト：true）
-
   // Feedback Aggregator スケジュール設定
   // EventBridge schedule expressionの形式で指定します
   // 例: "cron(0 2 * * ? *)" - 毎日2:00 UTC
@@ -96,4 +95,10 @@ export const parameters = {
   // 例: "rate(12 hours)" - 12時間ごと
   // ---------------------------------------------------
   // feedbackAggregatorScheduleExpression: "cron(0 10 * * ? *)", // 毎日10:00 UTC
+  // Review queue processor settings
+  // (If not set here, defaults from parameter-schema.ts are used.)
+  // reviewMaxConcurrency: 2, // Max concurrent Step Functions executions
+  // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
+  // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
+  // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
 };
