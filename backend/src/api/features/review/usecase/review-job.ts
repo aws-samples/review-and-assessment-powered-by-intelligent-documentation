@@ -54,7 +54,8 @@ export const computeGlobalConcurrency = async (): Promise<{
       return { isLimit: true };
     }
   } catch (e) {
-    console.error("Failed to check global concurrency:", e);
+    console.error("Failed to check global concurrency — failing closed:", e);
+    return { isLimit: true };
   }
 
   console.info("Global concurrency check passed");
