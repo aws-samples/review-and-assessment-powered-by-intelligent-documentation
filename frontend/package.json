@@ -12,7 +12,7 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\""
   },
   "dependencies": {
-    "@aws-amplify/ui-react": "^6.11.1",
+    "@aws-amplify/ui-react": "^6.15.1",
     "@fontsource/m-plus-rounded-1c": "^5.2.5",
     "@tailwindcss/typography": "^0.5.16",
     "@types/react-syntax-highlighter": "^15.5.13",
