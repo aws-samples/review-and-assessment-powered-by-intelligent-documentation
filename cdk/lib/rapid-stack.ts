@@ -16,6 +16,7 @@ import { PrismaMigration } from "./constructs/prisma-migration";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
 import { Parameters } from "./parameter-schema";
 import { execSync } from "child_process";
+import { ReviewQueueProcessor } from "./constructs/review-queue";
 
 export interface RapidStackProps extends cdk.StackProps {
   readonly webAclId: string;
@@ -155,6 +156,25 @@ export class RapidStack extends cdk.Stack {
       cognitoSelfSignUpEnabled: props.parameters.cognitoSelfSignUpEnabled,
     });
 
+    const reviewQueueProcessor = new ReviewQueueProcessor(
+      this,
+      "ReviewQueueProcessorConstruct",
+      {
+        environment: {
+          STATE_MACHINE_ARN: reviewProcessor.stateMachine.stateMachineArn,
+          REVIEW_MAX_CONCURRENCY:
+            props.parameters.reviewMaxConcurrency.toString(),
+          MAX_QUEUE_WAIT_MS:
+            props.parameters.reviewQueueMaxQueueCountMs.toString(),
+          ERROR_LAMBDA_NAME: reviewProcessor.reviewLambda.functionName,
+          LOG_LEVEL: props.parameters.reviewQueueLogLevel,
+
+          // キュー管理のLambdaはWARNINGをデフォルトとする
+          // LOG_LEVEL: props.parameters.logLevel,
+        },
+      }
+    );
+
     // Ambiguity Detection Processor
     const ambiguityProcessor = new AmbiguityDetectionProcessor(
       this,
@@ -175,7 +195,8 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
         aggregationDays: 7,
-        scheduleExpression: props.parameters.feedbackAggregatorScheduleExpression,
+        scheduleExpression:
+          props.parameters.feedbackAggregatorScheduleExpression,
       }
     );
 
@@ -193,8 +214,13 @@ export class RapidStack extends cdk.Stack {
           documentProcessor.stateMachine.stateMachineArn,
         REVIEW_PROCESSING_STATE_MACHINE_ARN:
           reviewProcessor.stateMachine.stateMachineArn,
-        CHECKLIST_INLINE_MAP_CONCURRENCY: (props.parameters.checklistInlineMapConcurrency || 1).toString(),
+        CHECKLIST_INLINE_MAP_CONCURRENCY: (
+          props.parameters.checklistInlineMapConcurrency || 1
+        ).toString(),
         AMBIGUITY_DETECTION_QUEUE_URL: ambiguityProcessor.queue.queueUrl,
+        REVIEW_QUEUE_URL: reviewQueueProcessor.queue.queueUrl,
+        REVIEW_QUEUE_MAX_DEPTH:
+          props.parameters.reviewQueueMaxDepth.toString(),
       },
       auth: auth, // Authインスタンスを渡す
     });
@@ -215,6 +241,8 @@ export class RapidStack extends cdk.Stack {
 
     // SQS permissions for API Lambda
     ambiguityProcessor.queue.grantSendMessages(api.apiLambda);
+    reviewQueueProcessor.queue.grantSendMessages(api.apiLambda);
+    reviewQueueProcessor.queue.grant(api.apiLambda, "sqs:GetQueueAttributes");
 
     // S3バケットアクセス権限の付与
     documentBucket.grantReadWrite(api.apiLambda);
@@ -293,15 +321,15 @@ export class RapidStack extends cdk.Stack {
     new cdk.CfnOutput(this, "TempBucketName", {
       value: s3TempStorage.bucket.bucketName,
     });
-    
+
     new cdk.CfnOutput(this, "BedrockRegion", {
       value: props.parameters.bedrockRegion,
     });
-    
+
     new cdk.CfnOutput(this, "DocumentProcessingModelId", {
       value: props.parameters.documentProcessingModelId,
     });
-    
+
     new cdk.CfnOutput(this, "ImageReviewModelId", {
       value: props.parameters.imageReviewModelId,
     });
