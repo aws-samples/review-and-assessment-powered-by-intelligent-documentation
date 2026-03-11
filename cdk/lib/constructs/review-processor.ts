@@ -121,7 +121,7 @@ export class ReviewProcessor extends Construct {
 
     // Lambda function for invoking AgentCore
     const invokeAgentLambda = new lambda.Function(this, "InvokeAgentFunction", {
-      runtime: lambda.Runtime.NODEJS_22_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent"), {
         exclude: ["*.ts", "*.d.ts", "tsconfig.json", "node_modules"],
