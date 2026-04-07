@@ -166,7 +166,7 @@ The following parameters can be customized during CDK deployment:
 | **Review Queue Settings** | reviewQueueMaxQueueCountMs    | Max wait time in ms before error handling in the review queue consumer                                                                                                    | 86,400,000 (24h)                           |
 | **Review Queue Settings** | reviewQueueLogLevel           | Review queue lambda log level                                                                                                                                            | WARNING                                    |
 | **Schedule Settings**     | feedbackAggregatorScheduleExpression | Feedback Aggregator execution schedule (EventBridge Scheduler expression format)                                                                                     | cron(0 2 * * ? *) (Daily at 2:00 UTC)     |
-| **Model Selection**       | availableModels                      | List of models available for per-checklist-item model selection. Set to empty array `[]` to disable the model selection UI                                            | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| **Model Selection**       | availableModels                      | List of models available for per-checklist-item model selection. Set to empty array `[]` to disable the model selection UI                                            | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Claude Sonnet 4 |
 
 **Schedule Expression Format:**
 - Cron format: `cron(minute hour day month day-of-week year)` - Example: `cron(0 2 * * ? *)` (Daily at 2:00 UTC)
@@ -216,7 +216,7 @@ To configure these, directly edit the `cdk/lib/parameter.ts` file.
 
 ### Per-Checklist-Item Model Selection
 
-By default, each checklist item can be assigned a specific AI model from the `availableModels` list. The default set includes Claude Opus 4.6, Sonnet 4.6, and Haiku 4.5. When no model is selected for an item, `documentProcessingModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for documents, and `imageReviewModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for images.
+By default, each checklist item can be assigned a specific AI model from the `availableModels` list. The default set includes Claude Opus 4.6, Sonnet 4.6, Haiku 4.5, and Sonnet 4 (Global). When no model is selected for an item, `documentProcessingModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for documents, and `imageReviewModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for images.
 
 To customize the available models:
 
@@ -224,9 +224,10 @@ To customize the available models:
 // cdk/lib/parameter.ts
 export const parameters = {
   availableModels: [
-    { modelId: "global.anthropic.claude-opus-4-6-v1", displayName: "Claude Opus 4.6" },
-    { modelId: "global.anthropic.claude-sonnet-4-6", displayName: "Claude Sonnet 4.6" },
-    { modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5" },
+    { modelId: "global.anthropic.claude-opus-4-6-v1", displayName: "Claude Opus 4.6 (Global)" },
+    { modelId: "global.anthropic.claude-sonnet-4-6", displayName: "Claude Sonnet 4.6 (Global)" },
+    { modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5 (Global)" },
+    { modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", displayName: "Claude Sonnet 4 (Global)" },
   ],
 };
 ```

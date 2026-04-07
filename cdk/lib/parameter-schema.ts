@@ -45,15 +45,19 @@ const parameterSchema = z.object({
     .default([
       {
         modelId: "global.anthropic.claude-opus-4-6-v1",
-        displayName: "Claude Opus 4.6",
+        displayName: "Claude Opus 4.6 (Global)",
       },
       {
         modelId: "global.anthropic.claude-sonnet-4-6",
-        displayName: "Claude Sonnet 4.6",
+        displayName: "Claude Sonnet 4.6 (Global)",
       },
       {
         modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-        displayName: "Claude Haiku 4.5",
+        displayName: "Claude Haiku 4.5 (Global)",
+      },
+      {
+        modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0",
+        displayName: "Claude Sonnet 4 (Global)",
       },
     ])
     .describe(
