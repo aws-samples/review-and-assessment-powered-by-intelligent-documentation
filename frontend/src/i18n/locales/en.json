@@ -166,7 +166,12 @@
     "assignToolConfiguration": "Assign Tool Configuration",
     "unassignToolConfiguration": "Unassign Tool Configuration",
     "noToolConfigurationsFound": "No tool configurations found. Please create one first.",
-    "createToolConfiguration": "Create Tool Configuration"
+    "createToolConfiguration": "Create Tool Configuration",
+    "modelSelector": "Model",
+    "modelDefault": "Default",
+    "modelUpdateSuccess": "Model updated successfully",
+    "modelUpdateError": "Failed to update model",
+    "modelLoadError": "Failed to load models"
   },
   "review": {
     "title": "Review Jobs",

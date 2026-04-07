@@ -4,6 +4,7 @@ import { REVIEW_FILE_TYPE } from "../../api/features/review/domain/model/review"
 import { makePrismaCheckRepository } from "../../api/features/checklist/domain/repository";
 import { makePrismaToolConfigurationRepository } from "../../api/features/tool-configuration/domain/repository";
 import { getLanguageName, DEFAULT_LANGUAGE } from "../../utils/language";
+import { getAvailableModels } from "../../api/features/checklist/domain/model/available-models";
 declare const console: {
   log: (...data: any[]) => void;
   error: (...data: any[]) => void;
@@ -102,6 +103,20 @@ export async function preReviewItemProcessor(
     }
   }
 
+  // modelId が availableModels に含まれていない場合はデフォルトにフォールバック
+  const availableModels = getAvailableModels();
+  const rawModelId = checkList.modelId || null;
+  const validatedModelId =
+    rawModelId && availableModels.some((m) => m.modelId === rawModelId)
+      ? rawModelId
+      : null;
+
+  if (rawModelId && !validatedModelId) {
+    console.log(
+      `[DEBUG PRE] modelId "${rawModelId}" is not in availableModels, falling back to default`
+    );
+  }
+
   return {
     checkName: checkList.name,
     checkDescription: checkList.description || "",
@@ -110,5 +125,6 @@ export async function preReviewItemProcessor(
     documentPaths: documentsToProcess.map((doc) => doc.s3Path),
     documentIds: documentsToProcess.map((doc) => doc.id),
     toolConfiguration,
+    modelId: validatedModelId,
   };
 }

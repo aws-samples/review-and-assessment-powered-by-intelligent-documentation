@@ -5,6 +5,8 @@ import type {
   CheckListItemDetail,
   GetChecklistItemsResponse,
   GetChecklistItemResponse,
+  GetAvailableModelsResponse,
+  ModelInfo,
 } from "../types";
 
 // 階層構造取得キー
@@ -68,6 +70,21 @@ export function useChecklistItem(setId: string | null, itemId: string | null) {
 
   return {
     item: data?.detail ?? (null as CheckListItemEntity | null),
+    isLoading,
+    error,
+  };
+}
+
+/**
+ * 利用可能なモデル一覧の取得
+ */
+export function useAvailableModels() {
+  const { data, isLoading, error } =
+    useApiClient().useQuery<GetAvailableModelsResponse>("/models");
+
+  return {
+    models: data?.models ?? ([] as ModelInfo[]),
+    defaultModelId: data?.defaultModelId ?? null,
     isLoading,
     error,
   };

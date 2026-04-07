@@ -166,7 +166,12 @@
     "assignToolConfiguration": "ツール設定を割り当て",
     "unassignToolConfiguration": "ツール設定の割り当てを解除",
     "noToolConfigurationsFound": "ツール設定が見つかりません。先に作成してください。",
-    "createToolConfiguration": "ツール設定を作成"
+    "createToolConfiguration": "ツール設定を作成",
+    "modelSelector": "モデル",
+    "modelDefault": "デフォルト",
+    "modelUpdateSuccess": "モデルを更新しました",
+    "modelUpdateError": "モデルの更新に失敗しました",
+    "modelLoadError": "モデルの読み込みに失敗しました"
   },
   "review": {
     "title": "審査ジョブ一覧",

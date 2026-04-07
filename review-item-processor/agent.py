@@ -1081,7 +1081,7 @@ def process_review_from_s3(
     check_name: str,
     check_description: str,
     language_name: str = "日本語",
-    model_id: str = DOCUMENT_MODEL_ID,
+    model_id: Optional[str] = None,
     toolConfiguration: Optional[Dict[str, Any]] = None,
     feedback_summary: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -1222,7 +1222,7 @@ def process_review(
     check_name: str,
     check_description: str,
     language_name: str = "日本語",
-    model_id: str = DOCUMENT_MODEL_ID,
+    model_id: Optional[str] = None,
     toolConfiguration: dict[str, Any] | None = None,
     feedback_summary: str | None = None,
 ) -> dict[str, Any]:
