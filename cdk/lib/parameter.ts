@@ -57,6 +57,11 @@ export const parameters = {
   // imageReviewModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
   // imageReviewModelId: "global.anthropic.claude-opus-4-5-20251101-v1:0", // Claude 4.5 Opus (Global)
   // imageReviewModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
+  // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
+  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
+  // imageReviewModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
+  // imageReviewModelId: "apac.amazon.nova-premier-v1:0", // 画像レビュー用モデル（例：Nova Premier）
+  // imageReviewModelId: "us.amazon.nova-2-omni-v1:0", // Nova 2 Omni
   // チェックリスト項目ごとに選択可能なモデル一覧
   // ここに設定したモデルのみがフロントエンドのプルダウンに表示されます
   // 空配列（デフォルト）の場合、項目ごとのモデル選択は無効になります
@@ -79,11 +84,6 @@ export const parameters = {
   //     displayName: "Claude 4 Sonnet (Global)",
   //   },
   // ],
-  // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
-  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
-  // imageReviewModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
-  // imageReviewModelId: "apac.amazon.nova-premier-v1:0", // 画像レビュー用モデル（例：Nova Premier）
-  // imageReviewModelId: "us.amazon.nova-2-omni-v1:0", // Nova 2 Omni
   // Cognito認証関連の設定
   // 既存のCognitoリソースをインポートして使用する場合に設定します
   // 設定しない場合は新しいリソースが作成されます
