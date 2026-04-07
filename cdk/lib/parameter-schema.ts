@@ -42,9 +42,22 @@ const parameterSchema = z.object({
         displayName: z.string(),
       }),
     )
-    .default([])
+    .default([
+      {
+        modelId: "global.anthropic.claude-opus-4-6-v1",
+        displayName: "Claude Opus 4.6",
+      },
+      {
+        modelId: "global.anthropic.claude-sonnet-4-6",
+        displayName: "Claude Sonnet 4.6",
+      },
+      {
+        modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+        displayName: "Claude Haiku 4.5",
+      },
+    ])
     .describe(
-      "チェックリスト項目ごとに選択可能なモデル一覧。空の場合はデフォルトモデルのみ使用",
+      "チェックリスト項目ごとに選択可能なモデル一覧。空配列に設定するとモデル選択UIが非表示になる",
     ),
 
   // 新しいパラメータを追加する場合はここに定義します

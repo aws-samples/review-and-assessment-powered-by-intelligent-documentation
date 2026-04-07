@@ -63,27 +63,26 @@ export const parameters = {
   // imageReviewModelId: "apac.amazon.nova-premier-v1:0", // 画像レビュー用モデル（例：Nova Premier）
   // imageReviewModelId: "us.amazon.nova-2-omni-v1:0", // Nova 2 Omni
   // チェックリスト項目ごとに選択可能なモデル一覧
-  // ここに設定したモデルのみがフロントエンドのプルダウンに表示されます
-  // 空配列（デフォルト）の場合、項目ごとのモデル選択は無効になります
+  // デフォルトでは Opus 4.6, Sonnet 4.6, Haiku 4.5 が設定されています
+  // カスタマイズする場合はコメントを外して編集してください
+  // 空配列に設定するとモデル選択UIが非表示になります
   // ---------------------------------------------------
   // availableModels: [
   //   {
   //     modelId: "global.anthropic.claude-opus-4-6-v1",
-  //     displayName: "Claude Opus 4.6 (Global)",
+  //     displayName: "Claude Opus 4.6",
   //   },
   //   {
   //     modelId: "global.anthropic.claude-sonnet-4-6",
-  //     displayName: "Claude Sonnet 4.6 (Global)",
+  //     displayName: "Claude Sonnet 4.6",
   //   },
   //   {
-  //     modelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
-  //     displayName: "Claude 4.5 Sonnet (Global)",
-  //   },
-  //   {
-  //     modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0",
-  //     displayName: "Claude 4 Sonnet (Global)",
+  //     modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  //     displayName: "Claude Haiku 4.5",
   //   },
   // ],
+  // // モデル選択UIを無効にする場合:
+  // // availableModels: [],
   // Cognito認証関連の設定
   // 既存のCognitoリソースをインポートして使用する場合に設定します
   // 設定しない場合は新しいリソースが作成されます

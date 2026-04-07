@@ -169,6 +169,7 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 | **Map State 並行処理** | reviewMapConcurrency          | レビュープロセッサの Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                                         | 1                                         |
 | **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサのインライン Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                         | 1                                         |
 | **スケジュール設定**   | feedbackAggregatorScheduleExpression | Feedback Aggregator の実行スケジュール（EventBridge Scheduler expression 形式）                                                                              | cron(0 2 * * ? *) (毎日 2:00 UTC)         |
+| **モデル選択**         | availableModels                      | チェックリスト項目ごとに選択可能なモデル一覧。空配列 `[]` に設定するとモデル選択UIが非表示になる                                                              | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
 
 **Schedule Expression 形式:**
 - Cron 形式: `cron(分 時 日 月 曜日 年)` - 例: `cron(0 2 * * ? *)` (毎日 2:00 UTC)
@@ -215,6 +216,31 @@ export const parameters = {
 ```
 
 設定するには`cdk/lib/parameter.ts` ファイルを直接編集してください。
+
+### チェックリスト項目ごとのモデル選択
+
+デフォルトでは、各チェックリスト項目に `availableModels` リストから特定の AI モデルを割り当てることができます。デフォルトのモデルセットには Claude Opus 4.6、Sonnet 4.6、Haiku 4.5 が含まれています。項目にモデルが選択されていない場合、ドキュメントには `documentProcessingModelId`（デフォルト: `global.anthropic.claude-sonnet-4-20250514-v1:0`）、画像には `imageReviewModelId`（デフォルト: `global.anthropic.claude-sonnet-4-20250514-v1:0`）が自動的に使用されます。
+
+利用可能なモデルをカスタマイズするには:
+
+```typescript
+// cdk/lib/parameter.ts
+export const parameters = {
+  availableModels: [
+    { modelId: "global.anthropic.claude-opus-4-6-v1", displayName: "Claude Opus 4.6" },
+    { modelId: "global.anthropic.claude-sonnet-4-6", displayName: "Claude Sonnet 4.6" },
+    { modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5" },
+  ],
+};
+```
+
+モデル選択 UI を完全に無効にするには、`availableModels` を空配列に設定します:
+
+```typescript
+export const parameters = {
+  availableModels: [],
+};
+```
 
 > [!CAUTION]
 > 本番環境では、`cognitoSelfSignUpEnabled: false` に設定することでセルフサインアップを無効化することを強く推奨します。セルフサインアップを有効にしたままにすると、誰でもアカウント登録が可能となるため、セキュリティリスクとなる可能性があります。
