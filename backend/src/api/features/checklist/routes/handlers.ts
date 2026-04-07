@@ -16,6 +16,8 @@ import {
   modifyCheckListItem,
   removeCheckListItem,
   bulkAssignToolConfiguration,
+  getAvailableModels,
+  updateCheckListItemModel,
 } from "../usecase/checklist-item";
 import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
 
@@ -425,5 +427,43 @@ export const bulkAssignToolConfigurationHandler = async (
   reply.code(200).send({
     success: true,
     updatedCount,
+  });
+};
+
+export const getAvailableModelsHandler = async (
+  _request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> => {
+  const models = getAvailableModels();
+  const defaultModelId = process.env.DEFAULT_MODEL_ID || null;
+  reply.code(200).send({
+    success: true,
+    data: {
+      models,
+      defaultModelId,
+    },
+  });
+};
+
+export const updateChecklistItemModelHandler = async (
+  request: FastifyRequest<{
+    Params: { setId: string; itemId: string };
+    Body: { modelId: string | null };
+  }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { setId, itemId } = request.params;
+  const { modelId } = request.body;
+
+  await updateCheckListItemModel({
+    setId,
+    itemId,
+    modelId: modelId ?? null,
+    user: request.user!,
+  });
+
+  reply.code(200).send({
+    success: true,
+    data: {},
   });
 };

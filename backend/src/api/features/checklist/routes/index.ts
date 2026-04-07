@@ -17,6 +17,8 @@ import {
   duplicateChecklistSetHandler,
   detectAmbiguityHandler,
   bulkAssignToolConfigurationHandler,
+  getAvailableModelsHandler,
+  updateChecklistItemModelHandler,
 } from "./handlers";
 
 /**
@@ -89,5 +91,15 @@ export function registerChecklistRoutes(fastify: FastifyInstance): void {
   // 一括ツール設定割り当てエンドポイント
   fastify.patch("/checklist-items/bulk/tool-configuration", {
     handler: bulkAssignToolConfigurationHandler,
+  });
+
+  // モデル一覧取得エンドポイント
+  fastify.get("/models", {
+    handler: getAvailableModelsHandler,
+  });
+
+  // チェックリスト項目モデル ID 更新エンドポイント
+  fastify.patch("/checklist-sets/:setId/items/:itemId/model", {
+    handler: updateChecklistItemModelHandler,
   });
 }

@@ -17,14 +17,13 @@ import {
 } from "react-icons/hi";
 import CheckListItemEditModal from "./CheckListItemEditModal";
 import CheckListItemAddModal from "./CheckListItemAddModal";
-import {
-  useDeleteCheckListItem,
-} from "../hooks/useCheckListItemMutations";
+import { useDeleteCheckListItem } from "../hooks/useCheckListItemMutations";
 import Spinner from "../../../components/Spinner";
 import { useChecklistSetDetail } from "../hooks/useCheckListSetQueries";
 import Button from "../../../components/Button";
 import ResultCard from "../../../components/ResultCard";
 import Tooltip from "../../../components/Tooltip";
+import ModelSelector from "./ModelSelector";
 
 interface CheckListItemTreeNodeProps {
   setId: string;
@@ -146,7 +145,7 @@ export default function CheckListItemTreeNode({
                     checked={selectedIds?.has(item.id) || false}
                     onChange={() => onToggleSelect(item.id)}
                     disabled={!isEditable}
-                    className="mr-3 h-4 w-4 rounded border-gray-300 text-aws-sea-blue-light focus:ring-aws-sea-blue-light disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-gray-300 mr-3 h-4 w-4 rounded text-aws-sea-blue-light focus:ring-aws-sea-blue-light disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 )}
                 {item.hasChildren && (
@@ -163,7 +162,7 @@ export default function CheckListItemTreeNode({
                 <div>
                   <div className="flex items-center gap-2 font-medium text-aws-squid-ink-light">
                     {item.name}
-                    
+
                     {/* ツール設定アイコン - 名前の厳密な右 */}
                     {item.toolConfiguration && (
                       <Tooltip content={item.toolConfiguration.name}>
@@ -171,9 +170,8 @@ export default function CheckListItemTreeNode({
                           href={`/tool-configurations/${item.toolConfiguration.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray hover:text-aws-font-color-blue transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                          className="text-gray transition-colors hover:text-aws-font-color-blue"
+                          onClick={(e) => e.stopPropagation()}>
                           <HiCog className="h-4 w-4" />
                         </a>
                       </Tooltip>
@@ -187,6 +185,14 @@ export default function CheckListItemTreeNode({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
+                {/* モデル選択 */}
+                <ModelSelector
+                  setId={setId}
+                  itemId={item.id}
+                  currentModelId={item.modelId}
+                  disabled={!isEditable}
+                />
+
                 {/* 子項目追加ボタン - Button コンポーネントを使用 */}
                 <Button
                   variant="text"
@@ -223,7 +229,7 @@ export default function CheckListItemTreeNode({
                     !isEditable
                       ? "text-gray-300 cursor-not-allowed"
                       : item.ambiguityReview && isEditable
-                        ? "text-yellow border-yellow hover:bg-yellow hover:bg-opacity-10" 
+                        ? "border-yellow text-yellow hover:bg-yellow hover:bg-opacity-10"
                         : "text-aws-aqua hover:text-aws-sea-blue-light"
                   }
                 />

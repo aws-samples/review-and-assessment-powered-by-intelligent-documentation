@@ -83,11 +83,14 @@ def handler(event, context):
         # Extract tool configuration if available
         tool_configuration = event.get("toolConfiguration")
         feedback_summary = event.get("feedbackSummary")
+        model_id_override = event.get("modelId")
         logger.debug(
             f"[DEBUG LAMBDA] Tool configuration: {json.dumps(tool_configuration)}"
         )
         if feedback_summary:
             logger.debug(f"[DEBUG LAMBDA] Feedback summary available for check")
+        if model_id_override:
+            logger.info(f"[DEBUG LAMBDA] Per-item model override: {model_id_override}")
 
         review_data = process_review(
             document_bucket=DOCUMENT_BUCKET,
@@ -95,7 +98,7 @@ def handler(event, context):
             check_name=check_name,
             check_description=check_description,
             language_name=language_name,
-            model_id=DOCUMENT_MODEL_ID,  # Default model, will be overridden for images
+            model_id=model_id_override,
             toolConfiguration=tool_configuration,
             feedback_summary=feedback_summary,
         )

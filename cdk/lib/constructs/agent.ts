@@ -260,6 +260,60 @@ export class Agent extends Construct {
       }),
     );
 
+    // Amazon Location Service permissions (for MCP tool: awslabs.aws-location-mcp-server)
+    // Legacy Location Service API (geo:)
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "AmazonLocationServiceAccess",
+        effect: Effect.ALLOW,
+        actions: [
+          "geo:SearchPlaceIndexForText",
+          "geo:SearchPlaceIndexForPosition",
+          "geo:SearchPlaceIndexForSuggestions",
+          "geo:GetPlace",
+          "geo:ReverseGeocode",
+          "geo:Geocode",
+          "geo:Suggest",
+          "geo:SearchText",
+          "geo:SearchNearby",
+        ],
+        resources: ["*"],
+      }),
+    );
+    // Standalone Places API v2 (geo-places:)
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "AmazonLocationPlacesAccess",
+        effect: Effect.ALLOW,
+        actions: [
+          "geo-places:Geocode",
+          "geo-places:ReverseGeocode",
+          "geo-places:SearchText",
+          "geo-places:SearchNearby",
+          "geo-places:GetPlace",
+          "geo-places:Suggest",
+          "geo-places:Autocomplete",
+        ],
+        resources: [
+          `arn:aws:geo-places:${region}::provider/default`,
+        ],
+      }),
+    );
+    // Standalone Routes API v2 (geo-routes:)
+    role.addToPolicy(
+      new PolicyStatement({
+        sid: "AmazonLocationRoutesAccess",
+        effect: Effect.ALLOW,
+        actions: [
+          "geo-routes:CalculateRoutes",
+          "geo-routes:OptimizeWaypoints",
+        ],
+        resources: [
+          `arn:aws:geo-routes:${region}::provider/default`,
+        ],
+      }),
+    );
+
     const runtime = new CfnRuntime(this, "Runtime", {
       agentRuntimeName: Names.uniqueResourceName(this, { maxLength: 40 }),
       agentRuntimeArtifact: {

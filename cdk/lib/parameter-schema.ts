@@ -34,6 +34,19 @@ const parameterSchema = z.object({
     .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
     .describe("画像レビューに使用するAIモデルID"),
 
+  // チェックリスト項目ごとに選択可能なモデル一覧
+  availableModels: z
+    .array(
+      z.object({
+        modelId: z.string(),
+        displayName: z.string(),
+      }),
+    )
+    .default([])
+    .describe(
+      "チェックリスト項目ごとに選択可能なモデル一覧。空の場合はデフォルトモデルのみ使用",
+    ),
+
   // 新しいパラメータを追加する場合はここに定義します
   // 例: newParameter: z.string().default("default"),
   // 例: isEnabled: z.boolean().default(false),
@@ -76,7 +89,7 @@ const parameterSchema = z.object({
     .min(1)
     .optional()
     .describe(
-      "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）"
+      "チェックリストプロセッサのインラインMap State並行処理数（デフォルト：1）",
     ),
 
   // Review queue processor settings
@@ -86,7 +99,7 @@ const parameterSchema = z.object({
     .min(1)
     .default(2)
     .describe(
-      "Review queue processor max concurrent Step Functions executions"
+      "Review queue processor max concurrent Step Functions executions",
     ),
 
   reviewQueueMaxDepth: z
@@ -119,7 +132,7 @@ const parameterSchema = z.object({
     .string()
     .default("cron(0 2 * * ? *)")
     .describe(
-      "Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）"
+      "Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）",
     ),
 });
 
@@ -131,7 +144,7 @@ export type Parameters = z.infer<typeof parameterSchema>;
  * 優先順位: デフォルト値 < parameter.ts < コンテキストパラメータ
  */
 export function resolveParameters(
-  contextParams: Record<string, any> = {}
+  contextParams: Record<string, any> = {},
 ): Parameters {
   try {
     // パラメータをマージ
@@ -153,7 +166,7 @@ export function resolveParameters(
     } else {
       console.error(
         "An unexpected error occurred during parameter validation:",
-        error
+        error,
       );
     }
     throw error;
@@ -187,7 +200,7 @@ export function extractContextParameters(app: any): Record<string, any> {
 
   // WAF IPアドレス制限パラメータの取得
   const allowedIpV4Ranges = app.node.tryGetContext(
-    "rapid.allowedIpV4AddressRanges"
+    "rapid.allowedIpV4AddressRanges",
   );
   if (allowedIpV4Ranges !== undefined) {
     params.allowedIpV4AddressRanges = Array.isArray(allowedIpV4Ranges)
@@ -196,7 +209,7 @@ export function extractContextParameters(app: any): Record<string, any> {
   }
 
   const allowedIpV6Ranges = app.node.tryGetContext(
-    "rapid.allowedIpV6AddressRanges"
+    "rapid.allowedIpV6AddressRanges",
   );
   if (allowedIpV6Ranges !== undefined) {
     params.allowedIpV6AddressRanges = Array.isArray(allowedIpV6Ranges)
@@ -211,14 +224,14 @@ export function extractContextParameters(app: any): Record<string, any> {
   }
 
   const cognitoUserPoolClientId = app.node.tryGetContext(
-    "rapid.cognitoUserPoolClientId"
+    "rapid.cognitoUserPoolClientId",
   );
   if (cognitoUserPoolClientId !== undefined) {
     params.cognitoUserPoolClientId = cognitoUserPoolClientId;
   }
 
   const cognitoDomainPrefix = app.node.tryGetContext(
-    "rapid.cognitoDomainPrefix"
+    "rapid.cognitoDomainPrefix",
   );
   if (cognitoDomainPrefix !== undefined) {
     params.cognitoDomainPrefix = cognitoDomainPrefix;
@@ -226,7 +239,7 @@ export function extractContextParameters(app: any): Record<string, any> {
 
   // セルフサインアップ有効/無効設定の取得
   const cognitoSelfSignUpEnabled = app.node.tryGetContext(
-    "rapid.cognitoSelfSignUpEnabled"
+    "rapid.cognitoSelfSignUpEnabled",
   );
   if (cognitoSelfSignUpEnabled !== undefined) {
     params.cognitoSelfSignUpEnabled =
@@ -241,44 +254,44 @@ export function extractContextParameters(app: any): Record<string, any> {
 
   // Map State並行処理設定の取得
   const reviewMapConcurrency = app.node.tryGetContext(
-    "rapid.reviewMapConcurrency"
+    "rapid.reviewMapConcurrency",
   );
   if (reviewMapConcurrency !== undefined) {
     params.reviewMapConcurrency = Number(reviewMapConcurrency);
   }
 
   const checklistInlineMapConcurrency = app.node.tryGetContext(
-    "rapid.checklistInlineMapConcurrency"
+    "rapid.checklistInlineMapConcurrency",
   );
   if (checklistInlineMapConcurrency !== undefined) {
     params.checklistInlineMapConcurrency = Number(
-      checklistInlineMapConcurrency
+      checklistInlineMapConcurrency,
     );
   }
 
   const reviewMaxConcurrency = app.node.tryGetContext(
-    "rapid.reviewMaxConcurrency"
+    "rapid.reviewMaxConcurrency",
   );
   if (reviewMaxConcurrency !== undefined) {
     params.reviewMaxConcurrency = Number(reviewMaxConcurrency);
   }
 
   const reviewQueueMaxDepth = app.node.tryGetContext(
-    "rapid.reviewQueueMaxDepth"
+    "rapid.reviewQueueMaxDepth",
   );
   if (reviewQueueMaxDepth !== undefined) {
     params.reviewQueueMaxDepth = Number(reviewQueueMaxDepth);
   }
 
   const reviewQueueMaxQueueCountMs = app.node.tryGetContext(
-    "rapid.reviewQueueMaxQueueCountMs"
+    "rapid.reviewQueueMaxQueueCountMs",
   );
   if (reviewQueueMaxQueueCountMs !== undefined) {
     params.reviewQueueMaxQueueCountMs = Number(reviewQueueMaxQueueCountMs);
   }
 
   const reviewQueueLogLevel = app.node.tryGetContext(
-    "rapid.reviewQueueLogLevel"
+    "rapid.reviewQueueLogLevel",
   );
   if (reviewQueueLogLevel !== undefined) {
     params.reviewQueueLogLevel = reviewQueueLogLevel;
@@ -292,7 +305,7 @@ export function extractContextParameters(app: any): Record<string, any> {
 
   // Feedback Aggregator スケジュール設定の取得
   const feedbackAggregatorScheduleExpression = app.node.tryGetContext(
-    "rapid.feedbackAggregatorScheduleExpression"
+    "rapid.feedbackAggregatorScheduleExpression",
   );
   if (feedbackAggregatorScheduleExpression !== undefined) {
     params.feedbackAggregatorScheduleExpression =

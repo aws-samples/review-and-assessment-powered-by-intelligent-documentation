@@ -50,6 +50,11 @@ export interface ReviewProcessorProps {
    * @default true
    */
   enableCodeInterpreter: boolean;
+
+  /**
+   * チェックリスト項目ごとに選択可能なモデル一覧（JSON文字列として環境変数に渡す）
+   */
+  availableModels: { modelId: string; displayName: string }[];
 }
 
 export class ReviewProcessor extends Construct {
@@ -73,7 +78,7 @@ export class ReviewProcessor extends Construct {
         vpc: props.vpc,
         description: "Security group for Review Processor Lambda function",
         allowAllOutbound: true,
-      }
+      },
     );
 
     // 審査処理用Lambda関数を作成
@@ -87,7 +92,7 @@ export class ReviewProcessor extends Construct {
             file: "Dockerfile.prisma.lambda",
             platform: Platform.LINUX_ARM64,
             cmd: ["dist/review-workflow/index.handler"],
-          }
+          },
         ),
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
@@ -101,11 +106,12 @@ export class ReviewProcessor extends Construct {
           BEDROCK_REGION: props.bedrockRegion,
           DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
           IMAGE_REVIEW_MODEL_ID: props.imageReviewModelId,
+          AVAILABLE_MODELS: JSON.stringify(props.availableModels),
         },
         securityGroups: [this.securityGroup],
         database: props.databaseConnection,
         architecture: lambda.Architecture.ARM_64,
-      }
+      },
     );
 
     // AgentCore Runtime を作成
@@ -146,7 +152,7 @@ export class ReviewProcessor extends Construct {
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
         resources: ["*"],
-      })
+      }),
     );
 
     // 審査準備Lambda - チェックリスト項目を取得し、処理項目を準備
@@ -194,7 +200,7 @@ export class ReviewProcessor extends Construct {
         resultSelector: {
           "Payload.$": "$.Payload",
         },
-      }
+      },
     );
 
     // Step 2: AgentCore processing - Strandsエージェントによる処理
@@ -204,7 +210,7 @@ export class ReviewProcessor extends Construct {
         "reviewJobId.$": "$.reviewJobId",
         "checkId.$": "$.checkId",
         "reviewResultId.$": "$.reviewResultId",
-        "preItemResult.$": "$.preItemResult"
+        "preItemResult.$": "$.preItemResult",
       }),
       resultPath: "$.mcpResult",
     });
@@ -221,7 +227,7 @@ export class ReviewProcessor extends Construct {
           checkId: sfn.JsonPath.stringAt("$.checkId"),
           reviewResultId: sfn.JsonPath.stringAt("$.reviewResultId"),
           documentIds: sfn.JsonPath.stringAt(
-            "$.preItemResult.Payload.documentIds"
+            "$.preItemResult.Payload.documentIds",
           ),
           reviewData: sfn.JsonPath.stringAt("$.mcpResult.Payload"),
         }),
@@ -229,7 +235,7 @@ export class ReviewProcessor extends Construct {
         resultSelector: {
           "Payload.$": "$.Payload",
         },
-      }
+      },
     );
 
     // リトライ設定を追加
@@ -302,7 +308,7 @@ export class ReviewProcessor extends Construct {
       assumedBy: new iam.ServicePrincipal("states.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AWSLambdaRole"
+          "service-role/AWSLambdaRole",
         ),
       ],
     });
@@ -312,7 +318,7 @@ export class ReviewProcessor extends Construct {
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
         resources: ["*"],
-      })
+      }),
     );
 
     // S3バケットへのアクセス権限を追加

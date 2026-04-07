@@ -7,6 +7,8 @@ import type {
   UpdateChecklistItemRequest,
   UpdateChecklistItemResponse,
   DeleteChecklistItemResponse,
+  UpdateChecklistItemModelRequest,
+  UpdateChecklistItemModelResponse,
 } from "../types";
 
 /**
@@ -114,4 +116,32 @@ export function useBulkAssignToolConfiguration() {
   };
 
   return { bulkAssignToolConfiguration, status, error };
+}
+
+/**
+ * チェックリスト項目のモデル ID 更新
+ */
+export function useUpdateCheckListItemModel(setId: string) {
+  const { mutateAsync, status, error } = useApiClient().useMutation<
+    UpdateChecklistItemModelResponse,
+    UpdateChecklistItemModelRequest
+  >("patch", `/checklist-sets/${setId}/items`);
+
+  const updateCheckListItemModel = async (
+    itemId: string,
+    modelId: string | null
+  ) => {
+    const res = await mutateAsync(
+      { modelId },
+      `/checklist-sets/${setId}/items/${itemId}/model`
+    );
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
+    return res;
+  };
+
+  return { updateCheckListItemModel, status, error };
 }

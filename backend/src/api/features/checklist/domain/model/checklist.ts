@@ -14,6 +14,7 @@ export type PrismaCheckList = {
   description?: string | null;
   parentId?: string | null;
   toolConfigurationId?: string | null;
+  modelId?: string | null;
   feedbackSummary?: string | null;
   feedbackSummaryUpdatedAt?: Date | null;
   ambiguityReview?: any | null;
@@ -88,6 +89,7 @@ export interface CheckListItemEntity {
   description?: string;
   ambiguityReview?: AmbiguityDetectionResult;
   toolConfigurationId?: string;
+  modelId?: string;
   feedbackSummary?: string;
   feedbackSummaryUpdatedAt?: Date;
 }
@@ -202,6 +204,7 @@ export const CheckListItemDomain = {
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
       toolConfigurationId: prismaItem.toolConfigurationId ?? undefined,
+      modelId: prismaItem.modelId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
       feedbackSummaryUpdatedAt:
         prismaItem.feedbackSummaryUpdatedAt ?? undefined,
@@ -227,6 +230,7 @@ export const CheckListItemDomain = {
       parentId: item.parentId ?? null,
       documentId: null,
       toolConfigurationId: item.toolConfigurationId ?? null,
+      modelId: item.modelId ?? null,
       feedbackSummary: item.feedbackSummary ?? null,
       feedbackSummaryUpdatedAt: item.feedbackSummaryUpdatedAt ?? null,
       ambiguityReview: item.ambiguityReview
@@ -250,6 +254,7 @@ export const CheckListItemDomain = {
       name: prismaItem.name,
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
+      modelId: prismaItem.modelId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
       feedbackSummaryUpdatedAt:
         prismaItem.feedbackSummaryUpdatedAt ?? undefined,

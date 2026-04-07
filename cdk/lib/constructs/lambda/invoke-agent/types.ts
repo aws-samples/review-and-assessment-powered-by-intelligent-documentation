@@ -12,6 +12,7 @@ export interface StepFunctionsInput {
       documentIds: string[];
       mcpServers: McpServerConfig[];
       toolConfiguration: any;
+      modelId: string | null;
     };
   };
 }
@@ -33,4 +34,5 @@ export interface AgentPayload {
   languageName: string;
   mcpServers: McpServerConfig[];
   toolConfiguration: any;
+  modelId: string | null;
 }

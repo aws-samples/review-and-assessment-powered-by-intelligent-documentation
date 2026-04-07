@@ -61,6 +61,10 @@ export interface CheckRepository {
     checkIds: string[];
     toolConfigurationId: string | null;
   }): Promise<number>;
+  updateCheckListItemModelId(params: {
+    itemId: string;
+    modelId: string | null;
+  }): Promise<void>;
 }
 
 export const makePrismaCheckRepository = async (
@@ -143,6 +147,21 @@ export const makePrismaCheckRepository = async (
         deletedCount = result.count;
         console.log(
           `[Repository] Deleted ${deletedCount} leaf nodes from check list`
+        );
+      }
+
+      // 2b. 循環参照等で残ったCheckList項目を強制削除
+      // (parentId の自己参照や相互参照がある場合、上記ループでは削除できない)
+      await tx.$executeRawUnsafe(
+        `UPDATE check_lists SET parent_id = NULL WHERE check_list_set_id = ?`,
+        checkListSetId
+      );
+      const forceDeleted = await tx.checkList.deleteMany({
+        where: { checkListSetId: checkListSetId },
+      });
+      if (forceDeleted.count > 0) {
+        console.log(
+          `[Repository] Force-deleted ${forceDeleted.count} remaining check list items (circular reference detected)`
         );
       }
 
@@ -384,6 +403,7 @@ export const makePrismaCheckRepository = async (
         documentId: true,
         ambiguityReview: true,
         toolConfigurationId: true,
+        modelId: true,
         feedbackSummary: true,
         feedbackSummaryUpdatedAt: true,
         toolConfiguration: {
@@ -602,6 +622,7 @@ export const makePrismaCheckRepository = async (
         documentId: true,
         ambiguityReview: true,
         toolConfigurationId: true,
+        modelId: true,
         feedbackSummary: true,
         feedbackSummaryUpdatedAt: true,
       },
@@ -715,6 +736,18 @@ export const makePrismaCheckRepository = async (
     return result.count;
   };
 
+  const updateCheckListItemModelId = async (params: {
+    itemId: string;
+    modelId: string | null;
+  }): Promise<void> => {
+    await client.checkList.update({
+      where: { id: params.itemId },
+      data: {
+        modelId: params.modelId,
+      },
+    });
+  };
+
   return {
     storeCheckListSet,
     deleteCheckListSetById,
@@ -731,5 +764,6 @@ export const makePrismaCheckRepository = async (
     checkSetEditable,
     updateAmbiguityReview,
     bulkUpdateToolConfiguration,
+    updateCheckListItemModelId,
   };
 };

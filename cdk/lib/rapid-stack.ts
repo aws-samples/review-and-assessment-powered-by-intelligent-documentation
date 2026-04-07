@@ -130,7 +130,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         documentProcessingModelId: props.parameters.documentProcessingModelId,
         bedrockRegion: props.parameters.bedrockRegion,
-      }
+      },
     );
 
     // 審査ワークフローの作成
@@ -146,6 +146,7 @@ export class RapidStack extends cdk.Stack {
       bedrockRegion: props.parameters.bedrockRegion,
       enableCitations: props.parameters.enableCitations,
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
+      availableModels: props.parameters.availableModels,
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）
@@ -172,7 +173,7 @@ export class RapidStack extends cdk.Stack {
           // キュー管理のLambdaはWARNINGをデフォルトとする
           // LOG_LEVEL: props.parameters.logLevel,
         },
-      }
+      },
     );
 
     // Ambiguity Detection Processor
@@ -183,7 +184,7 @@ export class RapidStack extends cdk.Stack {
         vpc,
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
-      }
+      },
     );
 
     // Feedback Aggregator (daily batch job for feedback summary generation)
@@ -197,7 +198,7 @@ export class RapidStack extends cdk.Stack {
         aggregationDays: 7,
         scheduleExpression:
           props.parameters.feedbackAggregatorScheduleExpression,
-      }
+      },
     );
 
     // Grant database access to feedback aggregator
@@ -219,8 +220,9 @@ export class RapidStack extends cdk.Stack {
         ).toString(),
         AMBIGUITY_DETECTION_QUEUE_URL: ambiguityProcessor.queue.queueUrl,
         REVIEW_QUEUE_URL: reviewQueueProcessor.queue.queueUrl,
-        REVIEW_QUEUE_MAX_DEPTH:
-          props.parameters.reviewQueueMaxDepth.toString(),
+        REVIEW_QUEUE_MAX_DEPTH: props.parameters.reviewQueueMaxDepth.toString(),
+        AVAILABLE_MODELS: JSON.stringify(props.parameters.availableModels),
+        DEFAULT_MODEL_ID: props.parameters.documentProcessingModelId,
       },
       auth: auth, // Authインスタンスを渡す
     });
@@ -357,7 +359,7 @@ export class RapidStack extends cdk.Stack {
     } catch (error) {
       // タグが存在しない場合や、Gitコマンドが失敗した場合のフォールバック
       cdk.Annotations.of(this).addWarning(
-        `Failed to get latest Git tag: ${error}`
+        `Failed to get latest Git tag: ${error}`,
       );
       return "no-tag-found";
     }

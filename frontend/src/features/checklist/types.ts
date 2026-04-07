@@ -182,6 +182,39 @@ export type DeleteChecklistItemResponse = ApiResponse<Record<string, never>>;
 export interface DetectAmbiguityRequest {}
 export type DetectAmbiguityResponse = ApiResponse<Record<string, never>>;
 
+/**
+ * Model info returned by GET /models
+ */
+export interface ModelInfo {
+  modelId: string;
+  displayName: string;
+}
+
+/**
+ * Response type for getting available models
+ * GET /models
+ */
+export type GetAvailableModelsResponse = ApiResponse<{
+  models: ModelInfo[];
+  defaultModelId: string | null;
+}>;
+
+/**
+ * Request type for updating a checklist item's model
+ * PATCH /checklist-sets/:setId/items/:itemId/model
+ */
+export interface UpdateChecklistItemModelRequest {
+  modelId: string | null;
+}
+
+/**
+ * Response type for updating a checklist item's model
+ * PATCH /checklist-sets/:setId/items/:itemId/model
+ */
+export type UpdateChecklistItemModelResponse = ApiResponse<
+  Record<string, never>
+>;
+
 // Model types
 
 /**
@@ -205,6 +238,7 @@ export interface CheckListItemDetail extends CheckListItemEntity {
     id: string;
     name: string;
   };
+  modelId?: string;
 }
 
 /**

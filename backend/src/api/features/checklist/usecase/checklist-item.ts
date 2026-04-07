@@ -4,6 +4,10 @@ import {
   CheckListItemEntity,
 } from "../domain/model/checklist";
 import {
+  getAvailableModels as getAvailableModelsFromEnv,
+  ModelInfo,
+} from "../domain/model/available-models";
+import {
   CheckRepository,
   makePrismaCheckRepository,
 } from "../domain/repository";
@@ -203,4 +207,53 @@ export const bulkAssignToolConfiguration = async (params: {
     toolConfigurationId: params.toolConfigurationId,
   });
   return updatedCount;
+};
+
+/**
+ * 利用可能なモデル一覧を取得する
+ */
+export const getAvailableModels = (): ModelInfo[] => {
+  return getAvailableModelsFromEnv();
+};
+
+/**
+ * チェックリスト項目のモデル ID を更新する
+ */
+export const updateCheckListItemModel = async (params: {
+  setId: string;
+  itemId: string;
+  modelId: string | null;
+  user: RequestUser;
+  deps?: {
+    repo?: CheckRepository;
+  };
+}): Promise<void> => {
+  const repo = params.deps?.repo || (await makePrismaCheckRepository());
+
+  await assertChecklistSetOwner({
+    user: params.user,
+    setId: params.setId,
+    repo,
+    api: "updateCheckListItemModel",
+    resourceId: params.itemId,
+  });
+
+  // 項目の存在確認（NotFoundError をスローする）
+  await repo.findCheckListItemById(params.itemId);
+
+  // modelId が指定されている場合、availableModels に含まれるか検証
+  if (params.modelId !== null) {
+    const availableModels = getAvailableModelsFromEnv();
+    const isValid = availableModels.some((m) => m.modelId === params.modelId);
+    if (!isValid) {
+      throw new ValidationError(
+        `Invalid modelId: "${params.modelId}" is not in availableModels`
+      );
+    }
+  }
+
+  await repo.updateCheckListItemModelId({
+    itemId: params.itemId,
+    modelId: params.modelId,
+  });
 };
