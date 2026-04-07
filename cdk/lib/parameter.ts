@@ -79,7 +79,6 @@ export const parameters = {
   //     displayName: "Claude 4 Sonnet (Global)",
   //   },
   // ],
-  // // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
   // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
   // imageReviewModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
