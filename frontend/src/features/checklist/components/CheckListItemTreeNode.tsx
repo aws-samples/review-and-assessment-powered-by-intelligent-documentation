@@ -185,13 +185,15 @@ export default function CheckListItemTreeNode({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {/* モデル選択 */}
-                <ModelSelector
-                  setId={setId}
-                  itemId={item.id}
-                  currentModelId={item.modelId}
-                  disabled={!isEditable}
-                />
+                {/* モデル選択 - リーフノードのみ表示 */}
+                {!item.hasChildren && (
+                  <ModelSelector
+                    setId={setId}
+                    itemId={item.id}
+                    currentModelId={item.modelId}
+                    disabled={!isEditable}
+                  />
+                )}
 
                 {/* 子項目追加ボタン - Button コンポーネントを使用 */}
                 <Button
