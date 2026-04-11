@@ -19,7 +19,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
   const { t } = useTranslation();
 
   // Common styling for all badges
-  const baseClasses = "rounded-full bg-aws-paper-light px-2 py-1 text-xs";
+  const baseClasses =
+    "inline-flex items-center whitespace-nowrap rounded-full bg-aws-paper-light px-2 py-1 text-xs";
   
   // Status-specific classes and label
   let statusClasses = "";
