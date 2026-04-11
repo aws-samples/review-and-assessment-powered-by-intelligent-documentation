@@ -2,7 +2,7 @@
  * 共通ファイルアップロードコンポーネント
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { HiOutlineCloudUpload, HiOutlineDocumentText, HiOutlineCheckCircle, HiOutlineTrash } from 'react-icons/hi';
@@ -36,6 +36,10 @@ export function FileUploader({
   onDeleteFile
 }: FileUploaderProps) {
   const { t } = useTranslation();
+  const supportedFormats = Object.values(acceptedFileTypes)
+    .flat()
+    .join(', ')
+    .replace(/\./g, '');
   
   // ファイルドロップ処理
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -63,7 +67,7 @@ export function FileUploader({
     <div className="w-full">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-md p-6 text-center transition-colors ${
+        className={`flex min-h-[164px] items-center justify-center border-2 border-dashed rounded-md p-6 text-center transition-colors ${
           isUploading 
             ? 'border-light-gray bg-aws-paper-light opacity-70 cursor-not-allowed' 
             : isDragActive 
@@ -72,22 +76,39 @@ export function FileUploader({
         }`}
       >
         <input {...getInputProps()} disabled={isUploading} />
-        {isDragActive ? (
-          <p className="text-aws-sea-blue-light">{t('fileUploader.dropFiles')}</p>
-        ) : isUploading ? (
-          <div>
-            <ImSpinner8 className="animate-spin h-12 w-12 mx-auto text-aws-sea-blue-light" />
-            <p className="mt-2 text-aws-squid-ink-light">{t('fileUploader.uploading')}</p>
-          </div>
-        ) : (
-          <div>
-            <HiOutlineCloudUpload className="h-12 w-12 mx-auto text-aws-font-color-gray" />
-            <p className="mt-2 text-aws-squid-ink-light">{t('fileUploader.dragAndDrop')}</p>
-            <p className="text-sm text-aws-font-color-gray mt-1">
-              {t('fileUploader.supportedFormats', { formats: Object.values(acceptedFileTypes).flat().join(', ').replace(/\./g, '') })}
+        <div className="flex min-h-[116px] flex-col items-center justify-center">
+          {isUploading ? (
+            <ImSpinner8 className="h-12 w-12 shrink-0 animate-spin text-aws-sea-blue-light" />
+          ) : (
+            <HiOutlineCloudUpload
+              className={`h-12 w-12 shrink-0 ${
+                isDragActive
+                  ? 'text-aws-sea-blue-light'
+                  : 'text-aws-font-color-gray'
+              }`}
+            />
+          )}
+          <div className="mt-2 flex min-h-[48px] max-w-[22rem] items-center justify-center">
+            <p
+              className={`${
+                isDragActive
+                  ? 'text-aws-sea-blue-light'
+                  : 'text-aws-squid-ink-light'
+              }`}>
+              {isDragActive
+                ? t('fileUploader.dropFiles')
+                : isUploading
+                  ? t('fileUploader.uploading')
+                  : t('fileUploader.dragAndDrop')}
             </p>
           </div>
-        )}
+          <p
+            className={`mt-1 text-sm ${
+              isUploading ? 'select-none text-transparent' : 'text-aws-font-color-gray'
+            }`}>
+            {t('fileUploader.supportedFormats', { formats: supportedFormats })}
+          </p>
+        </div>
       </div>
       
       {files.length > 0 && (
