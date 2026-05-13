@@ -12,6 +12,7 @@ import { DatabaseConnectionProps } from "./database";
 
 export interface FeedbackAggregatorProps {
   vpc: ec2.IVpc;
+  vpcSubnets?: ec2.SubnetSelection;
   databaseConnection: DatabaseConnectionProps;
   bedrockRegion: string;
   aggregationDays?: number;
@@ -51,7 +52,7 @@ export class FeedbackAggregator extends Construct {
       memorySize: 1024,
       timeout: cdk.Duration.minutes(15),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.vpcSubnets || {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       environment: {

@@ -18,28 +18,35 @@ const contextParams = extractContextParameters(app);
 // (parameter.tsのデフォルト値 < parameter.tsのユーザー指定値 < コマンドライン引数の順で優先)
 const parameters = resolveParameters(contextParams);
 
-// WAF for frontend
-// 2025/4: Currently, the WAF for CloudFront needs to be created in the North America region (us-east-1), so the stacks are separated
-// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-wafv2-webacl.html
-const waf = new FrontendWafStack(app, `RapidFrontendWafStack`, {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: "us-east-1",
-  },
-  envPrefix: "",
-  allowedIpV4AddressRanges: parameters.allowedIpV4AddressRanges,
-  allowedIpV6AddressRanges: parameters.allowedIpV6AddressRanges,
-});
+// 閉域モードではWAFスタック不要（CloudFrontを使わないため）
+let webAclId: string | undefined;
+let enableIpV6: boolean | undefined;
+
+if (!parameters.closedNetwork) {
+  // WAF for frontend
+  // 2025/4: Currently, the WAF for CloudFront needs to be created in the North America region (us-east-1), so the stacks are separated
+  // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-wafv2-webacl.html
+  const waf = new FrontendWafStack(app, `RapidFrontendWafStack`, {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+      region: "us-east-1",
+    },
+    envPrefix: "",
+    allowedIpV4AddressRanges: parameters.allowedIpV4AddressRanges,
+    allowedIpV6AddressRanges: parameters.allowedIpV6AddressRanges,
+  });
+  webAclId = waf.webAclArn.value;
+  enableIpV6 = waf.ipV6Enabled;
+}
 
 new RapidStack(app, "RapidStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION || "us-west-2",
   },
-  crossRegionReferences: true,
-  webAclId: waf.webAclArn.value,
-  enableIpV6: waf.ipV6Enabled,
-  // カスタムパラメータを追加
+  crossRegionReferences: !parameters.closedNetwork,
+  webAclId,
+  enableIpV6,
   parameters: parameters,
 });
 

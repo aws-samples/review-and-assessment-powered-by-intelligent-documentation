@@ -12,6 +12,7 @@ import { Database } from "./constructs/database";
 import { Api } from "./constructs/api";
 import { Auth } from "./constructs/auth";
 import { Frontend } from "./constructs/frontend";
+import { ClosedNetworkFrontend } from "./constructs/closed-network-frontend";
 import { PrismaMigration } from "./constructs/prisma-migration";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
 import { Parameters } from "./parameter-schema";
@@ -19,8 +20,8 @@ import { execSync } from "child_process";
 import { ReviewQueueProcessor } from "./constructs/review-queue";
 
 export interface RapidStackProps extends cdk.StackProps {
-  readonly webAclId: string;
-  readonly enableIpV6: boolean;
+  readonly webAclId?: string;
+  readonly enableIpV6?: boolean;
   readonly parameters: Parameters; // カスタムパラメータを追加
 }
 
@@ -58,28 +59,104 @@ export class RapidStack extends cdk.Stack {
     });
 
     // VPCの作成
+    const isClosedNetwork = props.parameters.closedNetwork;
+
     const vpc = new ec2.Vpc(this, "RapidVpc", {
       maxAzs: 2,
-      natGateways: 1,
-      subnetConfiguration: [
-        {
-          name: "public",
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-          mapPublicIpOnLaunch: false, // Disable auto-assignment of public IPs
-        },
-        {
-          name: "private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 24,
-        },
-        {
-          name: "isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-          cidrMask: 28,
-        },
-      ],
+      natGateways: isClosedNetwork ? 0 : 1,
+      subnetConfiguration: isClosedNetwork
+        ? [
+            {
+              name: "private",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 24,
+            },
+          ]
+        : [
+            {
+              name: "public",
+              subnetType: ec2.SubnetType.PUBLIC,
+              cidrMask: 24,
+              mapPublicIpOnLaunch: false,
+            },
+            {
+              name: "private",
+              subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+              cidrMask: 24,
+            },
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 28,
+            },
+          ],
     });
+
+    // 閉域モード時に使用するサブネットタイプ
+    const privateSubnetType = isClosedNetwork
+      ? ec2.SubnetType.PRIVATE_ISOLATED
+      : ec2.SubnetType.PRIVATE_WITH_EGRESS;
+
+    // 閉域モード時のVPC Endpoint追加
+    if (isClosedNetwork) {
+      // Gateway Endpoints
+      vpc.addGatewayEndpoint("S3Endpoint", {
+        service: ec2.GatewayVpcEndpointAwsService.S3,
+      });
+
+      // Interface Endpoints
+      vpc.addInterfaceEndpoint("EcrEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.ECR,
+      });
+      vpc.addInterfaceEndpoint("EcrDockerEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+      });
+      vpc.addInterfaceEndpoint("LogsEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+      });
+      vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      });
+      vpc.addInterfaceEndpoint("StsEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.STS,
+      });
+      vpc.addInterfaceEndpoint("ExecuteApiEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.APIGATEWAY,
+      });
+      vpc.addInterfaceEndpoint("BedrockEndpoint", {
+        service: new ec2.InterfaceVpcEndpointService(
+          `com.amazonaws.${cdk.Stack.of(this).region}.bedrock-runtime`,
+        ),
+        privateDnsEnabled: true,
+      });
+      vpc.addInterfaceEndpoint("BedrockAgentEndpoint", {
+        service: new ec2.InterfaceVpcEndpointService(
+          `com.amazonaws.${cdk.Stack.of(this).region}.bedrock-agent-runtime`,
+        ),
+        privateDnsEnabled: true,
+      });
+      vpc.addInterfaceEndpoint("SqsEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.SQS,
+      });
+      vpc.addInterfaceEndpoint("StepFunctionsEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS,
+      });
+      vpc.addInterfaceEndpoint("LambdaEndpoint", {
+        service: ec2.InterfaceVpcEndpointAwsService.LAMBDA,
+      });
+      vpc.addInterfaceEndpoint("CognitoEndpoint", {
+        service: new ec2.InterfaceVpcEndpointService(
+          `com.amazonaws.${cdk.Stack.of(this).region}.cognito-idp`,
+        ),
+        privateDnsEnabled: true,
+      });
+      vpc.addInterfaceEndpoint("BedrockAgentCoreEndpoint", {
+        service: new ec2.InterfaceVpcEndpointService(
+          `com.amazonaws.${cdk.Stack.of(this).region}.bedrock-agentcore`,
+        ),
+        privateDnsEnabled: true,
+      });
+    }
 
     // Add VPC Flow Logs (AwsSolutions-VPC7)
     new ec2.FlowLog(this, "VpcFlowLog", {
@@ -96,11 +173,13 @@ export class RapidStack extends cdk.Stack {
       maxCapacity: 1,
       autoPause: true,
       autoPauseSeconds: 300,
+      subnetType: privateSubnetType,
     });
 
     // Prisma マイグレーション Lambda の作成
     const prismaMigration = new PrismaMigration(this, "PrismaMigration", {
       vpc,
+      vpcSubnets: { subnetType: privateSubnetType },
       databaseConnection: database.connection,
       databaseCluster: database.cluster,
       autoMigrate: props.parameters.autoMigrate, // パラメータから自動マイグレーション設定を渡す
@@ -122,6 +201,7 @@ export class RapidStack extends cdk.Stack {
       {
         documentBucket,
         vpc,
+        vpcSubnets: { subnetType: privateSubnetType },
         mediumDocThreshold: 40,
         largeDocThreshold: 100,
         inlineMapConcurrency:
@@ -138,6 +218,8 @@ export class RapidStack extends cdk.Stack {
       documentBucket,
       tempBucket: s3TempStorage.bucket,
       vpc,
+      vpcSubnets: { subnetType: privateSubnetType },
+      closedNetwork: isClosedNetwork,
       logLevel: sfn.LogLevel.ALL,
       maxConcurrency: props.parameters.reviewMapConcurrency || 1,
       databaseConnection: database.connection,
@@ -161,6 +243,10 @@ export class RapidStack extends cdk.Stack {
       this,
       "ReviewQueueProcessorConstruct",
       {
+        vpc: isClosedNetwork ? vpc : undefined,
+        vpcSubnets: isClosedNetwork
+          ? { subnetType: privateSubnetType }
+          : undefined,
         environment: {
           STATE_MACHINE_ARN: reviewProcessor.stateMachine.stateMachineArn,
           REVIEW_MAX_CONCURRENCY:
@@ -182,6 +268,7 @@ export class RapidStack extends cdk.Stack {
       "AmbiguityProcessor",
       {
         vpc,
+        vpcSubnets: { subnetType: privateSubnetType },
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
       },
@@ -193,6 +280,7 @@ export class RapidStack extends cdk.Stack {
       "FeedbackAggregator",
       {
         vpc,
+        vpcSubnets: { subnetType: privateSubnetType },
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
         aggregationDays: 7,
@@ -208,6 +296,8 @@ export class RapidStack extends cdk.Stack {
     // API Gatewayとそれに紐づくLambda関数の作成
     const api = new Api(this, "Api", {
       vpc,
+      vpcSubnets: { subnetType: privateSubnetType },
+      closedNetwork: isClosedNetwork,
       databaseConnection: database.connection,
       environment: {
         DOCUMENT_BUCKET: documentBucket.bucketName,
@@ -249,30 +339,40 @@ export class RapidStack extends cdk.Stack {
     // S3バケットアクセス権限の付与
     documentBucket.grantReadWrite(api.apiLambda);
 
-    const frontend = new Frontend(this, "Frontend", {
-      accessLogBucket,
-      webAclId: props.webAclId,
-      enableIpV6: props.enableIpV6,
-      // alternateDomainName: props.alternateDomainName,
-      // hostedZoneId: props.hostedZoneId,
-    });
+    const frontend = isClosedNetwork
+      ? new ClosedNetworkFrontend(this, "Frontend", {
+          vpc,
+          accessLogBucket,
+        })
+      : new Frontend(this, "Frontend", {
+          accessLogBucket,
+          webAclId: props.webAclId!,
+          enableIpV6: props.enableIpV6!,
+        });
 
     // Gitの最新タグを取得
     const latestGitTag = this.getLatestGitTag();
 
-    frontend.buildViteApp({
-      backendApiEndpoint: api.api.url,
-      userPoolDomainPrefix: "",
-      auth,
-      version: latestGitTag, // Gitタグ情報を追加
-    });
+    if (isClosedNetwork) {
+      (frontend as ClosedNetworkFrontend).buildViteApp({
+        backendApiEndpoint: api.api.url,
+        auth,
+        version: latestGitTag,
+      });
+    } else {
+      (frontend as Frontend).buildViteApp({
+        backendApiEndpoint: api.api.url,
+        userPoolDomainPrefix: "",
+        auth,
+        version: latestGitTag,
+      });
+    }
 
     documentBucket.addCorsRule({
       allowedMethods: [s3.HttpMethods.PUT],
-      allowedOrigins: [
-        `https://${frontend.cloudFrontWebDistribution.distributionDomainName}`, // frontend.getOrigin() is cyclic reference
-        "http://localhost:5173",
-      ],
+      allowedOrigins: isClosedNetwork
+        ? ["*"]
+        : [frontend.getOrigin(), "http://localhost:5173"],
       allowedHeaders: ["*"],
       maxAge: 3000,
     });

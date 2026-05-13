@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
@@ -17,6 +18,16 @@ export interface ReviewQueueProcessorProps {
    * Lambda log retention days (see parameter-schema.ts).
    */
   lambdaLogRetentionDays?: number;
+
+  /**
+   * VPC to attach the Lambda function to.
+   */
+  vpc?: ec2.IVpc;
+
+  /**
+   * VPC subnets for the Lambda function.
+   */
+  vpcSubnets?: ec2.SubnetSelection;
 }
 
 export class ReviewQueueProcessor extends Construct {
@@ -69,6 +80,10 @@ export class ReviewQueueProcessor extends Construct {
           ? props.lambdaLogRetentionDays
           : cdk.aws_logs.RetentionDays.THREE_YEARS,
       retryAttempts: 0,
+      ...(props.vpc && {
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets,
+      }),
     });
 
     const eventSource = new lambdaEventSources.SqsEventSource(this.queue, {

@@ -138,6 +138,14 @@ const parameterSchema = z.object({
     .default("WARNING")
     .describe("Review queue lambda log level"),
 
+  // 閉域ネットワーク設定
+  closedNetwork: z
+    .boolean()
+    .default(false)
+    .describe(
+      "閉域モードを有効にするかどうか（ALB+Fargate構成、NAT Gateway無し、VPC Endpoint経由）",
+    ),
+
   // AgentCore Code Interpreter設定
   enableCodeInterpreter: z
     .boolean()

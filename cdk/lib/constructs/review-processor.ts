@@ -17,6 +17,8 @@ export interface ReviewProcessorProps {
   documentBucket: s3.IBucket;
   tempBucket: s3.IBucket; // S3 Temp Storage bucket
   vpc: ec2.IVpc;
+  vpcSubnets?: ec2.SubnetSelection;
+  closedNetwork?: boolean;
   databaseConnection: DatabaseConnectionProps;
   logLevel?: sfn.LogLevel;
   maxConcurrency?: number; // Add parameter for controlling parallel executions
@@ -97,7 +99,7 @@ export class ReviewProcessor extends Construct {
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         vpc: props.vpc,
-        vpcSubnets: {
+        vpcSubnets: props.vpcSubnets || {
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
         environment: {
@@ -136,8 +138,16 @@ export class ReviewProcessor extends Construct {
       environment: {
         AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
         BEDROCK_REGION: props.bedrockRegion,
+        ...(props.closedNetwork && {
+          BEDROCK_AGENTCORE_ENDPOINT: `https://bedrock-agentcore.${cdk.Stack.of(this).region}.amazonaws.com`,
+        }),
       },
       architecture: lambda.Architecture.ARM_64,
+      ...(props.closedNetwork && {
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets,
+        securityGroups: [this.securityGroup],
+      }),
     });
 
     // Grant permissions to invoke AgentCore

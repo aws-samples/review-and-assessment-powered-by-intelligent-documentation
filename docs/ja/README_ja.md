@@ -79,6 +79,7 @@
    - `--cognito-user-pool-client-id`: 既存の Cognito User Pool Client ID（指定しない場合は新規作成）
    - `--cognito-domain-prefix`: Cognito ドメインのプレフィックス（指定しない場合は自動生成）
    - `--mcp-admin`: MCP ランタイム Lambda 関数に管理者権限を付与するかどうか（true/false）
+   - `--closed-network`: 閉域モードを有効にする（ALB+Fargate フロントエンド、NAT Gateway 無し、Private API Gateway）
    - `--bedrock-region`: Amazon Bedrock を利用するリージョン（デフォルト：us-west-2）
    - `--document-model`: ドキュメント処理に使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
    - `--image-model`: 画像レビューに使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
@@ -157,6 +158,7 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 
 | パラメータグループ     | パラメータ名                  | 説明                                                                                                                                                                   | デフォルト値                              |
 | ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **閉域ネットワーク**   | closedNetwork                 | 閉域モードを有効にする（ALB+Fargate フロントエンド、NAT Gateway 無し、VPC Endpoint 経由の AWS サービスアクセス、Private API Gateway）                                   | false (無効)                              |
 | **WAF 設定**           | allowedIpV4AddressRanges      | フロントエンド WAF で許可する IPv4 範囲                                                                                                                                | ["0.0.0.0/1", "128.0.0.0/1"] (すべて許可) |
 |                        | allowedIpV6AddressRanges      | フロントエンド WAF で許可する IPv6 範囲                                                                                                                                | ["0000::/1", "8000::/1"] (すべて許可)     |
 | **Cognito 設定**       | cognitoUserPoolId             | 既存の Cognito User Pool ID                                                                                                                                            | 新規作成                                  |
@@ -246,6 +248,54 @@ export const parameters = {
 > [!CAUTION]
 > 本番環境では、`cognitoSelfSignUpEnabled: false` に設定することでセルフサインアップを無効化することを強く推奨します。セルフサインアップを有効にしたままにすると、誰でもアカウント登録が可能となるため、セキュリティリスクとなる可能性があります。
 > デフォルトでは `autoMigrate` パラメータが `true` に設定されており、デプロイ時に自動的にデータベースマイグレーションが実行されます。本番環境や重要なデータを含む環境では、このパラメータを `false` に設定し、マイグレーションを手動で制御することを検討してください。
+
+### 閉域モード
+
+`closedNetwork: true` を設定すると、インターネットアクセスのない完全プライベートネットワーク構成でデプロイされます。厳格なセキュリティ要件がある環境に適しています。
+
+![](../imgs/arch_closed_nw.png)
+
+**標準モードとのアーキテクチャの違い:**
+
+| コンポーネント | 標準モード | 閉域モード |
+| --- | --- | --- |
+| フロントエンド | CloudFront + S3 | Internal ALB + Fargate (nginx) |
+| API Gateway | EDGE (パブリック) | PRIVATE (VPC Endpoint 経由のみ) |
+| VPC | Public + Private + Isolated サブネット、NAT Gateway | Private Isolated サブネットのみ、NAT Gateway 無し |
+| AWS サービスアクセス | NAT Gateway 経由（インターネット） | VPC Endpoint 経由 |
+| WAF | CloudFront WAF (us-east-1) | 使用しない |
+
+**閉域モードで作成される VPC Endpoint:**
+
+- Amazon S3 (Gateway)
+- Amazon ECR / ECR Docker（コンテナイメージ取得用）
+- CloudWatch Logs
+- AWS Secrets Manager
+- AWS STS
+- Amazon API Gateway (execute-api)
+- Amazon Bedrock Runtime
+- Amazon Bedrock Agent Runtime
+- Amazon SQS
+- AWS Step Functions
+- AWS Lambda
+
+**設定例:**
+
+```typescript
+// cdk/lib/parameter.ts
+export const parameters = {
+  closedNetwork: true,
+};
+```
+
+**CloudShell デプロイ:**
+
+```bash
+wget -O - https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/bin.sh | bash -s -- --closed-network
+```
+
+> [!Important]
+> 閉域モードでは、フロントエンドは VPC 内からのみアクセス可能です（Internal ALB 経由）。アプリケーションにアクセスするには、VPN、Direct Connect、または VPC 内の踏み台ホストが必要です。
 
 ## 料金について
 

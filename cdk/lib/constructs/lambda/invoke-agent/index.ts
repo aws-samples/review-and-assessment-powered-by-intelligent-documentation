@@ -17,6 +17,9 @@ class RetryException extends Error {
 
 const client = new BedrockAgentCoreClient({
   region: process.env.AWS_REGION,
+  ...(process.env.BEDROCK_AGENTCORE_ENDPOINT && {
+    endpoint: process.env.BEDROCK_AGENTCORE_ENDPOINT,
+  }),
 });
 
 /**

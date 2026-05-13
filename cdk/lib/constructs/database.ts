@@ -17,6 +17,7 @@ export interface DatabaseProps {
   maxCapacity?: number;
   autoPause?: boolean;
   autoPauseSeconds?: number;
+  subnetType?: ec2.SubnetType;
 }
 
 export interface DatabaseConnectionProps {
@@ -58,7 +59,7 @@ export class Database extends Construct {
       }),
       vpc: props.vpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        subnetType: props.subnetType || ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],
       defaultDatabaseName: databaseName,

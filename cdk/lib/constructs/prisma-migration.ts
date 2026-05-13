@@ -18,6 +18,7 @@ import { DatabaseConnectionProps } from "./database";
  */
 export interface PrismaMigrationProps {
   vpc: ec2.IVpc;
+  vpcSubnets?: ec2.SubnetSelection;
   databaseConnection: DatabaseConnectionProps;
   /**
    * データベースクラスター（依存関係の設定に使用）
@@ -61,7 +62,7 @@ export class PrismaMigration extends Construct {
         }
       ),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.vpcSubnets || {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],

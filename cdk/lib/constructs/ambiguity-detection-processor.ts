@@ -13,6 +13,7 @@ import { DockerPrismaFunction } from "./docker-prisma-function";
 
 export interface AmbiguityDetectionProcessorProps {
   vpc: ec2.Vpc;
+  vpcSubnets?: ec2.SubnetSelection;
   databaseConnection: DatabaseConnectionProps;
   bedrockRegion: string;
 }
@@ -67,7 +68,7 @@ export class AmbiguityDetectionProcessor extends Construct {
       memorySize: 1024,
       timeout: Duration.minutes(15),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.vpcSubnets || {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],

@@ -73,6 +73,7 @@ This method allows you to deploy directly from your browser using AWS CloudShell
    - `--ipv4-ranges`: IPv4 address ranges to allow in the frontend WAF (JSON array format)
    - `--ipv6-ranges`: IPv6 address ranges to allow in the frontend WAF (JSON array format)
    - `--disable-ipv6`: Disable IPv6 support
+   - `--closed-network`: Enable closed network mode (ALB+Fargate frontend, no NAT Gateway, Private API Gateway)
    - `--auto-migrate`: Whether to automatically run database migration during deployment
    - `--cognito-self-signup`: Whether to enable self-signup for the Cognito User Pool (true/false)
    - `--cognito-user-pool-id`: Existing Cognito User Pool ID (creates new if not specified)
@@ -151,6 +152,7 @@ The following parameters can be customized during CDK deployment:
 
 | Parameter Group           | Parameter Name                | Description                                                                                                                                                                | Default Value                              |
 | ------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **Closed Network**        | closedNetwork                 | Enable closed network mode (ALB+Fargate frontend, no NAT Gateway, VPC Endpoints for all AWS service access, Private API Gateway)                                           | false (disabled)                           |
 | **WAF Configuration**     | allowedIpV4AddressRanges      | IPv4 ranges to allow in the frontend WAF                                                                                                                                   | ["0.0.0.0/1", "128.0.0.0/1"] (all allowed) |
 |                           | allowedIpV6AddressRanges      | IPv6 ranges to allow in the frontend WAF                                                                                                                                   | ["0000::/1", "8000::/1"] (all allowed)     |
 | **Cognito Settings**      | cognitoUserPoolId             | Existing Cognito User Pool ID                                                                                                                                              | Create new                                 |
@@ -242,7 +244,55 @@ export const parameters = {
 
 > [!CAUTION]
 > For production environments, it is strongly recommended to set `cognitoSelfSignUpEnabled: false` to disable self-signup. Leaving self-signup enabled allows anyone to register an account, which may pose a security risk.
-> By default, the `autoMigrate` parameter is set to `true`, which automatically runs database migrations during deployment. For production environments or environments containing important data, consider setting this parameter to `false` and controlling migrations manually.
+> By default, the `autoMigrate` parameter is set to `true`, which automatically runs database migrations during deployment. For production environments or environment containing important data, consider setting this parameter to `false` and controlling migrations manually.
+
+### Closed Network Mode
+
+When `closedNetwork: true` is set, the application is deployed in a fully private network configuration with no internet access. This is suitable for environments with strict security requirements.
+
+![](./docs/imgs/arch_closed_nw.png)
+
+**Architecture differences from the standard mode:**
+
+| Component | Standard Mode | Closed Network Mode |
+| --- | --- | --- |
+| Frontend | CloudFront + S3 | Internal ALB + Fargate (nginx) |
+| API Gateway | EDGE (public) | PRIVATE (VPC Endpoint access only) |
+| VPC | Public + Private + Isolated subnets, NAT Gateway | Private Isolated subnets only, no NAT Gateway |
+| AWS Service Access | Via NAT Gateway (internet) | Via VPC Endpoints |
+| WAF | CloudFront WAF (us-east-1) | Not used |
+
+**VPC Endpoints created in closed network mode:**
+
+- Amazon S3 (Gateway)
+- Amazon ECR / ECR Docker (for container image pull)
+- CloudWatch Logs
+- AWS Secrets Manager
+- AWS STS
+- Amazon API Gateway (execute-api)
+- Amazon Bedrock Runtime
+- Amazon Bedrock Agent Runtime
+- Amazon SQS
+- AWS Step Functions
+- AWS Lambda
+
+**Configuration example:**
+
+```typescript
+// cdk/lib/parameter.ts
+export const parameters = {
+  closedNetwork: true,
+};
+```
+
+**CloudShell deployment:**
+
+```bash
+wget -O - https://raw.githubusercontent.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation/main/bin.sh | bash -s -- --closed-network
+```
+
+> [!Important]
+> In closed network mode, the frontend is accessible only from within the VPC (via the internal ALB). You need a VPN, Direct Connect, or a bastion host within the VPC to access the application.
 
 ## Pricing
 

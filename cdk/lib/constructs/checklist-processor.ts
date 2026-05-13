@@ -26,6 +26,11 @@ export interface ChecklistProcessorProps {
    */
   vpc: ec2.IVpc;
 
+  /**
+   * Lambda関数を配置するサブネット
+   */
+  vpcSubnets?: ec2.SubnetSelection;
+
   databaseConnection: DatabaseConnectionProps;
 
   /**
@@ -128,7 +133,7 @@ export class ChecklistProcessor extends Construct {
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         vpc: props.vpc,
-        vpcSubnets: {
+        vpcSubnets: props.vpcSubnets || {
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
         environment: {

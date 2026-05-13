@@ -22,6 +22,8 @@ export interface ApiProps {
   databaseConnection: DatabaseConnectionProps;
   environment?: { [key: string]: string };
   auth: Auth;
+  vpcSubnets?: ec2.SubnetSelection;
+  closedNetwork?: boolean;
 }
 
 /**
@@ -94,7 +96,7 @@ export class Api extends Construct {
         },
       ),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.vpcSubnets || {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],
@@ -146,6 +148,24 @@ export class Api extends Construct {
       restApiName: `${stackId}-RAPID-API`,
       description:
         "RAPID (Review & Assessment Powered by Intelligent Documentation) API",
+      ...(props.closedNetwork && {
+        endpointTypes: [apigateway.EndpointType.PRIVATE],
+        policy: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              principals: [new iam.AnyPrincipal()],
+              actions: ["execute-api:Invoke"],
+              resources: ["*"],
+              conditions: {
+                StringEquals: {
+                  "aws:SourceVpc": props.vpc.vpcId,
+                },
+              },
+            }),
+          ],
+        }),
+      }),
       deployOptions: {
         stageName: "api",
         tracingEnabled: true,

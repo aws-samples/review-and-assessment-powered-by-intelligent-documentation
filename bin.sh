@@ -27,6 +27,7 @@ COGNITO_USER_POOL_ID=""
 COGNITO_USER_POOL_CLIENT_ID=""
 COGNITO_DOMAIN_PREFIX=""
 MCP_ADMIN="false"
+CLOSED_NETWORK="false"
 BEDROCK_REGION="us-west-2"
 DOCUMENT_PROCESSING_MODEL_ID=""
 IMAGE_REVIEW_MODEL_ID=""
@@ -46,6 +47,7 @@ while [[ "$#" -gt 0 ]]; do
         --cognito-user-pool-client-id) COGNITO_USER_POOL_CLIENT_ID="$2"; shift ;;
         --cognito-domain-prefix) COGNITO_DOMAIN_PREFIX="$2"; shift ;;
         --mcp-admin) MCP_ADMIN="$2"; shift ;;
+        --closed-network) CLOSED_NETWORK="true" ;;
         --bedrock-region) BEDROCK_REGION="$2"; shift ;;
         --document-model) DOCUMENT_PROCESSING_MODEL_ID="$2"; shift ;;
         --image-model) IMAGE_REVIEW_MODEL_ID="$2"; shift ;;
@@ -109,6 +111,7 @@ aws cloudformation deploy \
     CognitoUserPoolClientId="$COGNITO_USER_POOL_CLIENT_ID" \
     CognitoDomainPrefix="$COGNITO_DOMAIN_PREFIX" \
     McpAdmin="$MCP_ADMIN" \
+    ClosedNetwork="$CLOSED_NETWORK" \
     BedrockRegion="$BEDROCK_REGION" \
     DocumentProcessingModelId="$DOCUMENT_PROCESSING_MODEL_ID" \
     ImageReviewModelId="$IMAGE_REVIEW_MODEL_ID" \
