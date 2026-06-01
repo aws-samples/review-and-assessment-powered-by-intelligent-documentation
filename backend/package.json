@@ -57,6 +57,6 @@
     "ts-unused-exports": "^11.0.1",
     "tsx": "^4.7.1",
     "typescript": "^5.2.2",
-    "vitest": "^3.2.2"
+    "vitest": "^4.1.0"
   }
 }
