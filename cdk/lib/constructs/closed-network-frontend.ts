@@ -6,6 +6,9 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as path from "path";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as route53Targets from "aws-cdk-lib/aws-route53-targets";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import { Platform } from "aws-cdk-lib/aws-ecr-assets";
 import { Auth } from "./auth";
 import { NagSuppressions } from "cdk-nag";
@@ -14,6 +17,8 @@ import { IBucket } from "aws-cdk-lib/aws-s3";
 export interface ClosedNetworkFrontendProps {
   readonly vpc: ec2.IVpc;
   readonly accessLogBucket?: IBucket;
+  readonly hostedZone?: route53.IHostedZone;
+  readonly certificateArn?: string;
 }
 
 /**
@@ -26,6 +31,8 @@ export class ClosedNetworkFrontend extends Construct {
   private readonly cluster: ecs.Cluster;
   private readonly vpc: ec2.IVpc;
   private readonly accessLogBucket?: IBucket;
+  private readonly hostedZone?: route53.IHostedZone;
+  private readonly certificateArn?: string;
 
   constructor(
     scope: Construct,
@@ -36,6 +43,8 @@ export class ClosedNetworkFrontend extends Construct {
 
     this.vpc = props.vpc;
     this.accessLogBucket = props.accessLogBucket;
+    this.hostedZone = props.hostedZone;
+    this.certificateArn = props.certificateArn;
 
     // ECS Cluster
     this.cluster = new ecs.Cluster(this, "Cluster", {
@@ -69,6 +78,9 @@ export class ClosedNetworkFrontend extends Construct {
   }
 
   getOrigin(): string {
+    if (this.hostedZone && this.certificateArn) {
+      return `https://${this.hostedZone.zoneName}`;
+    }
     return `http://${this.alb.loadBalancerDnsName}`;
   }
 
@@ -149,6 +161,40 @@ export class ClosedNetworkFrontend extends Construct {
         interval: Duration.seconds(30),
       },
     });
+
+    // HTTPS listener when certificate is provided
+    if (this.hostedZone && this.certificateArn) {
+      const certificate = acm.Certificate.fromCertificateArn(
+        this,
+        "Certificate",
+        this.certificateArn,
+      );
+
+      const httpsListener = this.alb.addListener("HttpsListener", {
+        port: 443,
+        protocol: elbv2.ApplicationProtocol.HTTPS,
+        certificates: [certificate],
+      });
+
+      httpsListener.addTargets("HttpsFargateTarget", {
+        port: 80,
+        targets: [service],
+        healthCheck: {
+          path: "/",
+          interval: Duration.seconds(30),
+        },
+      });
+    }
+
+    // A record in Private Hosted Zone
+    if (this.hostedZone) {
+      new route53.ARecord(this, "LbRecord", {
+        zone: this.hostedZone,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.LoadBalancerTarget(this.alb),
+        ),
+      });
+    }
 
     NagSuppressions.addResourceSuppressions(
       listener,

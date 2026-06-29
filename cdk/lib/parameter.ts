@@ -10,6 +10,9 @@ export const parameters = {
   // カスタマイズしたいパラメータのみコメントを外して設定
   // 閉域モード
   // closedNetwork: true,
+  // closedNetworkDomainName: "example.internal",
+  // closedNetworkCertificateArn: "arn:aws:acm:region:xxxxxxxxxxxx:certificate/xxxx",
+  // closedNetworkCreateResolverEndpoint: true,
   // ---------------------------------------------------
   // WAF IP制限の設定
   // アクセスを許可するIPアドレス範囲を指定します

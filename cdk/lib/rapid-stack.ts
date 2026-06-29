@@ -2,8 +2,10 @@ import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as route53 from "aws-cdk-lib/aws-route53";
 import * as path from "path";
 import { Construct } from "constructs";
+import { NagSuppressions } from "cdk-nag";
 import { ChecklistProcessor } from "./constructs/checklist-processor";
 import { ReviewProcessor } from "./constructs/review-processor";
 import { AmbiguityDetectionProcessor } from "./constructs/ambiguity-detection-processor";
@@ -102,6 +104,14 @@ export class RapidStack extends cdk.Stack {
       // Gateway Endpoints
       vpc.addGatewayEndpoint("S3Endpoint", {
         service: ec2.GatewayVpcEndpointAwsService.S3,
+      });
+
+      // S3 Interface Endpoint (needed for Direct Connect / Transit Gateway access)
+      vpc.addInterfaceEndpoint("S3InterfaceEndpoint", {
+        service: new ec2.InterfaceVpcEndpointService(
+          `com.amazonaws.${cdk.Stack.of(this).region}.s3`,
+        ),
+        privateDnsEnabled: true,
       });
 
       // Interface Endpoints
@@ -339,16 +349,79 @@ export class RapidStack extends cdk.Stack {
     // S3バケットアクセス権限の付与
     documentBucket.grantReadWrite(api.apiLambda);
 
+    const closedNetworkDomainName = props.parameters.closedNetworkDomainName;
+    const closedNetworkCertificateArn =
+      props.parameters.closedNetworkCertificateArn;
+
+    // Create Private Hosted Zone if domain name is specified
+    let hostedZone: route53.PrivateHostedZone | undefined;
+    if (isClosedNetwork && closedNetworkDomainName) {
+      hostedZone = new route53.PrivateHostedZone(this, "PrivateHostedZone", {
+        vpc,
+        zoneName: closedNetworkDomainName,
+      });
+    }
+
     const frontend = isClosedNetwork
       ? new ClosedNetworkFrontend(this, "Frontend", {
           vpc,
           accessLogBucket,
+          hostedZone,
+          certificateArn: closedNetworkCertificateArn,
         })
       : new Frontend(this, "Frontend", {
           accessLogBucket,
           webAclId: props.webAclId!,
           enableIpV6: props.enableIpV6!,
         });
+
+    // Route53 Resolver Inbound Endpoint for closed network
+    if (
+      isClosedNetwork &&
+      hostedZone &&
+      props.parameters.closedNetworkCreateResolverEndpoint
+    ) {
+      const resolverSg = new ec2.SecurityGroup(this, "ResolverEndpointSg", {
+        vpc,
+        description: "Security group for Route53 Resolver Inbound Endpoint",
+        allowAllOutbound: true,
+      });
+      resolverSg.addIngressRule(
+        ec2.Peer.ipv4("0.0.0.0/0"),
+        ec2.Port.udp(53),
+        "Allow DNS UDP",
+      );
+      resolverSg.addIngressRule(
+        ec2.Peer.ipv4("0.0.0.0/0"),
+        ec2.Port.tcp(53),
+        "Allow DNS TCP",
+      );
+
+      NagSuppressions.addResourceSuppressions(resolverSg, [
+        {
+          id: "AwsSolutions-EC23",
+          reason:
+            "Resolver Inbound Endpoint must accept DNS queries from any source in closed network (via Direct Connect/Transit Gateway)",
+        },
+      ], true);
+
+      const subnets = vpc.selectSubnets({
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      });
+
+      new cdk.aws_route53resolver.CfnResolverEndpoint(
+        this,
+        "ResolverInboundEndpoint",
+        {
+          direction: "INBOUND",
+          ipAddresses: subnets.subnets.map((subnet) => ({
+            subnetId: subnet.subnetId,
+          })),
+          securityGroupIds: [resolverSg.securityGroupId],
+          name: "RapidResolverInbound",
+        },
+      );
+    }
 
     // Gitの最新タグを取得
     const latestGitTag = this.getLatestGitTag();

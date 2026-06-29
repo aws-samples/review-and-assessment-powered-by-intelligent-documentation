@@ -146,6 +146,23 @@ const parameterSchema = z.object({
       "閉域モードを有効にするかどうか（ALB+Fargate構成、NAT Gateway無し、VPC Endpoint経由）",
     ),
 
+  closedNetworkCertificateArn: z
+    .string()
+    .optional()
+    .describe("閉域モード時にALBに設定するACM証明書のARN"),
+
+  closedNetworkDomainName: z
+    .string()
+    .optional()
+    .describe("閉域モード時に使用するプライベートドメイン名"),
+
+  closedNetworkCreateResolverEndpoint: z
+    .boolean()
+    .default(true)
+    .describe(
+      "閉域モード時にRoute53 Resolver Inbound Endpointを作成するかどうか",
+    ),
+
   // AgentCore Code Interpreter設定
   enableCodeInterpreter: z
     .boolean()
