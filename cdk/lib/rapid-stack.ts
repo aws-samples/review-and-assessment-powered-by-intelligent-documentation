@@ -102,17 +102,18 @@ export class RapidStack extends cdk.Stack {
     // 閉域モード時のVPC Endpoint追加
     if (isClosedNetwork) {
       // Gateway Endpoints
-      vpc.addGatewayEndpoint("S3Endpoint", {
+      const s3Gateway = vpc.addGatewayEndpoint("S3Endpoint", {
         service: ec2.GatewayVpcEndpointAwsService.S3,
       });
 
       // S3 Interface Endpoint (needed for Direct Connect / Transit Gateway access)
-      vpc.addInterfaceEndpoint("S3InterfaceEndpoint", {
+      const s3Interface = vpc.addInterfaceEndpoint("S3InterfaceEndpoint", {
         service: new ec2.InterfaceVpcEndpointService(
           `com.amazonaws.${cdk.Stack.of(this).region}.s3`,
         ),
         privateDnsEnabled: true,
       });
+      s3Interface.node.addDependency(s3Gateway);
 
       // Interface Endpoints
       vpc.addInterfaceEndpoint("EcrEndpoint", {
