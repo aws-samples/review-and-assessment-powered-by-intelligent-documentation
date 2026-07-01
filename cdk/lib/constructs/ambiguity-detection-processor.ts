@@ -15,6 +15,7 @@ export interface AmbiguityDetectionProcessorProps {
   vpc: ec2.Vpc;
   databaseConnection: DatabaseConnectionProps;
   bedrockRegion: string;
+  documentProcessingModelId: string;
 }
 
 export class AmbiguityDetectionProcessor extends Construct {
@@ -26,7 +27,7 @@ export class AmbiguityDetectionProcessor extends Construct {
   constructor(
     scope: Construct,
     id: string,
-    props: AmbiguityDetectionProcessorProps
+    props: AmbiguityDetectionProcessorProps,
   ) {
     super(scope, id);
 
@@ -62,7 +63,7 @@ export class AmbiguityDetectionProcessor extends Construct {
           file: "Dockerfile.prisma.lambda",
           platform: Platform.LINUX_ARM64,
           cmd: ["dist/handlers/ambiguity-detection-handler.handler"],
-        }
+        },
       ),
       memorySize: 1024,
       timeout: Duration.minutes(15),
@@ -75,6 +76,7 @@ export class AmbiguityDetectionProcessor extends Construct {
       architecture: lambda.Architecture.ARM_64,
       environment: {
         BEDROCK_REGION: props.bedrockRegion,
+        DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
       },
     });
 
@@ -82,7 +84,7 @@ export class AmbiguityDetectionProcessor extends Construct {
     this.workerLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(this.queue, {
         batchSize: 1, // Process one message at a time
-      })
+      }),
     );
 
     // Grant Lambda permission to consume messages
@@ -96,7 +98,7 @@ export class AmbiguityDetectionProcessor extends Construct {
           "bedrock:InvokeModelWithResponseStream",
         ],
         resources: ["*"],
-      })
+      }),
     );
   }
 }

@@ -8,13 +8,6 @@ const region = import.meta.env.VITE_APP_REGION || 'ap-northeast-1';
 const userPoolId = import.meta.env.VITE_APP_USER_POOL_ID;
 const userPoolWebClientId = import.meta.env.VITE_APP_USER_POOL_CLIENT_ID;
 
-// デバッグ用に環境変数の値をコンソールに出力
-console.log('Auth Configuration:', {
-  region,
-  userPoolId,
-  userPoolWebClientId
-});
-
 // Amplify設定 - v6形式に修正
 Amplify.configure({
   Auth: {
@@ -92,12 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      isLoading, 
-      user, 
-      signIn: handleSignIn, 
-      signOut: handleSignOut, 
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      isLoading,
+      user,
+      signIn: handleSignIn,
+      signOut: handleSignOut,
       getIdToken,
       checkAuthState // 追加
     }}>

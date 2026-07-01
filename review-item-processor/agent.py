@@ -1,5 +1,4 @@
 import hashlib
-import itertools
 import json
 import os
 import re
@@ -9,13 +8,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
-from logger import logger
-from model_config import ModelConfig
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
-from strands.types.tools import AgentTool
 from strands_tools import file_read, image_reader
+
+from logger import logger
+from model_config import ModelConfig
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
 
@@ -76,10 +75,8 @@ IMAGE_FILE_EXTENSIONS = [
 PDF_FILE_EXTENSIONS = [".pdf"]
 
 # Default model IDs
-DEFAULT_DOCUMENT_MODEL_ID = (
-    "global.anthropic.claude-sonnet-4-20250514-v1:0"  # For all processing
-)
-DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-4-20250514-v1:0"  # For image processing (same as document by default)
+DEFAULT_DOCUMENT_MODEL_ID = "global.anthropic.claude-sonnet-4-6"  # For all processing
+DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"  # For image processing (same as document by default)
 
 # Get model IDs from environment variables with fallback to defaults
 DOCUMENT_MODEL_ID = os.environ.get(
@@ -721,7 +718,9 @@ def _build_tool_usage_section(
         tool_descriptions.append(
             "- **code_interpreter**: Perform calculations, data analysis, or process structured data"
         )
-        use_cases.append("- Perform calculations or data analysis → Use code_interpreter")
+        use_cases.append(
+            "- Perform calculations or data analysis → Use code_interpreter"
+        )
 
     # Knowledge Base
     kb_config = tool_config.get("knowledgeBase")
@@ -1013,22 +1012,22 @@ You have access to additional tools including MCP tools and knowledge_base_query
 Follow these guidelines:
 
 - WHEN you need to verify factual information in the image (addresses,
-  company names, figures, dates, etc.)  
+  company names, figures, dates, etc.)
   → **USE** a search/scrape-type MCP tool to confirm with external sources.
-- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases  
+- WHEN you need to verify compliance against regulations, standards, or internal policies stored in knowledge bases
   → **USE** knowledge_base_query to search authoritative knowledge bases.
-- WHEN the image content is unclear, ambiguous, or requires additional context  
+- WHEN the image content is unclear, ambiguous, or requires additional context
   → **USE** MCP tools to gather supplementary evidence.
-- WHEN precise definitions of visual elements or regulations are required  
+- WHEN precise definitions of visual elements or regulations are required
   → **USE** an MCP tool to consult official or authoritative references.
 - WHEN confirming the existence or legitimacy of an organisation/person shown
-  in the image  
+  in the image
   → **USE** an MCP tool that can access public registries or databases.
-- WHEN your estimated confidence would fall below **0.80**  
+- WHEN your estimated confidence would fall below **0.80**
   → **USE** one or more external tools to raise your confidence.
 
 ## IMPORTANT OUTPUT LANGUAGE REQUIREMENT
-YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.  
+YOU MUST GENERATE THE ENTIRE OUTPUT IN {language_name}.
 ALL TEXT — including every JSON value — MUST BE IN {language_name}.
 
 Review the content and determine compliance. If multiple images are provided,
@@ -1143,7 +1142,7 @@ def process_review_from_s3(
             feedback_summary=feedback_summary,
         )
 
-        logger.info(f"S3 review completed successfully")
+        logger.info("S3 review completed successfully")
         return result
 
     finally:
@@ -1212,7 +1211,7 @@ def process_review_from_local(
         feedback_summary=feedback_summary,
     )
 
-    logger.info(f"Local review completed successfully")
+    logger.info("Local review completed successfully")
     return result
 
 

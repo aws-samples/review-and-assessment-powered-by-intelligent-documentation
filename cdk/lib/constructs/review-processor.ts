@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as lambdaPython from "@aws-cdk/aws-lambda-python-alpha";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -125,20 +126,27 @@ export class ReviewProcessor extends Construct {
       enableCodeInterpreter: props.enableCodeInterpreter,
     });
 
-    // Lambda function for invoking AgentCore
-    const invokeAgentLambda = new lambda.Function(this, "InvokeAgentFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda/invoke-agent"), {
-        exclude: ["*.ts", "*.d.ts", "tsconfig.json", "node_modules"],
-      }),
-      timeout: cdk.Duration.minutes(15),
-      environment: {
-        AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
-        BEDROCK_REGION: props.bedrockRegion,
+    // Lambda function for invoking AgentCore.
+    const invokeAgentLambda = new lambdaNodejs.NodejsFunction(
+      this,
+      "InvokeAgentFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_24_X,
+        entry: path.join(__dirname, "lambda/invoke-agent/index.ts"),
+        handler: "handler",
+        timeout: cdk.Duration.minutes(15),
+        environment: {
+          AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
+          BEDROCK_REGION: props.bedrockRegion,
+        },
+        architecture: lambda.Architecture.ARM_64,
+        bundling: {
+          format: lambdaNodejs.OutputFormat.ESM,
+          target: "node24",
+          externalModules: ["@aws-sdk/*"],
+        },
       },
-      architecture: lambda.Architecture.ARM_64,
-    });
+    );
 
     // Grant permissions to invoke AgentCore
     this.reviewAgent.grantInvoke(invokeAgentLambda);

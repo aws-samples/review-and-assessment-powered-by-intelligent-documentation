@@ -29,7 +29,7 @@ export class FeedbackAggregator extends Construct {
     const aggregationDays = props.aggregationDays || 7;
     const scheduleExpression = props.scheduleExpression || "cron(0 2 * * ? *)";
     const summaryModelId =
-      props.summaryModelId || "global.anthropic.claude-sonnet-4-20250514-v1:0";
+      props.summaryModelId || "global.anthropic.claude-sonnet-4-6";
 
     // Security group
     this.securityGroup = new ec2.SecurityGroup(this, "SecurityGroup", {
@@ -46,7 +46,7 @@ export class FeedbackAggregator extends Construct {
           file: "Dockerfile.prisma.lambda",
           platform: Platform.LINUX_ARM64,
           cmd: ["dist/feedback-aggregator/index.handler"],
-        }
+        },
       ),
       memorySize: 1024,
       timeout: cdk.Duration.minutes(15),
@@ -70,7 +70,7 @@ export class FeedbackAggregator extends Construct {
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
         resources: ["*"],
-      })
+      }),
     );
 
     // EventBridge Scheduler for scheduled execution

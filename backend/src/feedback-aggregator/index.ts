@@ -90,11 +90,10 @@ import { getDatabaseUrl } from "../utils/database";
 // ============================================================================
 
 /** Default AI model for generating feedback summaries (cross-region inference) */
-const DEFAULT_SUMMARY_MODEL_ID =
-  "global.anthropic.claude-sonnet-4-20250514-v1:0";
+const DEFAULT_SUMMARY_MODEL_ID = "global.anthropic.claude-sonnet-4-6";
 
 /** Model ID for CountTokens API (must be single-region, no prefix) */
-const COUNT_TOKENS_MODEL_ID = "anthropic.claude-sonnet-4-20250514-v1:0";
+const COUNT_TOKENS_MODEL_ID = "anthropic.claude-sonnet-4-6";
 
 /** Maximum tokens to include in AI context (input limit) - 95% of Claude Sonnet 4's 200k context window */
 const DEFAULT_MAX_CONTEXT_TOKENS = 190000;
@@ -196,14 +195,14 @@ export const handler = async (): Promise<{
 
   // Find checklists that have NEW feedback since last summary update
   const checklistsWithFeedback = await db.$queryRaw<ChecklistWithLastUpdate[]>`
-    SELECT DISTINCT 
+    SELECT DISTINCT
       rr.check_id,
       cl.feedback_summary_updated_at as last_update
     FROM review_results rr
     JOIN check_lists cl ON rr.check_id = cl.check_id
-    WHERE rr.user_override = true 
+    WHERE rr.user_override = true
       AND rr.user_comment IS NOT NULL
-      AND (cl.feedback_summary_updated_at IS NULL 
+      AND (cl.feedback_summary_updated_at IS NULL
            OR rr.updated_at > cl.feedback_summary_updated_at)
   `;
 
