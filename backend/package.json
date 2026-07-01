@@ -55,7 +55,7 @@
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "ts-unused-exports": "^11.0.1",
-    "tsx": "^4.7.1",
+    "tsx": "^4.22.4",
     "typescript": "^5.2.2",
     "vitest": "^3.2.2"
   }
