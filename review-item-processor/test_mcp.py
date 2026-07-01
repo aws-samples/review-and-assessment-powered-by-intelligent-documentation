@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Test MCP tool integration with uvx"""
+
 import os
+
 import boto3
+
 from agent import process_review
 
 
@@ -22,7 +25,7 @@ def get_config():
             "document_bucket": os.environ.get("DOCUMENT_BUCKET", "test-bucket"),
             "document_model_id": os.environ.get(
                 "DOCUMENT_PROCESSING_MODEL_ID",
-                "global.anthropic.claude-sonnet-4-20250514-v1:0",
+                "global.anthropic.claude-sonnet-4-6",
             ),
         }
 
@@ -35,7 +38,7 @@ def test_mcp_with_uvx():
 
     # Use real PDF from examples
     test_pdf = "../examples/ja/ユースケース003_車庫申請/申請書例.pdf"
-    
+
     if not os.path.exists(test_pdf):
         print(f"❌ Test PDF not found: {test_pdf}")
         return
@@ -63,7 +66,7 @@ def test_mcp_with_uvx():
             toolConfiguration=tool_config,
         )
 
-        print(f"\n✅ Test completed successfully")
+        print("\n✅ Test completed successfully")
         print(f"   Result: {result.get('result')}")
         print(f"   Confidence: {result.get('confidence')}")
 
@@ -75,7 +78,7 @@ def test_mcp_with_uvx():
         # Check if MCP tools were used
         if "verificationDetails" in result:
             sources = result["verificationDetails"].get("sourcesDetails", [])
-            print(f"\n   📋 Tool usage:")
+            print("\n   📋 Tool usage:")
             print(f"      Total tool calls: {len(sources)}")
 
             mcp_tools_used = [
@@ -96,13 +99,13 @@ def test_mcp_with_uvx():
                 for tool in mcp_tools_used[:3]:  # Show first 3
                     print(f"         - {tool.get('toolName')}")
             else:
-                print(f"      ⚠️  No MCP tools detected in tool history")
+                print("      ⚠️  No MCP tools detected in tool history")
         else:
-            print(f"\n   ❌ verificationDetails field missing!")
+            print("\n   ❌ verificationDetails field missing!")
 
         if "reviewMeta" in result:
             meta = result["reviewMeta"]
-            print(f"\n   💰 Cost:")
+            print("\n   💰 Cost:")
             print(
                 f"      Tokens: {meta.get('input_tokens', 0)} input, {meta.get('output_tokens', 0)} output"
             )
@@ -117,7 +120,7 @@ def test_mcp_with_uvx():
         # Cleanup
         try:
             s3.delete_object(Bucket=config["document_bucket"], Key=test_key)
-            print(f"🧹 Cleaned up")
+            print("🧹 Cleaned up")
         except Exception as e:
             print(f"Cleanup error: {e}")
 
