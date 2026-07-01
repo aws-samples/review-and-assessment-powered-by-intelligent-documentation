@@ -7,11 +7,9 @@
     "test": "jest",
     "cdk": "cdk",
     "build:backend": "cd ../backend && npm ci && npm run prisma:generate && npm run build",
-    "build:lambda": "cd lib/constructs/lambda/invoke-agent && npm ci && npm run build",
-    "build:all": "npm run build:backend && npm run build:lambda && npm run build",
+    "build:all": "npm run build:backend && npm run build",
     "deploy": "npm ci && npm run build:all && npx cdk deploy --all --require-approval never --profile review",
-    "preinstall": "cd ../backend && npm ci && npm run prisma:generate",
-    "postinstall": "cd lib/constructs/lambda/invoke-agent && npm ci && npm run build"
+    "preinstall": "cd ../backend && npm ci && npm run prisma:generate"
   },
   "devDependencies": {
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.312",

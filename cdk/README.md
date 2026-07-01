@@ -7,8 +7,10 @@ The `cdk.json` file tells the CDK Toolkit how to execute the app.
 
 ## Deploy
 
-From a fresh checkout, `npm run deploy` builds all packages (backend, the
-invoke-agent lambda, and CDK) and deploys automatically:
+From a fresh checkout, `npm run deploy` builds all packages (backend and CDK)
+and deploys automatically. The review invoke-agent Lambda is compiled and
+bundled from TypeScript by esbuild during synth, so it needs no separate build
+step:
 
 ```
 cd cdk
@@ -37,9 +39,9 @@ npx cdk deploy --require-approval never --all
 
 ## Other commands
 
-* `npm run build`      compile CDK TypeScript to js (run `npm ci` first)
-* `npm run build:all`  build backend + invoke-agent lambda + CDK
-* `npm run watch`      watch for changes and compile
-* `npm run test`       run the jest unit tests
-* `npx cdk diff`       compare deployed stack with current state
-* `npx cdk synth`      emit the synthesized CloudFormation template
+- `npm run build` compile CDK TypeScript to js (run `npm ci` first)
+- `npm run build:all` build backend + CDK (the invoke-agent Lambda is bundled by esbuild at synth time)
+- `npm run watch` watch for changes and compile
+- `npm run test` run the jest unit tests
+- `npx cdk diff` compare deployed stack with current state
+- `npx cdk synth` emit the synthesized CloudFormation template

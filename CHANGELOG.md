@@ -25,10 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Notes that `npm run deploy` uses the `review` AWS profile.
   - Adds a manual step-by-step deployment fallback.
   - Removes the misleading bare `npx cdk deploy` command, which skips the
-    backend and invoke-agent lambda builds.
+    backend build.
 
 ### Fixed
 
+- Fixed the review-processing `InvokeAgentFunction` Lambda failing at
+  initialization with `ReferenceError: exports is not defined in ES module scope`.
+  The Lambda was packaged via `Code.fromAsset`, which shipped a pre-built
+  `index.js` from disk; a stale CommonJS build combined with the package's
+  `"type": "module"` caused Node to reject it. Switched the construct to
+  `NodejsFunction`, which compiles and bundles `index.ts` with esbuild in ESM
+  format at synth time, eliminating the stale/mismatched artifact class of bug.
+  The AWS SDK is kept external (`@aws-sdk/*`) since it is provided by the Node.js
+  Lambda runtime.
 - Reordered the CDK `deploy` npm script so `npm ci` runs before
   `npm run build:all`. Previously the build step invoked `tsc` before the CDK
   dependencies were installed, causing `tsc: command not found` on a fresh
@@ -38,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed a debug `console.log` of the Cognito auth configuration from the
   frontend `AuthContext`.
+- Removed the now-obsolete `build:lambda` npm script and `postinstall` hook
+  from `cdk/package.json` (and dropped `build:lambda` from `build:all`). The
+  invoke-agent Lambda is now bundled by esbuild during synth, so it no longer
+  needs a separate `tsc` build step or its own installed `node_modules`.
 
 ### Internal
 
