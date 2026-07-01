@@ -26,12 +26,12 @@ const parameterSchema = z.object({
   // AI モデル設定
   documentProcessingModelId: z
     .string()
-    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
+    .default("global.anthropic.claude-sonnet-4-6")
     .describe("ドキュメント処理に使用するAIモデルID"),
 
   imageReviewModelId: z
     .string()
-    .default("global.anthropic.claude-sonnet-4-20250514-v1:0")
+    .default("global.anthropic.claude-sonnet-4-6")
     .describe("画像レビューに使用するAIモデルID"),
 
   // チェックリスト項目ごとに選択可能なモデル一覧

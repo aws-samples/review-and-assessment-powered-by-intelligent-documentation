@@ -2,7 +2,6 @@ import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as path from "path";
 import { Construct } from "constructs";
 import { ChecklistProcessor } from "./constructs/checklist-processor";
 import { ReviewProcessor } from "./constructs/review-processor";
@@ -184,6 +183,7 @@ export class RapidStack extends cdk.Stack {
         vpc,
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
+        documentProcessingModelId: props.parameters.documentProcessingModelId,
       },
     );
 
