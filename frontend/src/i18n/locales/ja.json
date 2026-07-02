@@ -87,7 +87,8 @@
     "signInFacebook": "Facebookでサインイン",
     "signInAmazon": "Amazonでサインイン",
     "signInApple": "Appleでサインイン",
-    "copyright": "© {year}"
+    "copyright": "© {year}",
+    "authRequired": "認証エラー: ログインが必要です"
   },
   "notFound": {
     "title": "404",
@@ -171,7 +172,13 @@
     "modelDefault": "デフォルト",
     "modelUpdateSuccess": "モデルを更新しました",
     "modelUpdateError": "モデルの更新に失敗しました",
-    "modelLoadError": "モデルの読み込みに失敗しました"
+    "modelLoadError": "モデルの読み込みに失敗しました",
+    "processingStatus": "処理ステータス",
+    "noTreeItems": "チェックリスト項目がありません",
+    "resolveAmbiguityAfterUpdate": "更新後に指摘を解消",
+    "itemDeleteError": "「{{name}}」の削除に失敗しました。",
+    "addChildItem": "子項目を追加",
+    "childItemsLoadError": "子項目の読み込みに失敗しました。"
   },
   "review": {
     "title": "審査ジョブ一覧",
@@ -288,7 +295,13 @@
         "exitCode": "終了コード",
         "truncated": "切り詰められました"
       }
-    }
+    },
+    "resultsLoadError": "審査結果の読み込みに失敗しました。",
+    "noResultsForFilter": "選択したフィルタ条件に一致する審査結果がありません",
+    "noResults": "審査結果がありません",
+    "childItemsLoadError": "子項目の読み込みに失敗しました。",
+    "noChildItemsForFilter": "選択したフィルタ条件に一致する子項目がありません",
+    "noChildItems": "子項目はありません"
   },
   "fileUploader": {
     "dropFiles": "ファイルをドロップしてください",
@@ -337,7 +350,9 @@
     "createNewTemplate": "新規テンプレート作成",
     "templateName": "テンプレート名",
     "prompt": "プロンプト",
-    "resetToDefault": "デフォルトに戻す"
+    "resetToDefault": "デフォルトに戻す",
+    "promptContent": "プロンプト内容",
+    "lastUpdatedLabel": "最終更新"
   },
   "mcpServer": {
     "title": "MCPサーバー設定",
@@ -372,7 +387,6 @@
     "name": "名前",
     "namePlaceholder": "設定名を入力",
     "nameRequired": "名前は必須です",
-    "description": "説明",
     "descriptionPlaceholder": "説明を入力 (任意)",
     "tools": "ツール",
     "toolsRequired": "少なくとも1つのツールを有効にしてください",

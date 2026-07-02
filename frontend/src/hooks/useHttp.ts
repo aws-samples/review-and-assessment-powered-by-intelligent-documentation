@@ -1,4 +1,5 @@
 import useSWR, { SWRConfiguration, Fetcher } from "swr";
+import i18n from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE =
@@ -33,7 +34,7 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
     // 401エラーの場合は認証エラーとして処理
     if (response.status === 401) {
-      throw new Error("認証エラー: ログインが必要です");
+      throw new Error(i18n.t("auth.authRequired"));
     }
 
     const errorData = await response.json().catch(() => ({}));

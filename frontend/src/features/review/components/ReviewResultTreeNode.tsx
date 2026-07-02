@@ -3,6 +3,7 @@
  * 子要素を動的に読み込む機能を持つ
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ReviewResultDetailModel, REVIEW_FILE_TYPE } from "../types";
 import ReviewResultItem from "./ReviewResultItem";
 import {
@@ -37,6 +38,7 @@ export default function ReviewResultTreeNode({
   filter,
   documents,
 }: ReviewResultTreeNodeProps) {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(level < maxDepth || autoExpand);
 
   // 子項目を取得（レベルが最大深度未満の場合は自動的に、それ以外は展開時に）
@@ -86,16 +88,14 @@ export default function ReviewResultTreeNode({
           {isLoadingChildren ? (
             <div
               className="flex justify-center py-4"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}
-            >
+              style={{ marginLeft: `${(level + 1) * 20}px` }}>
               <Spinner size="md" />
             </div>
           ) : errorChildren ? (
             <div
               className="text-red-500 py-2"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}
-            >
-              子項目の読み込みに失敗しました。
+              style={{ marginLeft: `${(level + 1) * 20}px` }}>
+              {t("review.childItemsLoadError")}
             </div>
           ) : childItems.length > 0 ? (
             childItems.map((childItem) => (
@@ -113,11 +113,10 @@ export default function ReviewResultTreeNode({
           ) : (
             <div
               className="text-gray-500 py-2"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}
-            >
+              style={{ marginLeft: `${(level + 1) * 20}px` }}>
               {filter !== "all"
-                ? `選択したフィルタ条件に一致する子項目がありません`
-                : `子項目はありません`}
+                ? t("review.noChildItemsForFilter")
+                : t("review.noChildItems")}
             </div>
           )}
         </div>
