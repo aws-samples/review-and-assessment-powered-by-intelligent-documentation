@@ -382,7 +382,7 @@
   },
   "toolConfiguration": {
     "title": "Tool Configurations",
-    "description": "Manage tool configurations for checklist items",
+    "description": "Description",
     "create": "New Configuration",
     "name": "Name",
     "namePlaceholder": "Enter configuration name",

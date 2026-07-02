@@ -382,7 +382,7 @@
   },
   "toolConfiguration": {
     "title": "ツール設定一覧",
-    "description": "チェックリスト項目のツール設定を管理します",
+    "description": "説明",
     "create": "新規設定",
     "name": "名前",
     "namePlaceholder": "設定名を入力",
