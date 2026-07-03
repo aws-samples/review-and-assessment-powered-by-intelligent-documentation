@@ -24,7 +24,7 @@ export const parameters = {
   // Bedrock設定
   // Amazon Bedrockを利用するリージョンを指定します
   // ---------------------------------------------------
-  bedrockRegion: "us-east-1", // Bedrockを利用するリージョン（デフォルト：us-west-2）
+  // bedrockRegion: "us-east-1", // Bedrockを利用するリージョン（デフォルト：us-west-2）
   // AI モデル設定
   // デフォルトモデル以外を使用したい場合に設定します
   // 注意: モデルIDのプレフィックス（us., eu., apac.など）はbedrockRegionに対応している必要があります
