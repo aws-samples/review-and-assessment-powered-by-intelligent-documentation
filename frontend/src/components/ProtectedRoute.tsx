@@ -1,4 +1,3 @@
-import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Authenticator } from "@aws-amplify/ui-react";
@@ -15,7 +14,6 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -72,8 +70,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
             }}>
             {/* Ignore the destructured props since we don't use them */}
             {(_) => {
-              // Automatically redirect on successful authentication
-              window.location.href = "/";
+              // Redirect on successful auth. Use the app base so it respects
+              // the API Gateway stage prefix (e.g. "/app/").
+              window.location.href = import.meta.env.BASE_URL || "/";
               return <div></div>;
             }}
           </Authenticator>

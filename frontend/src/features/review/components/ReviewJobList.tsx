@@ -1,7 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAlert } from "../../../hooks/useAlert";
 import { useTranslation } from "react-i18next";
-import { ReviewJobSummary, REVIEW_JOB_STATUS } from "../types";
+import { ReviewJobSummary } from "../types";
 import { HiEye, HiTrash } from "react-icons/hi";
 import Table, { TableColumn, TableAction } from "../../../components/Table";
 import StatusBadge from "../../../components/StatusBadge";
@@ -16,11 +17,12 @@ interface ReviewJobListProps {
 
 export const ReviewJobList: React.FC<ReviewJobListProps> = ({
   jobs,
-  onJobClick,
   revalidate,
   isLoading,
 }) => {
   const { t } = useTranslation();
+
+  const navigate = useNavigate();
 
   const { showConfirm, showError, AlertModal } = useAlert();
 
@@ -132,7 +134,7 @@ export const ReviewJobList: React.FC<ReviewJobListProps> = ({
       label: t("common.details"),
       onClick: (job, e) => {
         e.stopPropagation();
-        window.location.href = `/review/${job.id}`;
+        navigate(`/review/${job.id}`);
       },
       variant: "primary",
       outline: true,
@@ -150,7 +152,7 @@ export const ReviewJobList: React.FC<ReviewJobListProps> = ({
 
   // Handle row click to navigate to details page - same as the details button
   const handleRowClick = (job: ReviewJobSummary) => {
-    window.location.href = `/review/${job.id}`;
+    navigate(`/review/${job.id}`);
   };
 
   return (

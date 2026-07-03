@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HiTrash, HiLockClosed, HiEye } from "react-icons/hi";
 import { ToolConfiguration } from "../types";
@@ -19,8 +20,10 @@ export default function ToolConfigurationList({
   const { t } = useTranslation();
   const { showConfirm, showError, AlertModal } = useAlert();
 
+  const navigate = useNavigate();
+
   const handleRowClick = (item: ToolConfiguration) => {
-    window.location.href = `/tool-configurations/${item.id}`;
+    navigate(`/tool-configurations/${item.id}`);
   };
 
   const handleDelete = (item: ToolConfiguration, e: React.MouseEvent) => {
@@ -29,17 +32,20 @@ export default function ToolConfigurationList({
       return;
     }
 
-    showConfirm(t("toolConfiguration.deleteConfirmation", { name: item.name }), {
-      title: t("toolConfiguration.deleteTitle"),
-      confirmButtonText: t("toolConfiguration.deleteButton"),
-      onConfirm: async () => {
-        try {
-          await onDelete(item.id, item.name);
-        } catch (error) {
-          showError(t("toolConfiguration.deleteError"));
-        }
-      },
-    });
+    showConfirm(
+      t("toolConfiguration.deleteConfirmation", { name: item.name }),
+      {
+        title: t("toolConfiguration.deleteTitle"),
+        confirmButtonText: t("toolConfiguration.deleteButton"),
+        onConfirm: async () => {
+          try {
+            await onDelete(item.id, item.name);
+          } catch {
+            showError(t("toolConfiguration.deleteError"));
+          }
+        },
+      }
+    );
   };
 
   const columns: TableColumn<ToolConfiguration>[] = [
@@ -101,7 +107,7 @@ export default function ToolConfigurationList({
       icon: <HiEye className="mr-1 h-4 w-4" />,
       label: t("common.details"),
       onClick: (item) => {
-        window.location.href = `/tool-configurations/${item.id}`;
+        navigate(`/tool-configurations/${item.id}`);
       },
       variant: "primary",
       outline: true,
