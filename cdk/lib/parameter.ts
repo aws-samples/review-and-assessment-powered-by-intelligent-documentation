@@ -138,4 +138,14 @@ export const parameters = {
   // ---------------------------------------------------
   s3ApiGatewayFrontend: true, // Intermediate mode: S3 + dedicated REGIONAL API Gateway frontend
   closedNetwork: true, // Full closed network mode (implies s3ApiGatewayFrontend)
+  //
+  // AgentCore Runtime network mode (only takes effect when closedNetwork: true):
+  //  - "PUBLIC" (default): runtime runs on AWS-managed networking with internet
+  //    access. Required for stdio/public-HTTP MCP tools and uv/npx runtime
+  //    fetches. The invoke path (Lambda -> AgentCore) is still private via the
+  //    bedrock-agentcore VPC endpoint.
+  //  - "VPC": runtime runs inside the isolated VPC with no internet (maximum
+  //    isolation). stdio/public-HTTP MCP and uv runtime fetches will NOT work;
+  //    only in-VPC HTTP MCP or AgentCore Gateway MCP tools work.
+  // agentCoreNetworkMode: "VPC",
 };

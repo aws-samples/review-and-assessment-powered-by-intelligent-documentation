@@ -79,6 +79,9 @@
    - `--cognito-user-pool-client-id`: 既存の Cognito User Pool Client ID（指定しない場合は新規作成）
    - `--cognito-domain-prefix`: Cognito ドメインのプレフィックス（指定しない場合は自動生成）
    - `--mcp-admin`: MCP ランタイム Lambda 関数に管理者権限を付与するかどうか（true/false）
+   - `--s3-api-gateway-frontend`: CloudFront の代わりに REGIONAL API Gateway 経由で SPA を配信するかどうか（true/false）
+   - `--closed-network`: 完全プライベート（分離サブネット、VPC エンドポイント、PRIVATE API Gateway）でデプロイするかどうか。`--s3-api-gateway-frontend` を含意（true/false）
+   - `--agentcore-network-mode`: クローズド時の AgentCore Runtime ネットワークモード（`PUBLIC` = インターネットあり / MCP 対応、`VPC` = 完全分離）。デフォルト: `PUBLIC`
    - `--bedrock-region`: Amazon Bedrock を利用するリージョン（デフォルト：us-west-2）
    - `--document-model`: ドキュメント処理に使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
    - `--image-model`: 画像レビューに使用する AI モデル ID（デフォルト：us.anthropic.claude-3-7-sonnet-20250219-v1:0）
@@ -167,14 +170,56 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます:
 | **MCP 機能**           | mcpAdmin                      | MCP ランタイム Lambda 関数に管理者権限を付与するかどうか ([詳細](./mcp-features.md))                                                                                   | false (無効)                              |
 | **Citations API**      | enableCitations               | PDF ドキュメントの Citations API を有効にするかどうか ([AWS 発表](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/)) | true (有効)                               |
 | **Map State 並行処理** | reviewMapConcurrency          | レビュープロセッサの Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                                         | 1                                         |
-| **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサのインライン Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                         | 1                                         |
-| **スケジュール設定**   | feedbackAggregatorScheduleExpression | Feedback Aggregator の実行スケジュール（EventBridge Scheduler expression 形式）                                                                              | cron(0 2 * * ? *) (毎日 2:00 UTC)         |
+| **Map State 並行処理** | checklistInlineMapConcurrency | チェックリストプロセッサーのインライン Map State 並行処理数 (スロットリングと相談して設定が必要)                                                                         | 1                                         |
 | **モデル選択**         | availableModels                      | チェックリスト項目ごとに選択可能なモデル一覧。空配列 `[]` に設定するとモデル選択UIが非表示になる                                                              | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Claude Sonnet 4 |
+| **ネットワークモード** | s3ApiGatewayFrontend          | CloudFront の代わりに専用の REGIONAL API Gateway（S3 プロキシ）経由で SPA を配信する。ネットワーク構成は標準のまま                                                     | false                                     |
+| **ネットワークモード** | closedNetwork                 | 完全プライベートモード: 分離サブネット、NAT なし、VPC エンドポイント、PRIVATE API Gateway、Cognito PrivateLink。`s3ApiGatewayFrontend` を含意する          | false                                     |
+| **ネットワークモード** | agentCoreNetworkMode          | AgentCore Runtime のネットワークモード（`closedNetwork` 時のみ適用）。`PUBLIC` = ランタイムにインターネットあり（MCP/uv 動作）、`VPC` = ランタイム完全分離。呼び出し経路はいずれもプライベート | PUBLIC                                    |
+| **スケジュール設定**   | feedbackAggregatorScheduleExpression | Feedback Aggregator の実行スケジュール（EventBridge Scheduler expression 形式）                                                                              | cron(0 2 * * ? *) (毎日 2:00 UTC)         |
 
 **Schedule Expression 形式:**
 - Cron 形式: `cron(分 時 日 月 曜日 年)` - 例: `cron(0 2 * * ? *)` (毎日 2:00 UTC)
 - Rate 形式: `rate(値 単位)` - 例: `rate(1 day)` (1 日ごと), `rate(12 hours)` (12 時間ごと)
 - 詳細: [Schedule types on EventBridge Scheduler](https://docs.aws.amazon.com/scheduler/latest/UserGuide/schedule-types.html)
+
+### クローズド / プライベートネットワークデプロイ
+
+デフォルトでは**パブリック**にデプロイされます（CloudFront + S3、インターネットから到達可能）。
+以下 2 つのオプションパラメータで、フロントエンドの配信方法とネットワーク分離の有無を変更できます:
+
+- **`s3ApiGatewayFrontend`**（デフォルト `false`）: CloudFront の代わりに REGIONAL API Gateway（S3 プロキシ）
+  経由で SPA を配信します。依然としてパブリックで、ネットワークは標準（NAT）のままです。CloudFront を
+  使わない場合に有用です。
+- **`closedNetwork`**（デフォルト `false`）: 完全に**プライベート**なデプロイ — NAT / インターネットゲートウェイ
+  のない分離サブネット、すべての AWS アクセスを VPC エンドポイント経由（Bedrock、`bedrock-agentcore`、S3、
+  Cognito PrivateLink 等）、VPC エンドポイントにロックした PRIVATE API Gateway、API ステージへの REGIONAL WAF。
+  これは自動的に `s3ApiGatewayFrontend` を含意します（閉域ネットワークでは CloudFront を使用できないため）。
+- **`agentCoreNetworkMode`**（デフォルト `PUBLIC`）: クローズドモードでの AgentCore Runtime のネットワーク
+  モードを制御します（下記のトレードオフを参照）。
+
+いずれも `cdk/lib/parameter.ts`（または `-c`、例: `npx cdk deploy -c rapid.closedNetwork=true`）、
+または CloudShell スクリプトのフラグ `--s3-api-gateway-frontend` / `--closed-network` で設定できます。
+
+`closedNetwork: true` の場合:
+
+- **デプロイ時のインターネット接続は依然として必要です**（コンテナイメージのビルド/プッシュ、フロントエンドビルドのため）。
+  分離されるのはデプロイ済みリソースの*実行時*のネットワーク経路のみです。完全オフラインのデプロイは対象外です。
+- **アクセスは VPC 内からのみ** — PRIVATE API はパブリックインターネットから到達できません。VPC ネットワーク上のホスト
+  （ブラウザ付き EC2、Client VPN 等）からアクセスしてください。
+- **認証**: Cognito PrivateLink エンドポイント経由ではユーザー名/パスワード（SRP）サインインのみ動作します。
+  ホスト UI / OAuth / フェデレーションサインインは**未対応**。GovCloud では利用不可。
+- **AgentCore Runtime ネットワークモード**（`agentCoreNetworkMode`、デフォルト `PUBLIC`）: エージェントランタイムを
+  AWS 管理ネットワークで実行する（`PUBLIC`）か、分離 VPC 内で実行する（`VPC`）かを制御します。いずれの場合も
+  呼び出し経路（Lambda → AgentCore）は `bedrock-agentcore` VPC エンドポイント経由で常にプライベートです。
+  ランタイムのコンピュート自体にインターネットアクセスを禁止する必要がなければ `PUBLIC`（デフォルト）を使用してください。**トレードオフ:**
+  - `PUBLIC`: ランタイムにインターネットあり — stdio/パブリック HTTP の **MCP ツール** と `uv`/`npx` の実行時フェッチが動作。
+  - `VPC`: ランタイムに**インターネットなし** — stdio / パブリック HTTP MCP ツールは動作せず、VPC 内 HTTP MCP
+    サーバーまたは AgentCore Gateway MCP ツールのみ動作。最大限の分離。
+- **`bedrockRegion` はデプロイリージョンと一致させる必要があります** — `bedrock-runtime` エンドポイントは別リージョンへ
+  プライベート到達できません。`global.*` プロファイルは動作しますがデータがクロスリージョンにルーティングされる
+  可能性があり（synth 時に警告）、データレジデンシーにはリージョン固定 ID を使用してください。
+- **`closedNetwork` の有効/無効の切り替えはインプレースではできません** — VPC トポロジ変更により置換が発生します。
+  新しいスタック/リージョンにデプロイしてください（事前に `cdk diff`、destroy 前に Aurora のスナップショットを取得）。
 
 ### AI モデルのカスタマイズ
 

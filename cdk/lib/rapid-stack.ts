@@ -99,7 +99,7 @@ export class RapidStack extends cdk.Stack {
     // no internet egress at runtime. All AWS access goes through VPC endpoints.
     // Standard / intermediate: public + private-with-egress + isolated, 1 NAT GW.
     const vpc = new ec2.Vpc(this, "RapidVpc", {
-      maxAzs: 2,
+      maxAzs: 3,
       natGateways: closedNetwork ? 0 : 1,
       subnetConfiguration: closedNetwork
         ? [
@@ -209,6 +209,9 @@ export class RapidStack extends cdk.Stack {
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
       availableModels: props.parameters.availableModels,
       subnetSelection: lambdaSubnetSelection,
+      closedNetwork: closedNetwork,
+      agentCoreVpcMode:
+        closedNetwork && props.parameters.agentCoreNetworkMode === "VPC",
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）

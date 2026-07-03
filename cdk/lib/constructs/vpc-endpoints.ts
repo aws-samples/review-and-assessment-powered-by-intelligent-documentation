@@ -95,6 +95,10 @@ export class VpcEndpoints extends Construct {
       Lambda: ec2.InterfaceVpcEndpointAwsService.LAMBDA,
       CognitoIdp: ec2.InterfaceVpcEndpointAwsService.COGNITO_IDP,
       S3Interface: ec2.InterfaceVpcEndpointAwsService.S3,
+      // Telemetry: the AgentCore runtime exports
+      XRay: ec2.InterfaceVpcEndpointAwsService.XRAY,
+      CloudWatchMonitoring:
+        ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_MONITORING,
       // SSM endpoints so instances in the isolated VPC (e.g. an admin/test host)
       // can be managed via Session Manager / Fleet Manager without NAT.
       Ssm: ec2.InterfaceVpcEndpointAwsService.SSM,

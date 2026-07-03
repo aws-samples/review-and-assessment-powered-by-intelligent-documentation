@@ -38,6 +38,13 @@ const parameterSchema = z.object({
       "Fully private network mode: isolated subnets, no NAT, VPC endpoints, PRIVATE API Gateways, AgentCore VPC, Cognito PrivateLink. Implies S3+APIGW frontend.",
     ),
 
+  agentCoreNetworkMode: z
+    .enum(["PUBLIC", "VPC"])
+    .default("PUBLIC")
+    .describe(
+      "AgentCore Runtime network mode. PUBLIC: runtime runs on AWS-managed networking with internet access (required for stdio/public-HTTP MCP tools and uv/npx runtime fetches). VPC: runtime runs inside the isolated VPC with no internet (max isolation; only in-VPC HTTP MCP or AgentCore Gateway MCP work). Only takes effect when closedNetwork is true.",
+    ),
+
   // AI モデル設定
   documentProcessingModelId: z
     .string()
@@ -347,6 +354,13 @@ export function extractContextParameters(app: any): Record<string, any> {
   const closedNetwork = app.node.tryGetContext("rapid.closedNetwork");
   if (closedNetwork !== undefined) {
     params.closedNetwork = closedNetwork === "true" || closedNetwork === true;
+  }
+
+  const agentCoreNetworkMode = app.node.tryGetContext(
+    "rapid.agentCoreNetworkMode",
+  );
+  if (agentCoreNetworkMode !== undefined) {
+    params.agentCoreNetworkMode = agentCoreNetworkMode;
   }
 
   // Feedback Aggregator スケジュール設定の取得
