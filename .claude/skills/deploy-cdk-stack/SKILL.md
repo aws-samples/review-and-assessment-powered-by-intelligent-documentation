@@ -51,7 +51,7 @@ npx cdk deploy --require-approval never --all
 export const parameters = {
   allowedIpV4AddressRanges: ["192.168.0.0/16"],
   bedrockRegion: "ap-northeast-1",
-  documentProcessingModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0",
+  documentProcessingModelId: "jp.anthropic.claude-sonnet-4-6",
   cognitoSelfSignUpEnabled: false,
   autoMigrate: false,
 };
@@ -61,7 +61,7 @@ export const parameters = {
 
 ```bash
 npx cdk deploy -c rapid.bedrockRegion="ap-northeast-1"
-npx cdk deploy -c rapid='{"bedrockRegion":"us-west-2","documentProcessingModelId":"us.anthropic.claude-sonnet-4-20250514-v1:0"}'
+npx cdk deploy -c rapid='{"bedrockRegion":"us-west-2","documentProcessingModelId":"us.anthropic.claude-sonnet-4-6"}'
 ```
 
 Precedence: Command line > parameter.ts > parameter-schema.ts defaults

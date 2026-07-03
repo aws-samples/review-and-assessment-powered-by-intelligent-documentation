@@ -82,8 +82,8 @@ This method allows you to deploy directly from your browser using AWS CloudShell
    - `--closed-network`: Deploy fully private (isolated subnets, VPC endpoints, PRIVATE API Gateways); implies `--s3-api-gateway-frontend` (true/false)
    - `--agentcore-network-mode`: AgentCore Runtime network mode when closed (`PUBLIC` = internet access / MCP works, `VPC` = full isolation). Default: `PUBLIC`
    - `--bedrock-region`: Region to use for Amazon Bedrock (default: us-west-2)
-   - `--document-model`: AI model ID for document processing (default: us.anthropic.claude-sonnet-4-20250514-v1:0)
-   - `--image-model`: AI model ID for image review processing (default: us.anthropic.claude-sonnet-4-20250514-v1:0)
+   - `--document-model`: AI model ID for document processing (default: global.anthropic.claude-sonnet-4-6)
+   - `--image-model`: AI model ID for image review processing (default: global.anthropic.claude-sonnet-4-6)
    - `--repo-url`: URL of the repository to deploy
    - `--branch`: Branch name to deploy
    - `--tag`: Deploy a specific Git tag
@@ -228,19 +228,22 @@ This application uses Strands agents with tools such as file reading, so you mus
 
 **Examples of tool use supported models**:
 
-- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
-- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
-- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet Global)
-- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet US)
-- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet EU)
-- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude 4.5 Sonnet JP)
-- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet Global)
-- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet US)
-- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet EU)
-- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude 4 Sonnet APAC)
+- `global.anthropic.claude-opus-4-6-v1` (Claude Opus 4.6 Global)
+- `global.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 Global)
+- `us.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 US)
+- `eu.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 EU)
+- `jp.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 JP)
+- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5 Global)
+- `global.anthropic.claude-opus-4-5-20251101-v1:0` (Claude Opus 4.5 Global)
+- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 Global)
+- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 US)
+- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 EU)
+- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 JP)
+- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 Global)
+- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 US)
+- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 EU)
+- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 APAC)
 - `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
-- `us.anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet)
 - `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
 - `us.amazon.nova-2-omni-v1:0` (Amazon Nova 2 Omni)
 
@@ -255,7 +258,7 @@ This application uses Strands agents with tools such as file reading, so you mus
 ```typescript
 // cdk/lib/parameter.ts
 export const parameters = {
-  documentProcessingModelId: "us.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet US
+  documentProcessingModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
   bedrockRegion: "us-west-2", // Oregon region
   // ...
 };
@@ -265,7 +268,7 @@ To configure these, directly edit the `cdk/lib/parameter.ts` file.
 
 ### Per-Checklist-Item Model Selection
 
-By default, each checklist item can be assigned a specific AI model from the `availableModels` list. The default set includes Claude Opus 4.6, Sonnet 4.6, Haiku 4.5, and Sonnet 4 (Global). When no model is selected for an item, `documentProcessingModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for documents, and `imageReviewModelId` (default: `global.anthropic.claude-sonnet-4-20250514-v1:0`) is used for images.
+By default, each checklist item can be assigned a specific AI model from the `availableModels` list. The default set includes Claude Opus 4.6, Sonnet 4.6, Haiku 4.5, and Sonnet 4 (Global). When no model is selected for an item, `documentProcessingModelId` (default: `global.anthropic.claude-sonnet-4-6`) is used for documents, and `imageReviewModelId` (default: `global.anthropic.claude-sonnet-4-6`) is used for images.
 
 To customize the available models:
 
@@ -303,7 +306,7 @@ This solution incurs infrastructure fixed costs (~$5/day, ~$150/month for NAT Ga
 - **Processable Pages**: ~80-85 pages
 - **Cost Example (80 pages)**: ~$0.28
 
-#### High-Accuracy Large-Capacity Model (Claude Opus 4.5, etc.)
+#### High-Accuracy Large-Capacity Model (Claude Opus 4.6, etc.)
 - **Processable Pages**: ~430 pages
 - **Cost Example (400 pages)**: ~$5.75
 
