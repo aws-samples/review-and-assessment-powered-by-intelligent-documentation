@@ -50,6 +50,18 @@ Parameters:
     Default: "false"
     Description: MCPランタイムLambda関数に管理者権限を付与するかどうか
 
+  S3ApiGatewayFrontend:
+    Type: String
+    Default: "false"
+    Description: フロントエンドをCloudFrontの代わりにS3+専用REGIONAL API Gateway（S3プロキシ）で配信するかどうか
+    AllowedValues: ["true", "false"]
+
+  ClosedNetwork:
+    Type: String
+    Default: "false"
+    Description: 完全プライベートネットワークモード（S3+APIGWフロントエンドを含意）
+    AllowedValues: ["true", "false"]
+
   BedrockRegion:
     Type: String
     Default: "us-west-2"
@@ -188,6 +200,10 @@ Resources:
             Value: !Ref CognitoDomainPrefix
           - Name: MCP_ADMIN
             Value: !Ref McpAdmin
+          - Name: S3_API_GATEWAY_FRONTEND
+            Value: !Ref S3ApiGatewayFrontend
+          - Name: CLOSED_NETWORK
+            Value: !Ref ClosedNetwork
           - Name: BEDROCK_REGION
             Value: !Ref BedrockRegion
           - Name: DOCUMENT_PROCESSING_MODEL_ID
@@ -252,6 +268,10 @@ Resources:
                   "echo '' >> cdk/lib/parameter.ts",
                   "echo '  // MCP設定' >> cdk/lib/parameter.ts",
                   "if [ \"$MCP_ADMIN\" = \"true\" ]; then echo '  mcpAdmin: true,' >> cdk/lib/parameter.ts; else echo '  mcpAdmin: false,' >> cdk/lib/parameter.ts; fi",
+                  "echo '' >> cdk/lib/parameter.ts",
+                  "echo '  // ネットワークモード設定' >> cdk/lib/parameter.ts",
+                  "if [ \"$S3_API_GATEWAY_FRONTEND\" = \"true\" ]; then echo '  s3ApiGatewayFrontend: true,' >> cdk/lib/parameter.ts; fi",
+                  "if [ \"$CLOSED_NETWORK\" = \"true\" ]; then echo '  closedNetwork: true,' >> cdk/lib/parameter.ts; fi",
                   "echo '};' >> cdk/lib/parameter.ts",
                   "echo 'パラメータファイルを作成しました:'",
                   "cat cdk/lib/parameter.ts",
