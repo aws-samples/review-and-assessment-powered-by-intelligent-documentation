@@ -15,6 +15,7 @@ import { FrontendApi } from "./constructs/frontend-api";
 import { RegionalWaf } from "./constructs/regional-waf";
 import { PrismaMigration } from "./constructs/prisma-migration";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
+import { VpcEndpoints } from "./constructs/vpc-endpoints";
 import { Parameters } from "./parameter-schema";
 import { execSync } from "child_process";
 import { ReviewQueueProcessor } from "./constructs/review-queue";
@@ -47,6 +48,12 @@ export class RapidStack extends cdk.Stack {
       : useS3ApiGatewayFrontend
         ? "REGIONAL"
         : "EDGE";
+
+    // In closed mode all VPC-attached resources live in isolated subnets
+    // (no NAT, no egress). Otherwise they use the private-with-egress subnets.
+    const lambdaSubnetSelection: ec2.SubnetSelection = closedNetwork
+      ? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
+      : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
 
     // Closed mode: warn (don't block) on cross-region global.* profiles that
     // may route data outside bedrockRegion; recommend region-pinned IDs.
@@ -88,27 +95,38 @@ export class RapidStack extends cdk.Stack {
     });
 
     // VPCの作成
+    // Closed mode: isolated subnets only, no NAT, no public subnets so there is
+    // no internet egress at runtime. All AWS access goes through VPC endpoints.
+    // Standard / intermediate: public + private-with-egress + isolated, 1 NAT GW.
     const vpc = new ec2.Vpc(this, "RapidVpc", {
       maxAzs: 2,
-      natGateways: 1,
-      subnetConfiguration: [
-        {
-          name: "public",
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-          mapPublicIpOnLaunch: false, // Disable auto-assignment of public IPs
-        },
-        {
-          name: "private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 24,
-        },
-        {
-          name: "isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-          cidrMask: 28,
-        },
-      ],
+      natGateways: closedNetwork ? 0 : 1,
+      subnetConfiguration: closedNetwork
+        ? [
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 24,
+            },
+          ]
+        : [
+            {
+              name: "public",
+              subnetType: ec2.SubnetType.PUBLIC,
+              cidrMask: 24,
+              mapPublicIpOnLaunch: false, // Disable auto-assignment of public IPs
+            },
+            {
+              name: "private",
+              subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+              cidrMask: 24,
+            },
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 28,
+            },
+          ],
     });
 
     // Add VPC Flow Logs (AwsSolutions-VPC7)
@@ -118,6 +136,16 @@ export class RapidStack extends cdk.Stack {
       trafficType: ec2.FlowLogTrafficType.ALL,
     });
 
+    // Closed mode: create all VPC endpoints so runtime traffic never leaves the
+    // VPC. The execute-api endpoint is referenced by the PRIVATE API Gateways.
+    let vpcEndpoints: VpcEndpoints | undefined;
+    if (closedNetwork) {
+      vpcEndpoints = new VpcEndpoints(this, "VpcEndpoints", {
+        vpc,
+        subnetSelection: lambdaSubnetSelection,
+      });
+    }
+
     // データベースの作成
     const database = new Database(this, "Database", {
       vpc,
@@ -126,6 +154,7 @@ export class RapidStack extends cdk.Stack {
       maxCapacity: 1,
       autoPause: true,
       autoPauseSeconds: 300,
+      subnetSelection: lambdaSubnetSelection,
     });
 
     // Prisma マイグレーション Lambda の作成
@@ -134,6 +163,7 @@ export class RapidStack extends cdk.Stack {
       databaseConnection: database.connection,
       databaseCluster: database.cluster,
       autoMigrate: props.parameters.autoMigrate, // パラメータから自動マイグレーション設定を渡す
+      subnetSelection: lambdaSubnetSelection,
     });
 
     // データベース接続権限の付与
@@ -160,6 +190,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         documentProcessingModelId: props.parameters.documentProcessingModelId,
         bedrockRegion: props.parameters.bedrockRegion,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -177,6 +208,7 @@ export class RapidStack extends cdk.Stack {
       enableCitations: props.parameters.enableCitations,
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
       availableModels: props.parameters.availableModels,
+      subnetSelection: lambdaSubnetSelection,
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）
@@ -215,6 +247,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
         documentProcessingModelId: props.parameters.documentProcessingModelId,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -229,6 +262,7 @@ export class RapidStack extends cdk.Stack {
         aggregationDays: 7,
         scheduleExpression:
           props.parameters.feedbackAggregatorScheduleExpression,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -240,6 +274,8 @@ export class RapidStack extends cdk.Stack {
     const api = new Api(this, "Api", {
       vpc,
       endpointMode: backendEndpointMode,
+      vpcEndpoint: vpcEndpoints?.executeApiEndpoint,
+      subnetSelection: lambdaSubnetSelection,
       databaseConnection: database.connection,
       environment: {
         DOCUMENT_BUCKET: documentBucket.bucketName,
@@ -296,6 +332,7 @@ export class RapidStack extends cdk.Stack {
       frontendApi = new FrontendApi(this, "FrontendApi", {
         assetBucket: frontend.assetBucket,
         endpointMode: closedNetwork ? "PRIVATE" : "REGIONAL",
+        vpcEndpoint: vpcEndpoints?.executeApiEndpoint,
         stageName: "app",
       });
       frontend.configureS3ApiGatewayDelivery({

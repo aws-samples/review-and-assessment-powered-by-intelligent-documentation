@@ -56,6 +56,12 @@ export interface ReviewProcessorProps {
    * チェックリスト項目ごとに選択可能なモデル一覧（JSON文字列として環境変数に渡す）
    */
   availableModels: { modelId: string; displayName: string }[];
+
+  /**
+   * Subnet selection for the review Lambda and (closed mode) the AgentCore
+   * runtime. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 export class ReviewProcessor extends Construct {
@@ -98,7 +104,7 @@ export class ReviewProcessor extends Construct {
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         vpc: props.vpc,
-        vpcSubnets: {
+        vpcSubnets: props.subnetSelection ?? {
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
         environment: {

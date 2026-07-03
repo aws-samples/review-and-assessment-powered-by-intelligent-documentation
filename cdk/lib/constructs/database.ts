@@ -17,6 +17,11 @@ export interface DatabaseProps {
   maxCapacity?: number;
   autoPause?: boolean;
   autoPauseSeconds?: number;
+  /**
+   * Subnet selection for the database cluster. Defaults to PRIVATE_WITH_EGRESS.
+   * In closed mode this is PRIVATE_ISOLATED.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 export interface DatabaseConnectionProps {
@@ -57,7 +62,7 @@ export class Database extends Construct {
         version: rds.AuroraMysqlEngineVersion.VER_3_08_1,
       }),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.subnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],
