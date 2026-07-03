@@ -23,10 +23,20 @@ import * as targets from "aws-cdk-lib/aws-route53-targets";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as path from "path";
 
+export type FrontendDeliveryMode = "cloudfront" | "s3ApiGateway";
+
 export interface FrontendProps {
-  readonly webAclId: string;
+  readonly webAclId?: string;
   readonly accessLogBucket?: IBucket;
-  readonly enableIpV6: boolean;
+  readonly enableIpV6?: boolean;
+  /**
+   * Frontend delivery mechanism.
+   * - "cloudfront": CloudFront + S3 with OAC (standard mode)
+   * - "s3ApiGateway": S3 bucket served through a dedicated API Gateway (S3 proxy).
+   *   In this mode CloudFront/OAC/WAF are not created by this construct.
+   * @default "cloudfront"
+   */
+  readonly deliveryMode?: FrontendDeliveryMode;
   /**
    * Alternative domain name for CloudFront distribution (e.g., chat.example.com)
    * If provided, CloudFront will be accessible via this domain
@@ -40,16 +50,28 @@ export interface FrontendProps {
 }
 
 export class Frontend extends Construct {
-  readonly cloudFrontWebDistribution: Distribution;
+  /** Only set in CloudFront delivery mode. */
+  readonly cloudFrontWebDistribution?: Distribution;
   readonly assetBucket: Bucket;
+  readonly deliveryMode: FrontendDeliveryMode;
   private readonly certificate?: acm.ICertificate;
   private readonly hostedZone?: route53.IHostedZone;
   /** Alternate domain name for the CloudFront distribution */
   private readonly alternateDomainName?: string;
+  /**
+   * Origin URL for the S3+APIGW delivery mode (frontend API stage URL).
+   * Set externally after the FrontendApi is wired up.
+   */
+  private s3ApiGatewayOrigin?: string;
+  /**
+   * Base path used when building the SPA (e.g. "/app/") in S3+APIGW mode.
+   */
+  private buildBasePath = "/";
 
   constructor(scope: Construct, id: string, props: FrontendProps) {
     super(scope, id);
 
+    this.deliveryMode = props.deliveryMode ?? "cloudfront";
     this.alternateDomainName = props.alternateDomainName;
 
     const assetBucket = new Bucket(this, "AssetBucket", {
@@ -61,6 +83,13 @@ export class Frontend extends Construct {
       serverAccessLogsBucket: props.accessLogBucket,
       serverAccessLogsPrefix: "AssetBucket",
     });
+    this.assetBucket = assetBucket;
+
+    // S3+APIGW mode: this construct owns only the asset bucket + build.
+    // CloudFront/OAC/WAF are skipped; the SPA is served by FrontendApi.
+    if (this.deliveryMode === "s3ApiGateway") {
+      return;
+    }
 
     if (props.alternateDomainName && props.hostedZoneId) {
       this.hostedZone = route53.HostedZone.fromHostedZoneAttributes(
@@ -69,7 +98,7 @@ export class Frontend extends Construct {
         {
           hostedZoneId: props.hostedZoneId,
           zoneName: this.getDomainZoneName(props.alternateDomainName),
-        }
+        },
       );
 
       this.certificate = new acm.DnsValidatedCertificate(this, "Certificate", {
@@ -114,14 +143,14 @@ export class Frontend extends Construct {
         logFilePrefix: "Frontend/",
       }),
       webAclId: props.webAclId,
-      enableIpv6: props.enableIpV6,
+      enableIpv6: props.enableIpV6 ?? false,
     });
 
     if (this.alternateDomainName && this.hostedZone) {
       new route53.ARecord(this, "AliasRecord", {
         zone: this.hostedZone,
         target: route53.RecordTarget.fromAlias(
-          new targets.CloudFrontTarget(distribution)
+          new targets.CloudFrontTarget(distribution),
         ),
         recordName: this.alternateDomainName,
       });
@@ -130,7 +159,7 @@ export class Frontend extends Construct {
         new route53.AaaaRecord(this, "AaaaRecord", {
           zone: this.hostedZone,
           target: route53.RecordTarget.fromAlias(
-            new targets.CloudFrontTarget(distribution)
+            new targets.CloudFrontTarget(distribution),
           ),
           recordName: this.alternateDomainName,
         });
@@ -155,7 +184,6 @@ export class Frontend extends Construct {
 
     // ReactBuild is created later in buildViteApp, so we'll add suppressions there
 
-    this.assetBucket = assetBucket;
     this.cloudFrontWebDistribution = distribution;
 
     if (this.alternateDomainName) {
@@ -173,6 +201,20 @@ export class Frontend extends Construct {
   }
 
   /**
+   * Wire the S3+APIGW delivery mode: origin URL + SPA build base path ("/app/").
+   */
+  configureS3ApiGatewayDelivery({
+    origin,
+    basePath,
+  }: {
+    origin: string;
+    basePath: string;
+  }) {
+    this.s3ApiGatewayOrigin = origin;
+    this.buildBasePath = basePath;
+  }
+
+  /**
    * Extracts the parent domain from a full domain name
    * e.g., 'chat.example.com' -> 'example.com'
    */
@@ -183,10 +225,18 @@ export class Frontend extends Construct {
   }
 
   getOrigin(): string {
+    if (this.deliveryMode === "s3ApiGateway") {
+      if (!this.s3ApiGatewayOrigin) {
+        throw new Error(
+          "Frontend.getOrigin() called before configureS3ApiGatewayDelivery() in s3ApiGateway mode",
+        );
+      }
+      return this.s3ApiGatewayOrigin;
+    }
     if (this.alternateDomainName) {
       return `https://${this.alternateDomainName}`;
     }
-    return `https://${this.cloudFrontWebDistribution.distributionDomainName}`;
+    return `https://${this.cloudFrontWebDistribution!.distributionDomainName}`;
   }
 
   buildViteApp({
@@ -203,13 +253,18 @@ export class Frontend extends Construct {
     const region = Stack.of(auth.userPool).region;
     const cognitoDomain = `${userPoolDomainPrefix}.auth.${region}.amazoncognito.com/`;
     const buildEnvProps = (() => {
-      const defaultProps = {
+      const defaultProps: { [key: string]: string } = {
         VITE_APP_API_ENDPOINT: backendApiEndpoint,
         VITE_APP_USER_POOL_ID: auth.userPool.userPoolId,
         VITE_APP_USER_POOL_CLIENT_ID: auth.client.userPoolClientId,
         VITE_APP_REGION: region,
         VITE_APP_VERSION: version || "unknown ver", // バージョン情報を追加
       };
+
+      // S3+APIGW mode: SPA is under the stage prefix, so Vite needs that base.
+      if (this.deliveryMode === "s3ApiGateway") {
+        defaultProps.VITE_APP_BASE_PATH = this.buildBasePath;
+      }
 
       return defaultProps;
 
@@ -249,32 +304,38 @@ export class Frontend extends Construct {
       buildCommands: ["npm run build"],
       buildEnvironment: buildEnvProps,
       destinationBucket: this.assetBucket,
-      distribution: this.cloudFrontWebDistribution,
+      // In S3+APIGW mode there's no CloudFront distribution to invalidate.
+      ...(this.deliveryMode === "cloudfront" && this.cloudFrontWebDistribution
+        ? { distribution: this.cloudFrontWebDistribution }
+        : {}),
       outputSourceDirectory: "dist",
     });
 
-    // This is a workaround for the issue where the BucketDeployment construct
-    // does not have permissions to create CloudFront invalidations
-    // Ref: https://github.com/aws/aws-cdk/issues/23708
-    const bucketDeploy = reactBuild.node
-      .findAll()
-      .find(
-        (c) => c instanceof s3deploy.BucketDeployment
-      ) as s3deploy.BucketDeployment;
+    // The CloudFront invalidation IAM workaround only applies in CloudFront mode.
+    if (this.deliveryMode === "cloudfront" && this.cloudFrontWebDistribution) {
+      // This is a workaround for the issue where the BucketDeployment construct
+      // does not have permissions to create CloudFront invalidations
+      // Ref: https://github.com/aws/aws-cdk/issues/23708
+      const bucketDeploy = reactBuild.node
+        .findAll()
+        .find(
+          (c) => c instanceof s3deploy.BucketDeployment,
+        ) as s3deploy.BucketDeployment;
 
-    bucketDeploy?.handlerRole?.addToPrincipalPolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "cloudfront:CreateInvalidation",
-          "cloudfront:GetInvalidation",
-        ],
-        resources: [
-          `arn:aws:cloudfront::${Stack.of(this).account}:distribution/${
-            this.cloudFrontWebDistribution.distributionId
-          }`,
-        ],
-      })
-    );
+      bucketDeploy?.handlerRole?.addToPrincipalPolicy(
+        new iam.PolicyStatement({
+          actions: [
+            "cloudfront:CreateInvalidation",
+            "cloudfront:GetInvalidation",
+          ],
+          resources: [
+            `arn:aws:cloudfront::${Stack.of(this).account}:distribution/${
+              this.cloudFrontWebDistribution.distributionId
+            }`,
+          ],
+        }),
+      );
+    }
 
     // Add suppressions for CodeBuild-related findings
     NagSuppressions.addResourceSuppressions(
@@ -286,7 +347,7 @@ export class Frontend extends Construct {
             "KMS encryption settings cannot be changed because it's a third-party library",
         },
       ],
-      true
+      true,
     );
   }
 

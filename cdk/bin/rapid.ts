@@ -18,27 +18,36 @@ const contextParams = extractContextParameters(app);
 // (parameter.tsのデフォルト値 < parameter.tsのユーザー指定値 < コマンドライン引数の順で優先)
 const parameters = resolveParameters(contextParams);
 
+// closedNetwork always implies the S3+APIGW frontend (CloudFront is impossible
+// in a closed network). In both intermediate and closed modes the CloudFront
+// WAF stack (us-east-1) is skipped; a REGIONAL WAF is created inside RapidStack.
+const useS3ApiGwFrontend =
+  parameters.s3ApiGatewayFrontend || parameters.closedNetwork;
+
 // WAF for frontend
 // 2025/4: Currently, the WAF for CloudFront needs to be created in the North America region (us-east-1), so the stacks are separated
 // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-wafv2-webacl.html
-const waf = new FrontendWafStack(app, `RapidFrontendWafStack`, {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: "us-east-1",
-  },
-  envPrefix: "",
-  allowedIpV4AddressRanges: parameters.allowedIpV4AddressRanges,
-  allowedIpV6AddressRanges: parameters.allowedIpV6AddressRanges,
-});
+const waf = useS3ApiGwFrontend
+  ? undefined
+  : new FrontendWafStack(app, `RapidFrontendWafStack`, {
+      env: {
+        account: process.env.CDK_DEFAULT_ACCOUNT,
+        region: "us-east-1",
+      },
+      envPrefix: "",
+      allowedIpV4AddressRanges: parameters.allowedIpV4AddressRanges,
+      allowedIpV6AddressRanges: parameters.allowedIpV6AddressRanges,
+    });
 
 new RapidStack(app, "RapidStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION || "us-west-2",
   },
-  crossRegionReferences: true,
-  webAclId: waf.webAclArn.value,
-  enableIpV6: waf.ipV6Enabled,
+  // crossRegionReferences is only needed when referencing the us-east-1 WAF stack.
+  crossRegionReferences: waf !== undefined,
+  webAclId: waf?.webAclArn.value,
+  enableIpV6: waf?.ipV6Enabled ?? false,
   // カスタムパラメータを追加
   parameters: parameters,
 });

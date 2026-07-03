@@ -121,7 +121,7 @@ export class Database extends Construct {
             "Sample/demo environment where resources should be easily removed with cdk destroy",
         },
       ],
-      true
+      true,
     );
   }
 
@@ -133,7 +133,7 @@ export class Database extends Construct {
     this.cluster.connections.allowFrom(
       peer,
       ec2.Port.tcp(this.cluster.clusterEndpoint.port),
-      "Allow connection to database"
+      "Allow connection to database",
     );
   }
 

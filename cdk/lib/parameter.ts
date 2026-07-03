@@ -125,4 +125,17 @@ export const parameters = {
   // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
   // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
   // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
+  //
+  // ---------------------------------------------------
+  // Closed / private network mode settings
+  // Two orthogonal booleans (both default false = standard CloudFront mode):
+  //  - s3ApiGatewayFrontend: serve the SPA from S3 via a dedicated REGIONAL
+  //    API Gateway (S3 proxy) instead of CloudFront, keeping standard networking.
+  //    Use this to validate the S3+APIGW delivery path in an internet-connected env.
+  //  - closedNetwork: full private mode (isolated subnets, no NAT, VPC endpoints,
+  //    PRIVATE API Gateways, AgentCore VPC, Cognito PrivateLink). Implies the
+  //    S3+APIGW frontend.
+  // ---------------------------------------------------
+  s3ApiGatewayFrontend: true, // Intermediate mode: S3 + dedicated REGIONAL API Gateway frontend
+  // closedNetwork: true, // Full closed network mode (implies s3ApiGatewayFrontend)
 };

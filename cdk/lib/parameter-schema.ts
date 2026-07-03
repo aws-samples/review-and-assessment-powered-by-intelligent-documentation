@@ -23,6 +23,21 @@ const parameterSchema = z.object({
     .default("us-west-2")
     .describe("Amazon Bedrockを利用するリージョン"),
 
+  // ネットワークモード関連のパラメータ
+  s3ApiGatewayFrontend: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Serve the SPA from S3 via a dedicated REGIONAL API Gateway (S3 proxy) instead of CloudFront. Standard networking otherwise.",
+    ),
+
+  closedNetwork: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Fully private network mode: isolated subnets, no NAT, VPC endpoints, PRIVATE API Gateways, AgentCore VPC, Cognito PrivateLink. Implies S3+APIGW frontend.",
+    ),
+
   // AI モデル設定
   documentProcessingModelId: z
     .string()
@@ -318,6 +333,20 @@ export function extractContextParameters(app: any): Record<string, any> {
   const bedrockRegion = app.node.tryGetContext("rapid.bedrockRegion");
   if (bedrockRegion !== undefined) {
     params.bedrockRegion = bedrockRegion;
+  }
+
+  // ネットワークモード設定
+  const s3ApiGatewayFrontend = app.node.tryGetContext(
+    "rapid.s3ApiGatewayFrontend",
+  );
+  if (s3ApiGatewayFrontend !== undefined) {
+    params.s3ApiGatewayFrontend =
+      s3ApiGatewayFrontend === "true" || s3ApiGatewayFrontend === true;
+  }
+
+  const closedNetwork = app.node.tryGetContext("rapid.closedNetwork");
+  if (closedNetwork !== undefined) {
+    params.closedNetwork = closedNetwork === "true" || closedNetwork === true;
   }
 
   // Feedback Aggregator スケジュール設定の取得

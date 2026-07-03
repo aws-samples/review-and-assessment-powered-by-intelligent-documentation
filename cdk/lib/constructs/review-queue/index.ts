@@ -57,18 +57,16 @@ export class ReviewQueueProcessor extends Construct {
       runtime: lambda.Runtime.PYTHON_3_14,
       handler: "handler.lambda_handler",
       code: lambda.Code.fromAsset(path.join(__dirname, "consumer")),
-      timeout: cdk.Duration.minutes(3),
+      timeout: cdk.Duration.minutes(6),
       memorySize: 512,
       environment: {
         REVIEW_QUEUE_URL: this.queue.queueUrl,
         ...props.environment,
       },
-      reservedConcurrentExecutions: 1,
-      logRetention:
-        props.lambdaLogRetentionDays !== undefined
-          ? props.lambdaLogRetentionDays
-          : cdk.aws_logs.RetentionDays.THREE_YEARS,
-      retryAttempts: 0,
+      logGroup: new cdk.aws_logs.LogGroup(this, "pythonFunctionLog", {
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+        retention: cdk.aws_logs.RetentionDays.THREE_YEARS,
+      }),
     });
 
     const eventSource = new lambdaEventSources.SqsEventSource(this.queue, {

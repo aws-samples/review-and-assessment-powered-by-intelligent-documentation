@@ -17,11 +17,30 @@ import { NagSuppressions } from "cdk-nag";
 /**
  * API Constructのプロパティ
  */
+export type ApiEndpointMode = "EDGE" | "REGIONAL" | "PRIVATE";
+
 export interface ApiProps {
   vpc: ec2.IVpc;
   databaseConnection: DatabaseConnectionProps;
   environment?: { [key: string]: string };
   auth: Auth;
+  /**
+   * API Gateway endpoint type.
+   * - EDGE:     public edge-optimized endpoint (standard mode)
+   * - REGIONAL: public regional endpoint (intermediate S3+APIGW mode)
+   * - PRIVATE:  VPC endpoint only (closed network mode)
+   * @default "EDGE"
+   */
+  endpointMode?: ApiEndpointMode;
+  /**
+   * The execute-api interface VPC endpoint used to reach a PRIVATE API.
+   * Required when endpointMode === "PRIVATE".
+   */
+  vpcEndpoint?: ec2.IInterfaceVpcEndpoint;
+  /**
+   * Subnet selection for the API Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 /**
@@ -36,6 +55,16 @@ export class Api extends Construct {
     super(scope, id);
 
     const stackId = cdk.Stack.of(this).stackName;
+    const endpointMode = props.endpointMode ?? "EDGE";
+    const subnetSelection = props.subnetSelection ?? {
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+    };
+
+    if (endpointMode === "PRIVATE" && !props.vpcEndpoint) {
+      throw new Error(
+        "Api: vpcEndpoint is required when endpointMode is PRIVATE",
+      );
+    }
 
     this.securityGroup = new ec2.SecurityGroup(this, "ApiSecurityGroup", {
       vpc: props.vpc,
@@ -94,9 +123,7 @@ export class Api extends Construct {
         },
       ),
       vpc: props.vpc,
-      vpcSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-      },
+      vpcSubnets: subnetSelection,
       securityGroups: [this.securityGroup],
       environment: {
         ...props.environment,
@@ -141,11 +168,48 @@ export class Api extends Construct {
       },
     );
 
-    // API Gateway の作成 - スタック名を含めて一意性を確保
+    // Resource policy locking a PRIVATE API to the execute-api VPC endpoint.
+    let apiPolicy: iam.PolicyDocument | undefined;
+    if (endpointMode === "PRIVATE") {
+      apiPolicy = new iam.PolicyDocument({
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            principals: [new iam.AnyPrincipal()],
+            actions: ["execute-api:Invoke"],
+            resources: ["execute-api:/*"],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.DENY,
+            principals: [new iam.AnyPrincipal()],
+            actions: ["execute-api:Invoke"],
+            resources: ["execute-api:/*"],
+            conditions: {
+              StringNotEquals: {
+                "aws:SourceVpce": props.vpcEndpoint!.vpcEndpointId,
+              },
+            },
+          }),
+        ],
+      });
+    }
+
+    const endpointConfiguration =
+      endpointMode === "PRIVATE"
+        ? {
+            types: [apigateway.EndpointType.PRIVATE],
+            vpcEndpoints: [props.vpcEndpoint!],
+          }
+        : endpointMode === "REGIONAL"
+          ? { types: [apigateway.EndpointType.REGIONAL] }
+          : { types: [apigateway.EndpointType.EDGE] };
+
     this.api = new apigateway.RestApi(this, "RapidApi", {
       restApiName: `${stackId}-RAPID-API`,
       description:
         "RAPID (Review & Assessment Powered by Intelligent Documentation) API",
+      endpointConfiguration,
+      ...(apiPolicy ? { policy: apiPolicy } : {}),
       deployOptions: {
         stageName: "api",
         tracingEnabled: true,
@@ -218,7 +282,7 @@ export class Api extends Construct {
         {
           id: "AwsSolutions-APIG3",
           reason:
-            "WAF is already applied on CloudFront. Additional application to API would lead to increased costs",
+            "A regional WAF Web ACL is associated with the API Gateway stage(s) in S3+APIGW/closed modes. In standard mode WAF is applied at CloudFront.",
         },
         {
           id: "AwsSolutions-APIG4",
