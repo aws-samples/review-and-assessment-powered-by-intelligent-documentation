@@ -136,8 +136,8 @@ export const parameters = {
   //    PRIVATE API Gateways, AgentCore VPC, Cognito PrivateLink). Implies the
   //    S3+APIGW frontend.
   // ---------------------------------------------------
-  s3ApiGatewayFrontend: true, // Intermediate mode: S3 + dedicated REGIONAL API Gateway frontend
-  closedNetwork: true, // Full closed network mode (implies s3ApiGatewayFrontend)
+  // s3ApiGatewayFrontend: true, // Intermediate mode: S3 + dedicated REGIONAL API Gateway frontend
+  // closedNetwork: true, // Full closed network mode (implies s3ApiGatewayFrontend)
   //
   // AgentCore Runtime network mode (only takes effect when closedNetwork: true):
   //  - "PUBLIC" (default): runtime runs on AWS-managed networking with internet
