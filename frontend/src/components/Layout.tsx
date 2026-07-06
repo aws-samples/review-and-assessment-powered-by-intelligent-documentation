@@ -11,8 +11,8 @@ export default function Layout() {
       <Sidebar />
       
       {/* メインコンテンツエリア */}
-      <main className="flex-1 p-8 md:ml-64 transition-all duration-300">
-        <div className="max-w-7xl mx-auto">
+      <main className="min-w-0 flex-1 p-8 transition-all duration-300 md:ml-64">
+        <div className="mx-auto max-w-7xl">
           <Outlet />
         </div>
       </main>
