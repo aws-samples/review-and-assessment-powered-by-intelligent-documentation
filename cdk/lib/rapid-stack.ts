@@ -99,7 +99,7 @@ export class RapidStack extends cdk.Stack {
     // no internet egress at runtime. All AWS access goes through VPC endpoints.
     // Standard / intermediate: public + private-with-egress + isolated, 1 NAT GW.
     const vpc = new ec2.Vpc(this, "RapidVpc", {
-      maxAzs: 3,
+      maxAzs: 2,
       natGateways: closedNetwork ? 0 : 1,
       subnetConfiguration: closedNetwork
         ? [
