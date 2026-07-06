@@ -27,7 +27,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
   const columns: TableColumn<PromptTemplate>[] = [
     {
       key: "name",
-      header: t("promptTemplate.name", "名前"),
+      header: t("promptTemplate.name"),
       render: (template) => (
         <div className="text-sm font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
           {template.name}
@@ -36,7 +36,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     },
     {
       key: "type",
-      header: t("promptTemplate.type", "タイプ"),
+      header: t("promptTemplate.type"),
       render: (template) => (
         <div className="text-sm text-aws-font-color-gray">
           {PROMPT_TYPE_LABELS[template.type] || template.type}
@@ -45,7 +45,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     },
     {
       key: "description",
-      header: t("promptTemplate.description", "説明"),
+      header: t("promptTemplate.description"),
       render: (template) => (
         <div
           className="max-w-xs truncate text-sm text-aws-font-color-gray"
@@ -56,7 +56,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     },
     {
       key: "updatedAt",
-      header: t("promptTemplate.updatedAt", "最終更新"),
+      header: t("promptTemplate.updatedAt"),
       render: (template) => (
         <div className="text-sm text-aws-font-color-gray">
           {new Date(template.updatedAt).toLocaleString()}
@@ -69,7 +69,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
   const actions: TableAction<PromptTemplate>[] = [
     {
       icon: <HiPencil className="mr-1 h-4 w-4" />,
-      label: t("common.edit", "編集"),
+      label: t("common.edit"),
       onClick: onEdit,
       variant: "primary",
       outline: true,
@@ -77,7 +77,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     },
     {
       icon: <HiTrash className="mr-1 h-4 w-4" />,
-      label: t("common.delete", "削除"),
+      label: t("common.delete"),
       onClick: onDelete,
       variant: "danger",
       outline: true,
@@ -96,10 +96,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
       columns={columns}
       actions={actions}
       isLoading={isLoading}
-      emptyMessage={t(
-        "promptTemplate.noTemplates",
-        "テンプレートがありません。新規作成してください。"
-      )}
+      emptyMessage={t("promptTemplate.noTemplates")}
       keyExtractor={(item) => item.id}
       onRowClick={handleRowClick}
       rowClickable={true}

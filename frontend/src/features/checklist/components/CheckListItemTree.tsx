@@ -1,6 +1,7 @@
 /**
  * チェックリスト項目の階層構造を表示するツリーコンポーネント
  */
+import { useTranslation } from "react-i18next";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import CheckListItemTreeNode from "./CheckListItemTreeNode";
 import { TreeSkeleton } from "../../../components/Skeleton";
@@ -21,6 +22,7 @@ export default function CheckListItemTree({
   selectedIds,
   onToggleSelect,
 }: CheckListItemTreeProps) {
+  const { t } = useTranslation();
   const {
     items: rootItems,
     isLoading: isLoadingRoot,
@@ -34,7 +36,7 @@ export default function CheckListItemTree({
   if (errorRoot) {
     return (
       <div className="text-red-500 py-10 text-center">
-        チェックリスト項目の読み込みに失敗しました。
+        {t("checklist.itemsFetchError")}
       </div>
     );
   }
@@ -42,7 +44,7 @@ export default function CheckListItemTree({
   if (rootItems.length === 0) {
     return (
       <div className="text-gray-500 py-10 text-center">
-        チェックリスト項目がありません
+        {t("checklist.noTreeItems")}
       </div>
     );
   }

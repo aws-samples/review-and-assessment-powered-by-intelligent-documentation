@@ -131,7 +131,7 @@ export default function CheckListItemEditModal({
             className={`w-full rounded-md border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-aws-sea-blue-light ${
               !formData.name.trim() ? "border-red" : "border-light-gray"
             }`}
-            placeholder="チェック項目の名前"
+            placeholder={t("checklist.itemNamePlaceholder")}
             required
           />
           {!formData.name.trim() && (
@@ -154,7 +154,7 @@ export default function CheckListItemEditModal({
             onChange={handleChange}
             rows={3}
             className="w-full rounded-md border border-light-gray px-4 py-2 focus:outline-none focus:ring-2 focus:ring-aws-sea-blue-light"
-            placeholder="チェック項目の説明"
+            placeholder={t("checklist.itemDescriptionPlaceholder")}
           />
         </div>
 
@@ -169,7 +169,7 @@ export default function CheckListItemEditModal({
                 className="h-4 w-4 text-aws-sea-blue-light focus:ring-aws-sea-blue-light"
               />
               <span className="ml-2 text-sm text-aws-squid-ink-light">
-                更新後に指摘を解消
+                {t("checklist.resolveAmbiguityAfterUpdate")}
               </span>
             </label>
           </div>

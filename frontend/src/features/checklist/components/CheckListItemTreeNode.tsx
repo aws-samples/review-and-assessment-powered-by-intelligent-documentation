@@ -124,7 +124,7 @@ export default function CheckListItemTreeNode({
             refetchParent();
           }
         } catch {
-          showError(`「${item.name}」の削除に失敗しました。`);
+          showError(t("checklist.itemDeleteError", { name: item.name }));
         }
       },
     });
@@ -202,8 +202,8 @@ export default function CheckListItemTreeNode({
                   icon={<HiPlus className="h-5 w-5" />}
                   onClick={() => isEditable && setIsAddChildModalOpen(true)}
                   disabled={!isEditable}
-                  title="子項目を追加"
-                  aria-label="子項目を追加"
+                  title={t("checklist.addChildItem")}
+                  aria-label={t("checklist.addChildItem")}
                   className={
                     !isEditable ? "text-gray-300 cursor-not-allowed" : ""
                   }
@@ -225,8 +225,8 @@ export default function CheckListItemTreeNode({
                   }
                   onClick={() => isEditable && setIsEditModalOpen(true)}
                   disabled={!isEditable}
-                  title="編集"
-                  aria-label="編集"
+                  title={t("common.edit")}
+                  aria-label={t("common.edit")}
                   className={
                     !isEditable
                       ? "text-gray-300 cursor-not-allowed"
@@ -243,8 +243,8 @@ export default function CheckListItemTreeNode({
                   icon={<HiTrash className="h-5 w-5" />}
                   onClick={handleDelete}
                   disabled={!isEditable}
-                  title="削除"
-                  aria-label="削除"
+                  title={t("common.delete")}
+                  aria-label={t("common.delete")}
                   className={
                     !isEditable
                       ? "text-gray-300 cursor-not-allowed"
@@ -313,7 +313,7 @@ export default function CheckListItemTreeNode({
               <div
                 className="text-red-500 py-2"
                 style={{ marginLeft: `${(level + 1) * 20}px` }}>
-                子項目の読み込みに失敗しました。
+                {t("checklist.childItemsLoadError")}
               </div>
             ) : (
               childItems.map((childItem) => (

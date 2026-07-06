@@ -87,7 +87,8 @@
     "signInFacebook": "Sign In with Facebook",
     "signInAmazon": "Sign In with Amazon",
     "signInApple": "Sign In with Apple",
-    "copyright": "© {year}"
+    "copyright": "© {year}",
+    "authRequired": "Authentication error: Login required"
   },
   "notFound": {
     "title": "404",
@@ -171,7 +172,13 @@
     "modelDefault": "Default",
     "modelUpdateSuccess": "Model updated successfully",
     "modelUpdateError": "Failed to update model",
-    "modelLoadError": "Failed to load models"
+    "modelLoadError": "Failed to load models",
+    "processingStatus": "Processing Status",
+    "noTreeItems": "No checklist items",
+    "resolveAmbiguityAfterUpdate": "Resolve suggestion after update",
+    "itemDeleteError": "Failed to delete \"{{name}}\".",
+    "addChildItem": "Add child item",
+    "childItemsLoadError": "Failed to load child items."
   },
   "review": {
     "title": "Review Jobs",
@@ -288,7 +295,13 @@
         "exitCode": "Exit Code",
         "truncated": "Truncated"
       }
-    }
+    },
+    "resultsLoadError": "Failed to load review results.",
+    "noResultsForFilter": "No review results match the selected filter",
+    "noResults": "No review results",
+    "childItemsLoadError": "Failed to load child items.",
+    "noChildItemsForFilter": "No child items match the selected filter",
+    "noChildItems": "No child items"
   },
   "fileUploader": {
     "dropFiles": "Drop files here",
@@ -337,7 +350,9 @@
     "createNewTemplate": "Create New Template",
     "templateName": "Template Name",
     "prompt": "Prompt",
-    "resetToDefault": "Reset to Default"
+    "resetToDefault": "Reset to Default",
+    "promptContent": "Prompt Content",
+    "lastUpdatedLabel": "Last Updated"
   },
   "mcpServer": {
     "title": "MCP Server Settings",
@@ -367,12 +382,11 @@
   },
   "toolConfiguration": {
     "title": "Tool Configurations",
-    "description": "Manage tool configurations for checklist items",
+    "description": "Description",
     "create": "New Configuration",
     "name": "Name",
     "namePlaceholder": "Enter configuration name",
     "nameRequired": "Name is required",
-    "description": "Description",
     "descriptionPlaceholder": "Enter description (optional)",
     "tools": "Tools",
     "toolsRequired": "At least one tool must be enabled",
