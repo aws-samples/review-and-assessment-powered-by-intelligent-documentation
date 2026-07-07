@@ -28,7 +28,7 @@ export default {
           dark: "#5b5b5b",
         },
         "aws-aqua": "#007faa",
-        "aws-lab": "#38ef7d",
+        "aws-lab": "#1a9d4f",
         "aws-mist": "#9ffcea",
         "aws-font-color": {
           light: "#232F3E",

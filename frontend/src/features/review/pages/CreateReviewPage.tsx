@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import Button from "../../../components/Button";
 import PageHeader from "../../../components/PageHeader";
 import FormTextField from "../../../components/FormTextField";
-import FormFileUpload from "../../../components/FormFileUpload";
+import { FileUploader } from "../../../components/FileUploader";
 import ChecklistSelector from "../components/ChecklistSelector";
 import ComparisonIndicator from "../components/ComparisonIndicator";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
@@ -330,19 +330,26 @@ export const CreateReviewPage: React.FC = () => {
             />
           </div>
 
+          <div className="mb-2">
+            <label className="block font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
+              {t("review.targetFiles")} <span className="text-red">*</span>
+            </label>
+            {errors.files && (
+              <p className="mt-1 text-sm text-red">{errors.files}</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
             {/* 左側: ファイルアップロード */}
-            <div className="lg:col-span-3">
-              <FormFileUpload
-                label={t("review.targetFiles")}
+            <div className="flex lg:col-span-3">
+              <FileUploader
                 files={selectedFiles}
                 onFilesChange={handleFilesChange}
-                required
-                error={errors.files}
                 isUploading={isUploading}
                 multiple={fileType === REVIEW_FILE_TYPE.IMAGE}
                 uploadedDocuments={uploadedDocuments}
                 onDeleteFile={handleFileRemove}
+                fillHeight
                 acceptedFileTypes={
                   fileType === REVIEW_FILE_TYPE.PDF
                     ? { "application/pdf": [".pdf"] }

@@ -29,7 +29,7 @@ export const ChecklistSelector: React.FC<ChecklistSelectorProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="overflow-hidden rounded-md border border-light-gray bg-white shadow-sm dark:bg-aws-squid-ink-dark">
+    <div className="flex h-full flex-col overflow-hidden rounded-md border border-light-gray bg-white shadow-sm dark:bg-aws-squid-ink-dark">
       <div className="border-b border-light-gray p-4">
         <h3 className="text-lg font-medium text-aws-squid-ink-light dark:text-aws-font-color-white-dark">
           {t("review.checklistSelection")}
