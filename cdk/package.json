@@ -8,7 +8,7 @@
     "cdk": "cdk",
     "build:backend": "cd ../backend && npm ci && npm run prisma:generate && npm run build",
     "build:all": "npm run build:backend && npm run build",
-    "deploy": "npm ci && npm run build:all && npx cdk deploy --all --require-approval never --profile review",
+    "deploy": "npm ci && npm run build:all && npx cdk deploy --all --require-approval never",
     "preinstall": "cd ../backend && npm ci && npm run prisma:generate"
   },
   "devDependencies": {

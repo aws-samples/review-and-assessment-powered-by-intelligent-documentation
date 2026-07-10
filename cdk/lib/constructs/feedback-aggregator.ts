@@ -17,6 +17,10 @@ export interface FeedbackAggregatorProps {
   aggregationDays?: number;
   scheduleExpression?: string;
   summaryModelId?: string;
+  /**
+   * Subnet selection for the aggregator Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 export class FeedbackAggregator extends Construct {
@@ -51,7 +55,7 @@ export class FeedbackAggregator extends Construct {
       memorySize: 1024,
       timeout: cdk.Duration.minutes(15),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.subnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       environment: {

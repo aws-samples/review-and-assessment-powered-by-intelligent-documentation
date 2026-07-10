@@ -3,7 +3,6 @@ import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
-import * as lambdaPython from "@aws-cdk/aws-lambda-python-alpha";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -56,6 +55,27 @@ export interface ReviewProcessorProps {
    * チェックリスト項目ごとに選択可能なモデル一覧（JSON文字列として環境変数に渡す）
    */
   availableModels: { modelId: string; displayName: string }[];
+
+  /**
+   * Subnet selection for the review Lambda and (closed mode) the AgentCore
+   * runtime. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
+
+  /**
+   * When true (closed-network mode), the invoke-agent Lambda runs in the VPC
+   * (isolated subnets) so it can reach the bedrock-agentcore interface endpoint.
+   * @default false
+   */
+  closedNetwork?: boolean;
+
+  /**
+   * When true, the AgentCore runtime itself runs inside the VPC
+   * (networkMode: VPC). When false, the runtime uses networkMode: PUBLIC.
+   * Only relevant in closed-network mode. Defaults to false (PUBLIC).
+   * @default false
+   */
+  agentCoreVpcMode?: boolean;
 }
 
 export class ReviewProcessor extends Construct {
@@ -98,7 +118,7 @@ export class ReviewProcessor extends Construct {
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         vpc: props.vpc,
-        vpcSubnets: {
+        vpcSubnets: props.subnetSelection ?? {
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
         environment: {
@@ -124,9 +144,30 @@ export class ReviewProcessor extends Construct {
       imageReviewModelId: props.imageReviewModelId,
       enableCitations: props.enableCitations,
       enableCodeInterpreter: props.enableCodeInterpreter,
+      // AgentCore runtime network mode. VPC mode (max isolation) runs the
+      // runtime inside the isolated VPC with no internet; PUBLIC (default)
+      // runs it on AWS-managed networking (needed for stdio/public MCP + uv).
+      ...(props.agentCoreVpcMode
+        ? {
+            vpc: props.vpc,
+            subnetSelection: props.subnetSelection ?? {
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+            },
+          }
+        : {}),
     });
 
     // Lambda function for invoking AgentCore.
+    // In closed mode it must run in the VPC so it can reach the
+    // bedrock-agentcore interface endpoint to call InvokeAgentRuntime.
+    const invokeAgentSecurityGroup = props.closedNetwork
+      ? new ec2.SecurityGroup(this, "InvokeAgentSecurityGroup", {
+          vpc: props.vpc,
+          description: "Security group for the invoke-agent Lambda",
+          allowAllOutbound: true,
+        })
+      : undefined;
+
     const invokeAgentLambda = new lambdaNodejs.NodejsFunction(
       this,
       "InvokeAgentFunction",
@@ -135,6 +176,15 @@ export class ReviewProcessor extends Construct {
         entry: path.join(__dirname, "lambda/invoke-agent/index.ts"),
         handler: "handler",
         timeout: cdk.Duration.minutes(15),
+        ...(props.closedNetwork
+          ? {
+              vpc: props.vpc,
+              vpcSubnets: props.subnetSelection ?? {
+                subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              },
+              securityGroups: [invokeAgentSecurityGroup!],
+            }
+          : {}),
         environment: {
           AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
           BEDROCK_REGION: props.bedrockRegion,

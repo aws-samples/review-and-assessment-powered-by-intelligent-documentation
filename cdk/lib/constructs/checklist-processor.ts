@@ -71,6 +71,11 @@ export interface ChecklistProcessorProps {
    * @default "us-west-2"
    */
   bedrockRegion: string;
+
+  /**
+   * Subnet selection for the processor Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 /**
@@ -110,7 +115,7 @@ export class ChecklistProcessor extends Construct {
         vpc: props.vpc,
         description: "Security group for Document Processor Lambda function",
         allowAllOutbound: true,
-      }
+      },
     );
 
     this.documentLambda = new DockerPrismaFunction(
@@ -123,12 +128,12 @@ export class ChecklistProcessor extends Construct {
             file: "Dockerfile.prisma.lambda",
             platform: Platform.LINUX_ARM64,
             cmd: ["dist/checklist-workflow/index.handler"],
-          }
+          },
         ),
         memorySize: 1024,
         timeout: cdk.Duration.minutes(15),
         vpc: props.vpc,
-        vpcSubnets: {
+        vpcSubnets: props.subnetSelection ?? {
           subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
         environment: {
@@ -140,7 +145,7 @@ export class ChecklistProcessor extends Construct {
         securityGroups: [this.securityGroup],
         database: props.databaseConnection,
         architecture: cdk.aws_lambda.Architecture.ARM_64,
-      }
+      },
     );
 
     // Lambda関数にS3バケットへのアクセス権限を付与
@@ -156,7 +161,7 @@ export class ChecklistProcessor extends Construct {
           "bedrock:StopModelInvocationJob",
         ],
         resources: ["*"],
-      })
+      }),
     );
 
     // ドキュメント処理Lambda (ファイル形式判定、ページ分割など)
@@ -173,7 +178,7 @@ export class ChecklistProcessor extends Construct {
         }),
         // outputPath: "$.Payload",
         resultPath: "$.processingResult",
-      }
+      },
     );
 
     // LLM処理用のLambda Invoke Task
@@ -224,7 +229,7 @@ export class ChecklistProcessor extends Construct {
           error: sfn.JsonPath.stringAt("$.error"),
         }),
         outputPath: "$.Payload",
-      }
+      },
     );
 
     // LLM処理にエラーハンドリングを追加
@@ -243,7 +248,7 @@ export class ChecklistProcessor extends Construct {
       itemSelector: {
         pageNumber: sfn.JsonPath.stringAt("$$.Map.Item.Value.pageNumber"),
         documentId: sfn.JsonPath.stringAt(
-          "$.processingResult.Payload.documentId"
+          "$.processingResult.Payload.documentId",
         ),
         userId: sfn.JsonPath.stringAt("$.userId"), // Pass userId from the input
       },
@@ -265,7 +270,7 @@ export class ChecklistProcessor extends Construct {
         }),
         // outputPath: "$.Payload",
         resultPath: "$.aggregationResult",
-      }
+      },
     );
 
     const storeToDbTask = new tasks.LambdaInvoke(this, "StoreToDb", {
@@ -300,7 +305,7 @@ export class ChecklistProcessor extends Construct {
           userId: sfn.JsonPath.stringAt("$.userId"),
         }),
         resultPath: "$.ambiguityResult",
-      }
+      },
     );
 
     // ワークフロー定義
@@ -333,7 +338,7 @@ export class ChecklistProcessor extends Construct {
       assumedBy: new iam.ServicePrincipal("states.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AWSLambdaRole"
+          "service-role/AWSLambdaRole",
         ),
       ],
     });
@@ -348,7 +353,7 @@ export class ChecklistProcessor extends Construct {
           "bedrock:StopModelInvocationJob",
         ],
         resources: ["*"],
-      })
+      }),
     );
 
     // S3バケットへのアクセス権限を追加
@@ -373,7 +378,7 @@ export class ChecklistProcessor extends Construct {
           level: logLevel,
           includeExecutionData: true,
         },
-      }
+      },
     );
 
     // エラーハンドリングの設定

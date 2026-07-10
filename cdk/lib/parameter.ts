@@ -24,7 +24,7 @@ export const parameters = {
   // Bedrock設定
   // Amazon Bedrockを利用するリージョンを指定します
   // ---------------------------------------------------
-  // bedrockRegion: "ap-northeast-1", // Bedrockを利用するリージョン（デフォルト：us-west-2）
+  // bedrockRegion: "us-east-1", // Bedrockを利用するリージョン（デフォルト：us-west-2）
   // AI モデル設定
   // デフォルトモデル以外を使用したい場合に設定します
   // 注意: モデルIDのプレフィックス（us., eu., apac.など）はbedrockRegionに対応している必要があります
@@ -125,4 +125,27 @@ export const parameters = {
   // reviewQueueMaxDepth: 10, // Max queue depth for global concurrency checks
   // reviewQueueMaxQueueCountMs: 86400000, // Max queue wait time in ms before error handling
   // reviewQueueLogLevel: "WARNING", // Review queue lambda log level
+  //
+  // ---------------------------------------------------
+  // Closed / private network mode settings
+  // Two orthogonal booleans (both default false = standard CloudFront mode):
+  //  - s3ApiGatewayFrontend: serve the SPA from S3 via a dedicated REGIONAL
+  //    API Gateway (S3 proxy) instead of CloudFront, keeping standard networking.
+  //    Use this to validate the S3+APIGW delivery path in an internet-connected env.
+  //  - closedNetwork: full private mode (isolated subnets, no NAT, VPC endpoints,
+  //    PRIVATE API Gateways, AgentCore VPC, Cognito PrivateLink). Implies the
+  //    S3+APIGW frontend.
+  // ---------------------------------------------------
+  // s3ApiGatewayFrontend: true, // Intermediate mode: S3 + dedicated REGIONAL API Gateway frontend
+  // closedNetwork: true, // Full closed network mode (implies s3ApiGatewayFrontend)
+  //
+  // AgentCore Runtime network mode (only takes effect when closedNetwork: true):
+  //  - "PUBLIC" (default): runtime runs on AWS-managed networking with internet
+  //    access. Required for stdio/public-HTTP MCP tools and uv/npx runtime
+  //    fetches. The invoke path (Lambda -> AgentCore) is still private via the
+  //    bedrock-agentcore VPC endpoint.
+  //  - "VPC": runtime runs inside the isolated VPC with no internet (maximum
+  //    isolation). stdio/public-HTTP MCP and uv runtime fetches will NOT work;
+  //    only in-VPC HTTP MCP or AgentCore Gateway MCP tools work.
+  // agentCoreNetworkMode: "VPC",
 };

@@ -27,6 +27,10 @@ export interface PrismaMigrationProps {
    * デプロイ時に自動的にマイグレーションを実行するかどうか
    */
   autoMigrate: boolean;
+  /**
+   * Subnet selection for the migration Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 /**
@@ -58,10 +62,10 @@ export class PrismaMigration extends Construct {
           file: "Dockerfile.prisma.lambda",
           platform: Platform.LINUX_ARM64,
           cmd: ["dist/handlers/migration-runner.handler"],
-        }
+        },
       ),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.subnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],
@@ -83,7 +87,7 @@ export class PrismaMigration extends Construct {
         new iam.PolicyStatement({
           actions: ["lambda:InvokeFunction"],
           resources: [this.migrationLambda.functionArn],
-        })
+        }),
       );
 
       // マイグレーションを実行するCustom Resourceを作成
@@ -99,7 +103,7 @@ export class PrismaMigration extends Construct {
               Payload: JSON.stringify({ command: "deploy" }),
             },
             physicalResourceId: cr.PhysicalResourceId.of(
-              `Migration-${Date.now()}`
+              `Migration-${Date.now()}`,
             ),
           },
           onCreate: {
@@ -110,7 +114,7 @@ export class PrismaMigration extends Construct {
               Payload: JSON.stringify({ command: "deploy" }),
             },
             physicalResourceId: cr.PhysicalResourceId.of(
-              `Migration-${Date.now()}`
+              `Migration-${Date.now()}`,
             ),
           },
           policy: cr.AwsCustomResourcePolicy.fromStatements([
@@ -120,7 +124,7 @@ export class PrismaMigration extends Construct {
             }),
           ]),
           role: role,
-        }
+        },
       );
 
       // 重要: 依存関係の設定

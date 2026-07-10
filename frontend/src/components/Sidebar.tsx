@@ -45,7 +45,7 @@ export default function Sidebar() {
     setIsPromptMenuOpen(!isPromptMenuOpen);
   };
 
-  // ログアウト処理
+  // ログアウト処理（URL のリセットは ProtectedRoute 側で処理）
   const handleLogout = async () => {
     await signOut();
   };
@@ -169,7 +169,7 @@ export default function Sidebar() {
                 <div className="mb-2 flex items-center">
                   <HiUser className="mr-2 h-5 w-5" />
                   <span className="truncate text-sm">
-                    { user.email || user.username}
+                    {user.email || user.username}
                   </span>
                 </div>
                 <button

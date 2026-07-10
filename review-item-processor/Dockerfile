@@ -22,4 +22,8 @@ COPY . ./
 
 EXPOSE 8080
 
-CMD ["uv", "run", "opentelemetry-instrument", "uvicorn", "index:app", "--host", "0.0.0.0", "--port", "8080"]
+# uses the pre-built venv as-is; UV_OFFLINE forbids any network access.
+ENV UV_NO_SYNC=1 \
+    UV_OFFLINE=1
+
+CMD ["uv", "run", "--no-sync", "opentelemetry-instrument", "uvicorn", "index:app", "--host", "0.0.0.0", "--port", "8080"]

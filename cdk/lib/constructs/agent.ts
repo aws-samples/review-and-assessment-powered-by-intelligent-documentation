@@ -1,8 +1,6 @@
-import { CfnOutput, Names, Size, Stack } from "aws-cdk-lib";
-import { ITableV2 } from "aws-cdk-lib/aws-dynamodb";
+import { CfnOutput, Names, Stack } from "aws-cdk-lib";
 import { DockerImageAsset, Platform } from "aws-cdk-lib/aws-ecr-assets";
 import { Construct } from "constructs";
-import { readFileSync } from "fs";
 import { join } from "path";
 import {
   Effect,
@@ -13,6 +11,7 @@ import {
 } from "aws-cdk-lib/aws-iam";
 import { CfnMemory, CfnRuntime } from "aws-cdk-lib/aws-bedrockagentcore";
 
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as s3 from "aws-cdk-lib/aws-s3";
 
 export interface AgentProps {
@@ -23,10 +22,24 @@ export interface AgentProps {
   imageReviewModelId: string;
   enableCitations: boolean;
   enableCodeInterpreter: boolean;
+  /**
+   * When set (closed-network mode), the AgentCore runtime runs in the VPC
+   * (networkMode: VPC) using these isolated subnets + the agent security group.
+   * When omitted, the runtime uses networkMode: PUBLIC (standard mode).
+   */
+  vpc?: ec2.IVpc;
+  /**
+   * Subnet selection for the VPC-mode runtime. Required when `vpc` is set.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 export class Agent extends Construct {
   public runtimeArn: string;
+  /**
+   * Security group attached to the runtime in VPC mode (undefined in PUBLIC mode).
+   */
+  public securityGroup?: ec2.SecurityGroup;
   constructor(scope: Construct, id: string, props: AgentProps) {
     super(scope, id);
 
@@ -38,6 +51,8 @@ export class Agent extends Construct {
       imageReviewModelId,
       enableCitations,
       enableCodeInterpreter,
+      vpc,
+      subnetSelection,
     } = props;
 
     const image = new DockerImageAsset(this, "Image", {
@@ -210,7 +225,35 @@ export class Agent extends Construct {
       }),
     );
 
-    // Note: currently memory is not used
+    // Network mode: VPC (closed mode) when a vpc is provided, otherwise PUBLIC.
+    // In VPC mode the runtime reaches Bedrock/S3/logs/etc. via the VPC endpoints.
+    let networkConfiguration: CfnRuntime.NetworkConfigurationProperty;
+    if (vpc) {
+      if (!subnetSelection) {
+        throw new Error(
+          "Agent: subnetSelection is required when vpc is provided (VPC network mode)",
+        );
+      }
+
+      const agentSg = new ec2.SecurityGroup(this, "RuntimeSecurityGroup", {
+        vpc,
+        description: "Security group for the AgentCore runtime (VPC mode)",
+        allowAllOutbound: true,
+      });
+      this.securityGroup = agentSg;
+
+      const selectedSubnets = vpc.selectSubnets(subnetSelection);
+      networkConfiguration = {
+        networkMode: "VPC",
+        networkModeConfig: {
+          subnets: selectedSubnets.subnetIds,
+          securityGroups: [agentSg.securityGroupId],
+        },
+      };
+    } else {
+      networkConfiguration = { networkMode: "PUBLIC" };
+    }
+
     const memory = new CfnMemory(this, "Memory", {
       name: Names.uniqueResourceName(this, { maxLength: 40 }),
       eventExpiryDuration: 30,
@@ -267,9 +310,7 @@ export class Agent extends Construct {
           containerUri: image.imageUri,
         },
       },
-      networkConfiguration: {
-        networkMode: "PUBLIC",
-      },
+      networkConfiguration,
       roleArn: role.roleArn,
       protocolConfiguration: "HTTP",
       environmentVariables: {

@@ -11,15 +11,18 @@ import { Database } from "./constructs/database";
 import { Api } from "./constructs/api";
 import { Auth } from "./constructs/auth";
 import { Frontend } from "./constructs/frontend";
+import { FrontendApi } from "./constructs/frontend-api";
+import { RegionalWaf } from "./constructs/regional-waf";
 import { PrismaMigration } from "./constructs/prisma-migration";
 import { S3TempStorage } from "./constructs/s3-temp-storage";
+import { VpcEndpoints } from "./constructs/vpc-endpoints";
 import { Parameters } from "./parameter-schema";
 import { execSync } from "child_process";
 import { ReviewQueueProcessor } from "./constructs/review-queue";
 
 export interface RapidStackProps extends cdk.StackProps {
-  readonly webAclId: string;
-  readonly enableIpV6: boolean;
+  readonly webAclId?: string;
+  readonly enableIpV6?: boolean;
   readonly parameters: Parameters; // カスタムパラメータを追加
 }
 
@@ -34,6 +37,41 @@ export class RapidStack extends cdk.Stack {
     // VPC等のリソースを作成
 
     const prefix = cdk.Stack.of(this).region;
+
+    // ネットワークモードの導出フラグ
+    // closedNetwork は常に S3+APIGW フロントエンドを含意する
+    const closedNetwork = props.parameters.closedNetwork;
+    const useS3ApiGatewayFrontend =
+      props.parameters.s3ApiGatewayFrontend || closedNetwork;
+    const backendEndpointMode = closedNetwork
+      ? "PRIVATE"
+      : useS3ApiGatewayFrontend
+        ? "REGIONAL"
+        : "EDGE";
+
+    // In closed mode all VPC-attached resources live in isolated subnets
+    // (no NAT, no egress). Otherwise they use the private-with-egress subnets.
+    const lambdaSubnetSelection: ec2.SubnetSelection = closedNetwork
+      ? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
+      : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
+
+    // Closed mode: warn (don't block) on cross-region global.* profiles that
+    // may route data outside bedrockRegion; recommend region-pinned IDs.
+    if (closedNetwork) {
+      const configuredModelIds = [
+        props.parameters.documentProcessingModelId,
+        props.parameters.imageReviewModelId,
+        ...props.parameters.availableModels.map((m) => m.modelId),
+      ];
+      const wideGeoIds = configuredModelIds.filter((id) =>
+        id.startsWith("global."),
+      );
+      if (wideGeoIds.length > 0) {
+        cdk.Annotations.of(this).addWarning(
+          `closedNetwork: the following model IDs use cross-region (global.*) inference profiles that may route data outside bedrockRegion (${props.parameters.bedrockRegion}): ${[...new Set(wideGeoIds)].join(", ")}. For true data residency, use region-pinned IDs (e.g. us.* for us-west-2).`,
+        );
+      }
+    }
 
     const accessLogBucket = new s3.Bucket(this, `${prefix}AccessLogBucket`, {
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -57,27 +95,38 @@ export class RapidStack extends cdk.Stack {
     });
 
     // VPCの作成
+    // Closed mode: isolated subnets only, no NAT, no public subnets so there is
+    // no internet egress at runtime. All AWS access goes through VPC endpoints.
+    // Standard / intermediate: public + private-with-egress + isolated, 1 NAT GW.
     const vpc = new ec2.Vpc(this, "RapidVpc", {
       maxAzs: 2,
-      natGateways: 1,
-      subnetConfiguration: [
-        {
-          name: "public",
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-          mapPublicIpOnLaunch: false, // Disable auto-assignment of public IPs
-        },
-        {
-          name: "private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 24,
-        },
-        {
-          name: "isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-          cidrMask: 28,
-        },
-      ],
+      natGateways: closedNetwork ? 0 : 1,
+      subnetConfiguration: closedNetwork
+        ? [
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 24,
+            },
+          ]
+        : [
+            {
+              name: "public",
+              subnetType: ec2.SubnetType.PUBLIC,
+              cidrMask: 24,
+              mapPublicIpOnLaunch: false, // Disable auto-assignment of public IPs
+            },
+            {
+              name: "private",
+              subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+              cidrMask: 24,
+            },
+            {
+              name: "isolated",
+              subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+              cidrMask: 28,
+            },
+          ],
     });
 
     // Add VPC Flow Logs (AwsSolutions-VPC7)
@@ -87,6 +136,16 @@ export class RapidStack extends cdk.Stack {
       trafficType: ec2.FlowLogTrafficType.ALL,
     });
 
+    // Closed mode: create all VPC endpoints so runtime traffic never leaves the
+    // VPC. The execute-api endpoint is referenced by the PRIVATE API Gateways.
+    let vpcEndpoints: VpcEndpoints | undefined;
+    if (closedNetwork) {
+      vpcEndpoints = new VpcEndpoints(this, "VpcEndpoints", {
+        vpc,
+        subnetSelection: lambdaSubnetSelection,
+      });
+    }
+
     // データベースの作成
     const database = new Database(this, "Database", {
       vpc,
@@ -95,6 +154,7 @@ export class RapidStack extends cdk.Stack {
       maxCapacity: 1,
       autoPause: true,
       autoPauseSeconds: 300,
+      subnetSelection: lambdaSubnetSelection,
     });
 
     // Prisma マイグレーション Lambda の作成
@@ -103,6 +163,7 @@ export class RapidStack extends cdk.Stack {
       databaseConnection: database.connection,
       databaseCluster: database.cluster,
       autoMigrate: props.parameters.autoMigrate, // パラメータから自動マイグレーション設定を渡す
+      subnetSelection: lambdaSubnetSelection,
     });
 
     // データベース接続権限の付与
@@ -129,6 +190,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         documentProcessingModelId: props.parameters.documentProcessingModelId,
         bedrockRegion: props.parameters.bedrockRegion,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -146,6 +208,10 @@ export class RapidStack extends cdk.Stack {
       enableCitations: props.parameters.enableCitations,
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
       availableModels: props.parameters.availableModels,
+      subnetSelection: lambdaSubnetSelection,
+      closedNetwork: closedNetwork,
+      agentCoreVpcMode:
+        closedNetwork && props.parameters.agentCoreNetworkMode === "VPC",
     });
 
     // Auth構成の作成（Cognitoのカスタムパラメータを個別に渡す）
@@ -184,6 +250,7 @@ export class RapidStack extends cdk.Stack {
         databaseConnection: database.connection,
         bedrockRegion: props.parameters.bedrockRegion,
         documentProcessingModelId: props.parameters.documentProcessingModelId,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -198,6 +265,7 @@ export class RapidStack extends cdk.Stack {
         aggregationDays: 7,
         scheduleExpression:
           props.parameters.feedbackAggregatorScheduleExpression,
+        subnetSelection: lambdaSubnetSelection,
       },
     );
 
@@ -208,6 +276,9 @@ export class RapidStack extends cdk.Stack {
     // API Gatewayとそれに紐づくLambda関数の作成
     const api = new Api(this, "Api", {
       vpc,
+      endpointMode: backendEndpointMode,
+      vpcEndpoint: vpcEndpoints?.executeApiEndpoint,
+      subnetSelection: lambdaSubnetSelection,
       databaseConnection: database.connection,
       environment: {
         DOCUMENT_BUCKET: documentBucket.bucketName,
@@ -252,12 +323,35 @@ export class RapidStack extends cdk.Stack {
     const frontend = new Frontend(this, "Frontend", {
       accessLogBucket,
       webAclId: props.webAclId,
-      enableIpV6: props.enableIpV6,
+      enableIpV6: props.enableIpV6 ?? false,
+      deliveryMode: useS3ApiGatewayFrontend ? "s3ApiGateway" : "cloudfront",
       // alternateDomainName: props.alternateDomainName,
       // hostedZoneId: props.hostedZoneId,
     });
 
-    // Gitの最新タグを取得
+    // S3+APIGW / closed modes: serve the SPA from a dedicated frontend API.
+    let frontendApi: FrontendApi | undefined;
+    if (useS3ApiGatewayFrontend) {
+      frontendApi = new FrontendApi(this, "FrontendApi", {
+        assetBucket: frontend.assetBucket,
+        endpointMode: closedNetwork ? "PRIVATE" : "REGIONAL",
+        vpcEndpoint: vpcEndpoints?.executeApiEndpoint,
+        stageName: "app",
+      });
+      frontend.configureS3ApiGatewayDelivery({
+        origin: frontendApi.getOrigin(),
+        basePath: frontendApi.getBasePath(),
+      });
+
+      // Regional WAF on the frontend + backend API stages (defense-in-depth).
+      new RegionalWaf(this, "RegionalWaf", {
+        allowedIpV4AddressRanges: props.parameters.allowedIpV4AddressRanges,
+        allowedIpV6AddressRanges: props.parameters.allowedIpV6AddressRanges,
+        stages: [frontendApi.getStage(), api.api.deploymentStage],
+      });
+    }
+
+    // バージョン（最新のGitタグを取得）
     const latestGitTag = this.getLatestGitTag();
 
     frontend.buildViteApp({
@@ -267,13 +361,20 @@ export class RapidStack extends cdk.Stack {
       version: latestGitTag, // Gitタグ情報を追加
     });
 
+    // Presigned upload/download CORS. A CORS Origin is scheme + host only
+    // (never a path), so strip the stage path getOrigin() adds in S3+APIGW mode.
+    const rawFrontendOrigin = useS3ApiGatewayFrontend
+      ? frontend.getOrigin()
+      : `https://${frontend.cloudFrontWebDistribution!.distributionDomainName}`; // frontend.getOrigin() is cyclic reference in cloudfront mode
+    const frontendCorsOrigin = rawFrontendOrigin.replace(
+      /^(https?:\/\/[^/]+).*$/,
+      "$1",
+    );
     documentBucket.addCorsRule({
-      allowedMethods: [s3.HttpMethods.PUT],
-      allowedOrigins: [
-        `https://${frontend.cloudFrontWebDistribution.distributionDomainName}`, // frontend.getOrigin() is cyclic reference
-        "http://localhost:5173",
-      ],
+      allowedMethods: [s3.HttpMethods.PUT, s3.HttpMethods.GET],
+      allowedOrigins: [frontendCorsOrigin, "http://localhost:5173"],
       allowedHeaders: ["*"],
+      exposedHeaders: ["ETag"],
       maxAge: 3000,
     });
 

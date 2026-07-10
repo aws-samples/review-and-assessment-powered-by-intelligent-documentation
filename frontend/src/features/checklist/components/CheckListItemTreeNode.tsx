@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAlert } from "../../../hooks/useAlert";
+import { publicAsset } from "../../../utils/publicAsset";
 import { CheckListItemDetail, AmbiguityFilter } from "../types";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import {
@@ -167,7 +168,9 @@ export default function CheckListItemTreeNode({
                     {item.toolConfiguration && (
                       <Tooltip content={item.toolConfiguration.name}>
                         <a
-                          href={`/tool-configurations/${item.toolConfiguration.id}`}
+                          href={publicAsset(
+                            `/tool-configurations/${item.toolConfiguration.id}`
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray transition-colors hover:text-aws-font-color-blue"

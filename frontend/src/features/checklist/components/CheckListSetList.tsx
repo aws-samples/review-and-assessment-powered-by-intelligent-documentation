@@ -1,14 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAlert } from "../../../hooks/useAlert";
 import { useTranslation } from "react-i18next";
-import {
-  HiEye,
-  HiTrash,
-  HiExclamationCircle,
-  HiInformationCircle,
-  HiLockClosed,
-  HiDuplicate,
-} from "react-icons/hi";
+import { HiEye, HiTrash, HiLockClosed, HiDuplicate } from "react-icons/hi";
 import { CHECK_LIST_STATUS, CheckListSetSummary } from "../types";
 import Table, { TableColumn, TableAction } from "../../../components/Table";
 import StatusBadge from "../../../components/StatusBadge";
@@ -40,9 +34,11 @@ export default function CheckListSetList({
 }: CheckListSetListProps) {
   const { t } = useTranslation();
 
+  const navigate = useNavigate();
+
   // Handle row click to navigate to details page
   const handleRowClick = (item: CheckListSetListProps["checkListSets"][0]) => {
-    window.location.href = `/checklist/${item.id}`;
+    navigate(`/checklist/${item.id}`);
   };
 
   const { showConfirm, showError, AlertModal } = useAlert();
@@ -173,7 +169,7 @@ export default function CheckListSetList({
       icon: <HiEye className="mr-1 h-4 w-4" />,
       label: t("common.details"),
       onClick: (item) => {
-        window.location.href = `/checklist/${item.id}`;
+        navigate(`/checklist/${item.id}`);
       },
       variant: "primary",
       outline: true,

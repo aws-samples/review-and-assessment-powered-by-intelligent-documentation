@@ -21,6 +21,9 @@ export function getS3Client(): S3Client {
   if (!s3Client) {
     s3Client = new S3Client({
       region: process.env.AWS_REGION || "ap-northeast-1",
+      // SDK v3 adds a CRC32 checksum by default; the header it requires isn't
+      // sent by browser presigned PUTs, causing 403. Only checksum when needed.
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
   return s3Client;

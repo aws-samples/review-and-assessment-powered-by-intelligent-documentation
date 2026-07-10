@@ -16,6 +16,10 @@ export interface AmbiguityDetectionProcessorProps {
   databaseConnection: DatabaseConnectionProps;
   bedrockRegion: string;
   documentProcessingModelId: string;
+  /**
+   * Subnet selection for the worker Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   */
+  subnetSelection?: ec2.SubnetSelection;
 }
 
 export class AmbiguityDetectionProcessor extends Construct {
@@ -68,7 +72,7 @@ export class AmbiguityDetectionProcessor extends Construct {
       memorySize: 1024,
       timeout: Duration.minutes(15),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.subnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [this.securityGroup],

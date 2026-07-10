@@ -65,7 +65,7 @@ Key functions:
 
 **Change models via CDK**:
 ```bash
-cdk deploy -c rapid.documentProcessingModelId="global.anthropic.claude-opus-4-5-20251101-v1:0"
+cdk deploy -c rapid.documentProcessingModelId="global.anthropic.claude-opus-4-6-v1"
 ```
 
 **Add new model** to `model_config.py` in `_get_model_configs()`:
