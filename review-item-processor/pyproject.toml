@@ -9,7 +9,7 @@ dependencies = [
     "pillow>=11.2.1",
     "boto3>=1.40.22",
     "anyio>=4.0.0",
-    "mcp>=1.0.0",
+    "mcp>=1.27.2",
     "pydantic>=2.0.0",
     "aws-opentelemetry-distro>=0.12.2",
 ]
