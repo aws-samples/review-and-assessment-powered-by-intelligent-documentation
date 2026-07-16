@@ -26,6 +26,7 @@
   },
   "exclude": [
     "node_modules",
-    "cdk.out"
+    "cdk.out",
+    "lib/constructs/lambda/invoke-agent"
   ]
 }
