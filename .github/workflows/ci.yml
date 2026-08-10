@@ -166,6 +166,10 @@ jobs:
         working-directory: cdk
         run: npm ci
 
+      - name: Build
+        working-directory: cdk
+        run: npm run build
+
       - name: Synth
         working-directory: cdk
         run: npx cdk synth
