@@ -12,7 +12,9 @@
     "preinstall": "cd ../backend && npm ci && npm run prisma:generate"
   },
   "devDependencies": {
+    "@aws-sdk/client-bedrock-agentcore": "^3.987.0",
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.312",
+    "@types/aws-lambda": "^8.10.148",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
     "aws-cdk": "^2.1128.1",
