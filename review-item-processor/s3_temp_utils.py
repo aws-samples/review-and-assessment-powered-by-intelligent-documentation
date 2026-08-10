@@ -47,11 +47,19 @@ class S3TempStorage:
         S3参照から実データを復元
         """
         if self._is_s3_temp_ref(input_data):
+            # 参照内の bucket を信頼せず、アプリ構成で定めたバケット
+            # （self.bucket_name）に限定する。forge された参照が別バケットを
+            # 指す場合は拒否（フェイルクローズ）。
+            if input_data["bucket"] != self.bucket_name:
+                raise ValueError(
+                    f"[S3Temp] Refusing to resolve reference with untrusted "
+                    f"bucket: {input_data['bucket']}"
+                )
             print(f"[S3Temp] Resolving data from: {input_data['key']}")
-            
-            # S3から実データを取得
+
+            # S3から実データを取得（bucket は構成値に固定）
             response = self.s3_client.get_object(
-                Bucket=input_data["bucket"], Key=input_data["key"]
+                Bucket=self.bucket_name, Key=input_data["key"]
             )
             
             body = response["Body"].read().decode("utf-8")
@@ -80,7 +88,8 @@ class S3TempStorage:
     def _cleanup(self, ref: dict) -> None:
         """S3の一時データを削除"""
         try:
-            self.s3_client.delete_object(Bucket=ref["bucket"], Key=ref["key"])
+            # bucket は構成値に固定（参照内 bucket を信頼しない）。
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=ref["key"])
             print(f"[S3Temp] Cleaned up: {ref['key']}")
         except Exception as e:
             print(f"[S3Temp] Failed to cleanup {ref['key']}: {str(e)}")

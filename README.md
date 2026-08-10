@@ -65,9 +65,9 @@ Concrete scenarios with sample documents are available in the [examples gallery]
 
 This method allows you to deploy directly from your browser using AWS CloudShell, without preparing a local environment.
 
-1. **Enable Amazon Bedrock models**
+1. **Confirm the models to use with Amazon Bedrock**
 
-   Access Bedrock Model Access from the AWS Management Console and enable access to the models you plan to use (see [AI Model Customization](./docs/en/deployment-options.md#ai-model-customization) for the model list). By default, the Oregon (us-west-2) region is used for Amazon Bedrock, but you can change it with the `--bedrock-region` option.
+   Amazon Bedrock uses the region where the stack is deployed (the region in which you open AWS CloudShell). Make sure the target models (inference profiles) are enabled in that region. To use cross-region (`global.` / `us.` / `eu.` / `apac.` / `jp.`) inference profiles, see [AI Model Customization](./docs/en/deployment-options.md#ai-model-customization).
 
 2. **Open AWS CloudShell**
 
@@ -183,9 +183,10 @@ The following parameters can be customized during CDK deployment. Edit [`cdk/lib
 |                           | cognitoDomainPrefix                  | Prefix for the Cognito domain                                                                                                                                              | Auto-generated                             |
 |                           | cognitoSelfSignUpEnabled             | Whether to enable self-signup for the Cognito User Pool                                                                                                                    | true (enabled)                             |
 | **Migration**             | autoMigrate                          | Whether to automatically run database migration during deployment                                                                                                          | true (auto-run)                            |
+| **Bedrock**               | defaultModelId                  | The default AI model used across the whole app (document processing, image review, checklist generation, ambiguity detection, and the WebUI default); per-item selections from `availableModels` override it.                                                    | global.anthropic.claude-sonnet-5           |
+|                           | availableModels                 | List of models available for per-checklist-item model selection. Model IDs must use an inference-profile prefix (`global.` / `jp.` etc.) that matches the deployment region; see [AI Model Customization](./docs/en/deployment-options.md#ai-model-customization). Set `[]` to hide the model selection UI. | Sonnet 5 (Global), Opus 4.8 / 4.7, Sonnet 4.6, Haiku 4.5 (Global & JP), plus Opus 4.6 (Global) |
 | **MCP Features**          | mcpAdmin                             | Whether to grant admin permissions to the MCP runtime Lambda function                                                                                                      | false (disabled)                           |
 | **Citations API**         | enableCitations                      | Whether to enable the Citations API for PDF documents ([AWS announcement](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/)) | true (enabled)                             |
-| **Model Selection**       | availableModels                      | List of models available for per-checklist-item model selection. Set to an empty array `[]` to disable the model selection UI                                              | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Claude Sonnet 4 |
 | **Network Mode**          | s3ApiGatewayFrontend                 | Serve the SPA from S3 via a dedicated REGIONAL API Gateway (S3 proxy) instead of CloudFront, keeping standard networking. See [Closed / Private Network Deployment](#closed--private-network-deployment). | false                                      |
 |                           | closedNetwork                        | Fully private mode: isolated subnets, no NAT, VPC endpoints, PRIVATE API Gateways, Cognito PrivateLink. Implies `s3ApiGatewayFrontend`. See [Closed / Private Network Deployment](#closed--private-network-deployment). | false                                      |
 |                           | agentCoreNetworkMode                 | AgentCore Runtime network mode (only applies when `closedNetwork`). `PUBLIC` = runtime has internet (MCP/uv work); `VPC` = runtime fully isolated. Invoke path is private either way | PUBLIC                                     |
@@ -218,24 +219,19 @@ Closed network mode comes with several constraints — deployment itself still r
 
 ### AI Model Customization
 
-RAPID uses Strands agents with tools such as file reading, so you must select **models that support tool use**. You can change the processing models (`documentProcessingModelId` / `imageReviewModelId`) and the per-item selection list (`availableModels`) in `parameter.ts`. For the list of tool-use capable models, notes on cross-region inference profiles, and configuration examples, see [AI Model Customization](./docs/en/deployment-options.md#ai-model-customization).
+RAPID uses Strands agents with tools such as file reading, so you must select **models that support tool use**. You can change the app-wide default model (`defaultModelId`) and the per-item selection list (`availableModels`) in `parameter.ts`; when a checklist item has no model selected, the review falls back to the default model. For the list of bundled models, notes on regions and inference profiles, configuration examples, and how to register token prices when adding a model, see [AI Model Customization](./docs/en/deployment-options.md#ai-model-customization).
 
 ## Pricing
 
 This solution incurs infrastructure fixed costs (~$5/day, ~$150/month, mainly for the NAT Gateway and Aurora Serverless v2) plus Amazon Bedrock usage costs based on document processing volume (pay-per-use).
 
-| Model class                                                | Processable pages per review | Cost example         |
-| ---------------------------------------------------------- | ---------------------------- | -------------------- |
-| Budget-friendly lightweight model (Claude Haiku 4.5, etc.) | ~80–85 pages                 | ~$0.28 for 80 pages  |
-| High-accuracy large-capacity model (Claude Opus 4.6, etc.) | ~430 pages                   | ~$5.75 for 400 pages |
+| Model class                                              | Max pages per review (context-window guide) | Cost example            |
+| -------------------------------------------------------- | ------------------------------------------- | ----------------------- |
+| Budget-friendly lightweight model (Claude Haiku 4.5, etc.) | ~80–85 pages                                | ~$0.28 for 80 pages     |
+| High-accuracy large-capacity model (Claude Opus 4.x, etc.) | ~430 pages                                  | ~$5.75 for 400 pages    |
 
 > [!Important]
-> - **Please test with your own sample documents to determine actual costs.** Costs vary significantly with text volume, image count / size, and the number of checklist items (page counts are rough estimates only).
-> - **Agent features** (Knowledge Bases, Code Interpreter, etc.) may incur up to 10x higher costs.
-> - Detailed pricing and token usage can be viewed on the review results screen.
-> - The Amazon Bedrock Converse API has a 4.5 MB file size limit.
->
-> For the latest pricing information, please visit the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
+> Please test with your own sample documents: costs vary significantly with text volume, image count / size, the number of checklist items, and tool usage (Knowledge Bases, Code Interpreter, etc.). The cost shown on the review results screen is an estimate based only on that review's token usage and may not match your actual charges.
 
 ## User Roles and Admin Setup
 

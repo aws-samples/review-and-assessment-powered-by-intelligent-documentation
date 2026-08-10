@@ -8,20 +8,20 @@
 
 ## クイックスタート
 
-依存関係をインストール:
+依存関係をインストールします。
 
 ```bash
 cd review-item-processor
 uv sync --extra evals
 ```
 
-事前構築されたデモを実行して動作を確認:
+事前構築されたデモを実行して動作を確認します。
 
 ```bash
 uv run python evals/scripts/run_eval.py --suite ja/examples/floor_plan_hitl_suite.json
 ```
 
-以下のようなメトリクスが表示されます:
+以下のようなメトリクスが表示されます。
 
 - Accuracy: 100%
 - Recall: 100%
@@ -39,20 +39,20 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/floor_plan_hitl_suit
 
 ### 評価とは?
 
-評価は、AI エージェントが正しい判断を下すかどうかをテストします。すべてのドキュメントを手動でチェックする代わりに:
+評価は、AI エージェントが正しい判断を下すかどうかをテストします。すべてのドキュメントを手動でチェックする代わりに、次の手順を実施します。
 
-1. 既知の正解(正解ラベル)を持つテストケースを作成
-2. それらのテストケースでエージェントを実行
-3. エージェントの回答を正解ラベルと比較
-4. パフォーマンスを測定するメトリクスを計算
+1. 既知の正解(正解ラベル)を持つテストケースを作成します。
+2. それらのテストケースでエージェントを実行します。
+3. エージェントの回答を正解ラベルと比較します。
+4. パフォーマンスを測定するメトリクスを計算します。
 
 ### なぜ評価するのか?
 
-本番環境(特に安全性/コンプライアンス)に AI エージェントをデプロイする前に、以下を確認する必要があります:
+本番環境(特に安全性/コンプライアンス)に AI エージェントをデプロイする前に、以下を確認する必要があります。
 
-- すべての重要な問題を検出する(高い再現率)
-- 誤警報が多すぎない(良好な適合率)
-- 不確実な場合にそれを認識する(良好なキャリブレーション)
+- すべての重要な問題を検出できること(高い再現率)
+- 誤警報が多すぎないこと(良好な適合率)
+- 不確実な場合にそれを認識できること(良好なキャリブレーション)
 
 ### 2 種類のメトリクス
 
@@ -92,11 +92,11 @@ uv run python evals/scripts/run_eval.py --suite ja/examples/floor_plan_hitl_suit
 
 **ワークフロー**:
 
-1. agent.py のシステムプロンプトを設計 (役割定義、出力形式、信頼度ガイドライン、クリティカルルール)
-2. eval を実行してプロンプトバリエーションをテスト
-3. メトリクスを分析 (recall, precision, critical errors)
-4. 本番基準を満たすまでプロンプトを改善
-5. エージェントをリリース
+1. agent.py のシステムプロンプトを設計します (役割定義、出力形式、信頼度ガイドライン、クリティカルルール)。
+2. eval を実行してプロンプトバリエーションをテストします。
+3. メトリクスを分析します (recall, precision, critical errors)。
+4. 本番基準を満たすまでプロンプトを改善します。
+5. エージェントをリリースします。
 
 **注**: 非技術者の方は、多くの場合 eval を実行する必要はありません。技術チームがチューニングしたエージェントをそのまま使用します。
 
@@ -267,7 +267,7 @@ Low Quality Count:  0
 
 ### ステップ 1: テストドキュメントの準備
 
-PDF を fixtures ディレクトリにコピー:
+PDF を fixtures ディレクトリにコピーします。
 
 ```bash
 cp your_document.pdf evals/my_tests/fixtures/
@@ -277,13 +277,13 @@ cp your_document.pdf evals/my_tests/fixtures/
 
 ### ステップ 2: テストケース定義の作成
 
-テンプレートをコピーして編集:
+テンプレートをコピーして編集します。
 
 ```bash
 cp evals/my_tests/template.json evals/my_tests/my_suite.json
 ```
 
-`my_tests/my_suite.json`を編集:
+`my_tests/my_suite.json`を編集します。
 
 ```json
 {
@@ -315,11 +315,11 @@ cp evals/my_tests/template.json evals/my_tests/my_suite.json
 
 ### ステップ 3: 正解ラベルの決定
 
-**あなた自身がドキュメントを読んで正しい答えを決定する必要があります**:
+**あなた自身がドキュメントを読んで正しい答えを決定する必要があります**。
 
-1. ドキュメントを注意深く読む
-2. `check_description`の要件と照らし合わせてチェック
-3. 決定: "pass"(準拠) または "fail"(非準拠)
+1. ドキュメントを注意深く読みます。
+2. `check_description`の要件と照らし合わせてチェックします。
+3. "pass"(準拠) または "fail"(非準拠) を決定します。
 
 **例**:
 
@@ -424,7 +424,7 @@ uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json
 
 #### run_eval.py
 
-コマンドラインから評価を実行:
+コマンドラインから評価を実行します。
 
 ```bash
 uv run python evals/scripts/run_eval.py [OPTIONS]
@@ -432,42 +432,52 @@ uv run python evals/scripts/run_eval.py [OPTIONS]
 
 **オプション:**
 
-- `--suite <path>` - テストスイートを実行(テストケースの配列を含む JSON ファイル)
+- `--suite <path>` - テストスイートを実行します(テストケースの配列を含む JSON ファイル)。
 
   - 例: `--suite my_tests/my_suite.json`
 
-- `--case <path>` - 単一テストケースを実行(単一テストケースを含む JSON ファイル)
+- `--case <path>` - 単一テストケースを実行します(単一テストケースを含む JSON ファイル)。
 
   - 例: `--case my_tests/single_case.json`
 
-- `--experiment <type>` - 実験タイプを選択:
+- `--experiment <type>` - 実験タイプを選択します。
 
   - `accuracy` - 精度とキャリブレーションメトリクスのみ(高速)
   - `tool` - ツール使用効率メトリクスを追加
   - `comprehensive` - 説明品質を含むすべてのメトリクス(デフォルト)
 
-- `--output <path>` - 結果を特定のファイルに保存
+- `--output <path>` - 結果を特定のファイルに保存します。
 
   - デフォルト: `results/results_TIMESTAMP.json`
   - 例: `--output my_results.json`
 
-- `--verbose` - 各テストケースの詳細出力を表示
-  - エージェントの出力、信頼度、説明を表示
-  - 偽陰性/偽陽性のデバッグに便利
+- `--verbose` - 各テストケースの詳細出力を表示します。
+  - エージェントの出力、信頼度、説明を表示します。
+  - 偽陰性/偽陽性のデバッグに便利です。
 
 **例:**
 
+包括的評価を実行(デフォルト):
+
 ```bash
-# 包括的評価を実行(デフォルト)
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json
+```
 
-# 詳細出力で実行
+詳細出力で実行:
+
+```bash
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --verbose
+```
 
-# 単一テストケースを実行
+単一テストケースを実行:
+
+```bash
 uv run python evals/scripts/run_eval.py --case my_tests/single_case.json
+```
 
-# 精度のみ実行(高速)
+精度のみ実行(高速):
+
+```bash
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --experiment accuracy
 ```
 
@@ -515,8 +525,8 @@ uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --experim
 
 **CLI でツール設定を使用:**
 
-1. 上記のテストケースを`my_tests/compliance_with_kb.json`に保存(`YOUR_KB_ID`を実際のナレッジベース ID に置き換える)
-2. 実行:
+1. 上記のテストケースを`my_tests/compliance_with_kb.json`に保存します(`YOUR_KB_ID`を実際のナレッジベース ID に置き換えます)。
+2. 次のコマンドを実行します。
    ```bash
    cd review-item-processor
    uv run python evals/scripts/run_eval.py --case my_tests/compliance_with_kb.json

@@ -27,47 +27,51 @@ export const parameters = {
   // bedrockRegion: "us-east-1", // Bedrockを利用するリージョン（デフォルト：us-west-2）
   // AI モデル設定
   // デフォルトモデル以外を使用したい場合に設定します
-  // 注意: モデルIDのプレフィックス（us., eu., apac.など）はbedrockRegionに対応している必要があります
+  // model-id-consolidation: documentProcessingModelId / imageReviewModelId は
+  // 単一の defaultModelId に統合されました（旧 2 名は後方互換のため引き続き受け付けます）
+  // アプリ全体（チェックリスト生成・書類審査）で使用する既定モデルです。
+  // チェックリスト項目ごとにモデルを選択した場合（availableModels）は、そちらが優先されます。
+  // 注意: モデルIDのプレフィックス（global., jp., us. など）はデプロイ先リージョンで
+  // 利用可能な推論プロファイルを選んでください
   // 詳細: https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html
   // ---------------------------------------------------
-  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
-  // documentProcessingModelId: "us.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (US)
-  // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (EU)
-  // documentProcessingModelId: "jp.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (JP)
-  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (Global)
-  // documentProcessingModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
-  // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
-  // documentProcessingModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
-  // documentProcessingModelId: "global.anthropic.claude-opus-4-5-20251101-v1:0", // Claude 4.5 Opus (Global)
-  // documentProcessingModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
-  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
-  // documentProcessingModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
-  // documentProcessingModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
-  // documentProcessingModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
-  // documentProcessingModelId: "apac.anthropic.claude-3-7-sonnet-20250219-v1:0",  // 日本リージョンでClaude利用する場合
-  // documentProcessingModelId: "mistral.mistral-large-2407-v1:0", // Mistral利用する場合
-  // documentProcessingModelId: "us.amazon.nova-2-omni-v1:0", // Nova 2 Omni
-  // imageReviewModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
-  // imageReviewModelId: "us.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (US)
-  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (EU)
-  // imageReviewModelId: "jp.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (JP)
-  // imageReviewModelId: "global.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (Global)
-  // imageReviewModelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (US)
-  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (EU)
-  // imageReviewModelId: "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", // Claude 4.5 Sonnet (JP)
-  // imageReviewModelId: "global.anthropic.claude-opus-4-5-20251101-v1:0", // Claude 4.5 Opus (Global)
-  // imageReviewModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
-  // imageReviewModelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (Global)
-  // imageReviewModelId: "eu.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (EU)
-  // imageReviewModelId: "apac.anthropic.claude-sonnet-4-20250514-v1:0", // Claude 4 Sonnet (APAC)
-  // imageReviewModelId: "apac.amazon.nova-premier-v1:0", // 画像レビュー用モデル（例：Nova Premier）
-  // imageReviewModelId: "us.amazon.nova-2-omni-v1:0", // Nova 2 Omni
+  // defaultModelId: "global.anthropic.claude-sonnet-5", // Claude Sonnet 5 (Global) — default: "global.anthropic.claude-sonnet-5"
+  // defaultModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
+  // defaultModelId: "jp.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (JP)
+  // defaultModelId: "global.anthropic.claude-opus-4-8", // Claude Opus 4.8 (Global)
+  // defaultModelId: "jp.anthropic.claude-opus-4-8", // Claude Opus 4.8 (JP)
+  // defaultModelId: "global.anthropic.claude-opus-4-7", // Claude Opus 4.7 (Global)
+  // defaultModelId: "jp.anthropic.claude-opus-4-7", // Claude Opus 4.7 (JP)
+  // defaultModelId: "global.anthropic.claude-opus-4-6-v1", // Claude Opus 4.6 (Global)
+  // defaultModelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", // Claude Haiku 4.5 (Global)
+  // defaultModelId: "jp.anthropic.claude-haiku-4-5-20251001-v1:0", // Claude Haiku 4.5 (JP)
   // チェックリスト項目ごとに選択可能なモデル一覧
-  // デフォルトでは Opus 4.6, Sonnet 4.6, Haiku 4.5 が設定されています
+  // 以下のコメントアウトされた一覧はスキーマのデフォルトと同一です
   // カスタマイズする場合はコメントを外して編集してください
   // 空配列に設定するとモデル選択UIが非表示になります
+  // モデルを追加する場合は review-item-processor/model_config.py への価格登録も必要です
   // ---------------------------------------------------
   // availableModels: [
+  //   {
+  //     modelId: "global.anthropic.claude-sonnet-5",
+  //     displayName: "Claude Sonnet 5 (Global)",
+  //   },
+  //   {
+  //     modelId: "global.anthropic.claude-opus-4-8",
+  //     displayName: "Claude Opus 4.8 (Global)",
+  //   },
+  //   {
+  //     modelId: "jp.anthropic.claude-opus-4-8",
+  //     displayName: "Claude Opus 4.8 (JP)",
+  //   },
+  //   {
+  //     modelId: "global.anthropic.claude-opus-4-7",
+  //     displayName: "Claude Opus 4.7 (Global)",
+  //   },
+  //   {
+  //     modelId: "jp.anthropic.claude-opus-4-7",
+  //     displayName: "Claude Opus 4.7 (JP)",
+  //   },
   //   {
   //     modelId: "global.anthropic.claude-opus-4-6-v1",
   //     displayName: "Claude Opus 4.6 (Global)",
@@ -77,12 +81,16 @@ export const parameters = {
   //     displayName: "Claude Sonnet 4.6 (Global)",
   //   },
   //   {
+  //     modelId: "jp.anthropic.claude-sonnet-4-6",
+  //     displayName: "Claude Sonnet 4.6 (JP)",
+  //   },
+  //   {
   //     modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
   //     displayName: "Claude Haiku 4.5 (Global)",
   //   },
   //   {
-  //     modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0",
-  //     displayName: "Claude Sonnet 4 (Global)",
+  //     modelId: "jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  //     displayName: "Claude Haiku 4.5 (JP)",
   //   },
   // ],
   // // モデル選択UIを無効にする場合:

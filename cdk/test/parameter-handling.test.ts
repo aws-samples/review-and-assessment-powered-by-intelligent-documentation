@@ -74,3 +74,23 @@ describe("Parameter Handling Tests", () => {
     });
   });
 });
+
+// PR02-3: defaultModelId ∈ availableModels の synth 時 fail-fast。
+describe("defaultModelId must be selectable from availableModels (PR02-3)", () => {
+  test("rejects a defaultModelId that is not in availableModels", () => {
+    expect(() =>
+      resolveParameters({
+        defaultModelId: "not.in.the.list",
+        availableModels: [{ modelId: "a.model", displayName: "A" }],
+      })
+    ).toThrow(/not in availableModels/);
+  });
+
+  test("accepts when availableModels is empty (model selector hidden)", () => {
+    const parameters = resolveParameters({
+      defaultModelId: "any.model",
+      availableModels: [],
+    });
+    expect(parameters.defaultModelId).toBe("any.model");
+  });
+});

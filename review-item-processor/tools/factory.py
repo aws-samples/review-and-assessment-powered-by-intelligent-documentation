@@ -36,7 +36,9 @@ def create_custom_tools(
         logger.debug("No tool configuration provided, returning empty tool list")
         return tools
 
-    logger.debug(f"Creating tools with configuration: {tool_config}")
+    # tool_config には MCP 資格情報（headers/env/oauthScopes、
+    # 資格情報を埋め込みうる url）が含まれうるため値をログ出力しない。トップレベルキーのみ記録する。
+    logger.debug(f"Creating tools; configuration keys={sorted(tool_config.keys())}")
 
     # Code Interpreter
     if tool_config.get("codeInterpreter", False):

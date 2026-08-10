@@ -8,6 +8,14 @@ from mcp.client.stdio import (
 )
 from mcp.client.streamable_http import streamablehttp_client
 from logger import logger
+from tools.mcp_validation import (
+    _mask_url_secrets,
+    create_pinned_mcp_http_client_factory,
+    mask_mcp_server_config,
+    resolve_and_validate_mcp_url,
+    validate_stdio_config,
+)
+
 
 # uvx が MCP サーバの依存を解決するときに適用する制約ファイル (mcp<2)。
 # イメージ内では Dockerfile の COPY により /app/mcp-uv-constraints.txt に置かれる
@@ -75,7 +83,11 @@ def create_mcp_clients(mcp_config: Optional[Dict[str, Dict[str, Any]]]) -> List[
                 client = _create_stdio_client(server_cfg, server_name)
             else:
                 error_msg = f"Invalid config: missing url or (command + args)"
-                logger.error(f"Invalid MCP config for '{server_name}': {server_cfg}")
+                # server_cfg は headers/env の秘密・
+                # url の api_key・args 等を含みうるため verbatim 出力せずマスクする。
+                logger.error(
+                    f"Invalid MCP config for '{server_name}': {mask_mcp_server_config(server_cfg)}"
+                )
                 failed_servers.append((server_name, error_msg))
                 continue
 
@@ -124,25 +136,62 @@ def _is_stdio_config(config: Dict[str, Any]) -> bool:
 
 
 def _create_stdio_client(config: Dict[str, Any], server_name: str) -> Optional[MCPClient]:
-    """Create stdio-based MCP client (uvx or npx)."""
+    """Create stdio-based MCP client (uvx or npx).
+
+    TS 側と同一ルールで command/args/env を
+    検証する。command は allowlist（uvx/npx）に限定し、シェルメタ文字を拒否。config.env の
+    予約環境変数は拒否する。検証違反は ValueError（呼び出し側が per-server エラーとして捕捉）。
+    """
     command = config.get("command", "uvx")
     args = config["args"]
 
+    # 検証（不正なら ValueError を送出してフェイルクローズ）。
     # 既存挙動どおり os.environ は無条件展開せず、SDK 既定の安全な env を用いる。
     # 加算するのは UV_CONSTRAINT (mcp<2) のみ（_build_stdio_env 参照）。
+    validate_stdio_config(config)
+
     env = _build_stdio_env()
     client = MCPClient(
         lambda a=args, c=command, e=env: stdio_client(
             StdioServerParameters(command=c, args=a, env=e)
         )
     )
-    logger.debug(f"Created stdio MCP client '{server_name}': {command} {args}")
+    # args は秘密（--api-key 等）を含みうるので件数のみ。
+    # command は allowlist(uvx/npx)済みで非機密。
+    logger.debug(
+        f"Created stdio MCP client '{server_name}': {command} ({len(args)} arg(s))"
+    )
     return client
 
 
 def _create_http_client(config: Dict[str, Any], server_name: str) -> Optional[MCPClient]:
-    """Create HTTP-based MCP client."""
+    """Create HTTP-based MCP client.
+
+    接続先 URL を検証して SSRF を防ぐ。内部 IP /
+    リンクローカル / ループバック / 非 http(s) を拒否し、ホスト名は DNS 解決して全 IP を検査。
+    検証不能時はフェイルクローズ（ValueError）。
+
+    リダイレクト追従を無効化した httpx クライアントを注入し、
+    接続後の 3xx で内部（IMDS/VPC）へ誘導される SSRF サイロ漏れを防ぐ。
+
+    「検証→接続」の2段階で各々が独立に DNS 解決すると
+    TOCTOU(DNS rebinding)で接続先がすり替わりうる。resolve_and_validate_mcp_url が検証時に
+    安全と確認した IP をピン留めして接続する factory を注入し、すり替え窓を閉じる。TLS は
+    元ホスト名(SNI/Host)で検証するため証明書検証は壊さない。
+    """
     url = config["url"].strip()
-    client = MCPClient(lambda u=url: streamablehttp_client(u))
-    logger.debug(f"Created HTTP MCP client '{server_name}': {url}")
+    hostname, safe_ips = resolve_and_validate_mcp_url(url)
+    # 検証済みの安全な IP を接続先へピン留め（複数解決時は先頭を採用）。
+    httpx_client_factory = create_pinned_mcp_http_client_factory(
+        pinned_ip=safe_ips[0], original_host=hostname
+    )
+    client = MCPClient(
+        lambda u=url, f=httpx_client_factory: streamablehttp_client(
+            u, httpx_client_factory=f
+        )
+    )
+    # url の userinfo/クエリ値（api_key 等）はマスクする。
+    logger.debug(
+        f"Created HTTP MCP client '{server_name}': {_mask_url_secrets(url)}"
+    )
     return client

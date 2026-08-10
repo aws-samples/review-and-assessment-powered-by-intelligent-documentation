@@ -8,10 +8,12 @@ import {
 } from "../model/checklist";
 import { makePrismaUserPreferenceRepository } from "../../../user-preference/domain/repository";
 
-const BEDROCK_REGION = process.env.BEDROCK_REGION || "us-west-2";
+// 既定モデルを Claude Sonnet 5 (Global) に統一。通常は Worker Lambda に
+// DOCUMENT_PROCESSING_MODEL_ID env が注入される（ambiguity-detection-processor.ts）ため
+// この fallback は保険。他の処理経路（document-processing / review）と既定モデルを揃える。
 const MODEL_ID =
   process.env.DOCUMENT_PROCESSING_MODEL_ID ||
-  "global.anthropic.claude-sonnet-4-6";
+  "global.anthropic.claude-sonnet-5";
 
 const getAmbiguityDetectionPrompt = (
   languageName: string,
@@ -87,7 +89,8 @@ export const detectAmbiguity = async (params: {
   };
   const languageName = languageMap[userLanguage] || "English";
 
-  const bedrockClient = new BedrockRuntimeClient({ region: BEDROCK_REGION });
+  // region はデプロイ先（Lambda 実行）リージョンを自動利用する
+  const bedrockClient = new BedrockRuntimeClient({});
 
   const prompt = `${getAmbiguityDetectionPrompt(languageName, checklistContext)}
 

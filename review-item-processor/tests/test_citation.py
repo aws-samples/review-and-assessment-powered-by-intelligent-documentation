@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
-"""Citation tests for agent.py.
+"""
+Tests for the citation functionality in agent.py.
 
-Offline tests cover _should_use_document_block (routing) and
-_extract_citations_text (parsing). An opt-in Bedrock integration test runs only
-with RUN_BEDROCK_INTEGRATION=1 (needs AWS credentials).
+Run with: pytest tests/test_citation.py -v
+
+Offline tests (run by default, no AWS access) cover:
+  - _should_use_document_block: routing between the document block path
+    (PDF with citations) and the file_read tool path.
+  - _extract_citations_text: parsing the citations array from the model's
+    JSON response.
+
+An opt-in integration test runs a real review over the bundled sample PDF
+via Amazon Bedrock. It is skipped unless RUN_BEDROCK_INTEGRATION=1 is set
+(requires AWS credentials and incurs Bedrock charges):
+
+  RUN_BEDROCK_INTEGRATION=1 pytest tests/test_citation.py -v
 """
 import os
 import sys
@@ -14,12 +25,12 @@ import pytest
 # Add parent directory to path so `import agent` works when run from any cwd.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import agent
-from agent import _extract_citations_text, _should_use_document_block
-from model_config import ModelConfig
+import agent  # noqa: E402
+from agent import _extract_citations_text, _should_use_document_block  # noqa: E402
+from model_config import ModelConfig  # noqa: E402
 
 # A registered model that supports the document block + citations.
-CITATION_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
+CITATION_MODEL_ID = "global.anthropic.claude-sonnet-5"
 # An unregistered model falls back to _DEFAULT_CONFIG (no document block).
 UNKNOWN_MODEL_ID = "example.unknown-model-v1"
 

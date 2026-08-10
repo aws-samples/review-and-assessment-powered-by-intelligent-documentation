@@ -61,16 +61,12 @@ export interface ChecklistProcessorProps {
   logLevel?: sfn.LogLevel;
 
   /**
-   * ドキュメント処理に使用するAIモデルID
-   * @default "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+   * 既定の AI モデル ID（チェックリスト生成に使用）。
+   * defaultModelId に統合した。
+   * Lambda へは互換のため env キー DOCUMENT_PROCESSING_MODEL_ID として注入する。
+   * @default "global.anthropic.claude-sonnet-5"
    */
-  documentProcessingModelId: string;
-
-  /**
-   * Amazon Bedrockを利用するリージョン
-   * @default "us-west-2"
-   */
-  bedrockRegion: string;
+  defaultModelId: string;
 
   /**
    * Subnet selection for the processor Lambda. Defaults to PRIVATE_WITH_EGRESS.
@@ -138,8 +134,9 @@ export class ChecklistProcessor extends Construct {
         },
         environment: {
           DOCUMENT_BUCKET: props.documentBucket.bucketName,
-          BEDROCK_REGION: props.bedrockRegion,
-          DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
+          // env キーは backend の互換のため維持し、
+          // 統合後の単一 defaultModelId を供給する。
+          DOCUMENT_PROCESSING_MODEL_ID: props.defaultModelId,
           CHECKLIST_INLINE_MAP_CONCURRENCY: inlineMapConcurrency.toString(),
         },
         securityGroups: [this.securityGroup],

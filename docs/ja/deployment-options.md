@@ -40,6 +40,8 @@ wget -O - https://raw.githubusercontent.com/aws-samples/review-and-assessment-po
 | `--branch`                       | デプロイするブランチ名を指定します。                                                                                                        |
 | `--tag`                          | デプロイする特定の Git タグを指定します。                                                                                                   |
 
+> [!Note]
+> 旧オプション `--document-model` と `--image-model` は非推奨であり、将来のリリースで削除されます。後方互換のため引き続き受け付けますが、いずれも単一の `defaultModelId` パラメータに統合されました。代わりに `--default-model` を使用してください。
 
 ## 閉域網デプロイ
 
@@ -83,55 +85,45 @@ CloudShell スクリプトのオプションで指定する場合:
 
 このアプリケーションは Strands エージェントがファイル読み込みなどのツールを使用するため、**ツール使用に対応したモデル**を選択する必要があります。
 
-**ツール使用対応モデルの例**:
+**ツール使用対応モデルの例**（`availableModels` に既定で含まれるモデル）:
 
-- `global.anthropic.claude-opus-4-6-v1` (Claude Opus 4.6 Global)
-- `global.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 Global)
-- `us.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 US)
-- `eu.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 EU)
-- `jp.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 JP)
-- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5 Global)
-- `global.anthropic.claude-opus-4-5-20251101-v1:0` (Claude Opus 4.5 Global)
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 Global)
-- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 US)
-- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 EU)
-- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 JP)
-- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 Global)
-- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 US)
-- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 EU)
-- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 APAC)
-- `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
-- `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
-- `us.amazon.nova-2-omni-v1:0` (Amazon Nova 2 Omni)
+- `global.anthropic.claude-sonnet-5` (Claude Sonnet 5, Global) — 既定
+- `global.anthropic.claude-opus-4-8` (Claude Opus 4.8, Global)
+- `jp.anthropic.claude-opus-4-8` (Claude Opus 4.8, JP)
+- `global.anthropic.claude-opus-4-7` (Claude Opus 4.7, Global)
+- `jp.anthropic.claude-opus-4-7` (Claude Opus 4.7, JP)
+- `global.anthropic.claude-opus-4-6-v1` (Claude Opus 4.6, Global)
+- `global.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6, Global)
+- `jp.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6, JP)
+- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5, Global)
+- `jp.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5, JP)
 
 **重要な注意事項**:
 
-- **クロスリージョン推論プロファイル**: クロスリージョン推論を利用する場合は、`us.`、`eu.`、`apac.` などの地域プレフィックス付きモデル ID が必須です
-- **公式ドキュメント**: [Amazon Bedrock でサポートされているモデルと機能](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
+- **クロスリージョン推論プロファイル**: クロスリージョン推論を利用する場合は、モデル ID に地域プレフィックス（`global.`、`us.`、`eu.`、`apac.`、`jp.`）が必須で、プレフィックスはスタック（Amazon Bedrock）をデプロイするリージョンと整合している必要があります。例えば **us-east-1** のデプロイで `jp.*` モデルを選択すると、`ValidationException: The provided model identifier is invalid.` で失敗します。なお、本サンプル同梱の `availableModels` リストには `global.` / `jp.` の推論プロファイルのみが含まれます。デプロイ先リージョンで `us.` / `eu.` / `apac.` などが必要な場合はご自身で追加してください。
+- **公式ドキュメント**: [Amazon Bedrock でサポートされているモデルと機能](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html) / [Amazon Bedrock のモデルカード](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards.html)
 
-**設定例**: `cdk/lib/parameter.ts` ファイルを直接編集してください。
+**設定例（日本国内で推論を行う場合）**: `cdk/lib/parameter.ts` を次のように編集します。Amazon Bedrock はスタックをデプロイしたリージョンのものを使用するため、`jp.` の推論プロファイルを使う場合は、スタックを日本国内のリージョン（東京リージョン `ap-northeast-1`）にデプロイしてください（例: デプロイ前に `CDK_DEFAULT_REGION=ap-northeast-1` を設定します）。
 
 ```typescript
 export const parameters = {
-  documentProcessingModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
-  bedrockRegion: "us-west-2", // Oregon region
+  defaultModelId: "jp.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (JP)
   // ...
 };
 ```
 
 ### チェックリスト項目ごとのモデル選択
 
-デフォルトでは、各チェックリスト項目に `availableModels` リストから特定の AI モデルを割り当てることができます。デフォルトのモデルセットには Claude Opus 4.6、Sonnet 4.6、Haiku 4.5、Sonnet 4 (Global) が含まれています。項目にモデルが選択されていない場合、ドキュメントには `documentProcessingModelId`（デフォルト: `global.anthropic.claude-sonnet-4-6`）、画像には `imageReviewModelId`（デフォルト: `global.anthropic.claude-sonnet-4-6`）が使用されます。
+デフォルトでは、各チェックリスト項目に `availableModels` リストから特定の AI モデルを割り当てることができます。項目にモデルが選択されていない場合、審査は `defaultModelId` にフォールバックします（モデルはマルチモーダルのため、ドキュメントと画像で同じ既定値を使用します）。これにより、精度が必要な項目にだけ高精度モデルを使い、それ以外には安価なモデルを使う、といった使い分けができます。
 
-利用可能なモデルをカスタマイズするには:
+利用可能なモデルをカスタマイズするには、`cdk/lib/parameter.ts` に必要なモデルを列挙します。
 
 ```typescript
 export const parameters = {
   availableModels: [
-    { modelId: "global.anthropic.claude-opus-4-6-v1", displayName: "Claude Opus 4.6 (Global)" },
-    { modelId: "global.anthropic.claude-sonnet-4-6", displayName: "Claude Sonnet 4.6 (Global)" },
-    { modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5 (Global)" },
-    { modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", displayName: "Claude Sonnet 4 (Global)" },
+    { modelId: "global.anthropic.claude-sonnet-5", displayName: "Claude Sonnet 5 (Global)" },
+    { modelId: "jp.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5 (JP)" },
+    // ... 必要なモデルを追加してください
   ],
 };
 ```
@@ -143,6 +135,30 @@ export const parameters = {
   availableModels: [],
 };
 ```
+
+### モデルを追加する際の単価の登録
+
+RAPID は、1 回の審査あたりの金額の目安を Web UI に表示します。この金額は、各モデルの単価（トークンあたりの料金）をもとに算出しています。これらの単価は別のファイル `review-item-processor/model_config.py`（`_MODEL_REGISTRY` という辞書）で管理しています。`availableModels` に新しいモデルを追加する場合（または既定モデルとして設定する場合）は、このファイルにもそのモデルの入力・出力トークンの単価を登録してください。単価が未登録のモデルは、単価が `0` の既定設定にフォールバックし、そのモデルの推定金額は `$0` と表示されます。
+
+既存のエントリを参考に、`review-item-processor/model_config.py` へモデル ID をキーとしたエントリを追加します。
+
+```python
+_MODEL_REGISTRY = {
+    # ...
+    "global.anthropic.claude-sonnet-5": ModelConfig(
+        model_id="global.anthropic.claude-sonnet-5",
+        display_name="Claude Sonnet 5 (Global)",
+        input_per_1m=3.0,    # 入力 1,000,000 トークンあたりの単価（USD）
+        output_per_1m=15.0,  # 出力 1,000,000 トークンあたりの単価（USD）
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+    # ...
+}
+```
+
+Bedrock 上の各モデルのトークン単価は、[Amazon Bedrock 料金ページ](https://aws.amazon.com/bedrock/pricing/)をご参照ください。`input_per_1m` / `output_per_1m` は 1,000,000（1M）トークンあたりの単価で、料金ページの表記と揃えているため、値をそのまま登録できます（例: 入力 100 万トークンあたり `$3.00` の場合は `input_per_1m=3.0` になります）。
 
 ## 後片付けの詳細
 

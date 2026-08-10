@@ -55,20 +55,27 @@ export class RapidStack extends cdk.Stack {
       ? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
       : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
 
-    // Closed mode: warn (don't block) on cross-region global.* profiles that
-    // may route data outside bedrockRegion; recommend region-pinned IDs.
+    // 閉域モードで "global." プレフィックスのクロスリージョン推論プロファイル
+    // が指定されている場合は警告する。推論リクエストがデプロイリージョン外へ
+    // ルーティングされ得るため、厳密なデータレジデンシー要件がある場合は
+    // リージョン固定のプロファイル（例: "jp."）への変更を促す。切替判断は
+    // 利用者に委ねるため、エラーにはせず合成は継続する。
+    // Warn (not fail) when closed-network mode uses "global." cross-region
+    // inference profiles, which may route inference outside the region.
     if (closedNetwork) {
-      const configuredModelIds = [
-        props.parameters.documentProcessingModelId,
-        props.parameters.imageReviewModelId,
-        ...props.parameters.availableModels.map((m) => m.modelId),
-      ];
-      const wideGeoIds = configuredModelIds.filter((id) =>
-        id.startsWith("global."),
+      const globalModelIds = Array.from(
+        new Set(
+          [
+            props.parameters.defaultModelId,
+            ...props.parameters.availableModels.map((m) => m.modelId),
+          ].filter((modelId) => modelId.startsWith("global.")),
+        ),
       );
-      if (wideGeoIds.length > 0) {
+      if (globalModelIds.length > 0) {
         cdk.Annotations.of(this).addWarning(
-          `closedNetwork: the following model IDs use cross-region (global.*) inference profiles that may route data outside bedrockRegion (${props.parameters.bedrockRegion}): ${[...new Set(wideGeoIds)].join(", ")}. For true data residency, use region-pinned IDs (e.g. us.* for us-west-2).`,
+          `closedNetwork: the following model IDs use the "global." cross-region inference profile and may route inference outside the deployment region: ${globalModelIds.join(
+            ", ",
+          )}. For strict data residency, switch to region-pinned profiles (e.g. "jp.").`,
         );
       }
     }
@@ -188,8 +195,7 @@ export class RapidStack extends cdk.Stack {
           props.parameters.checklistInlineMapConcurrency || 1,
         logLevel: sfn.LogLevel.ALL,
         databaseConnection: database.connection,
-        documentProcessingModelId: props.parameters.documentProcessingModelId,
-        bedrockRegion: props.parameters.bedrockRegion,
+        defaultModelId: props.parameters.defaultModelId,
         subnetSelection: lambdaSubnetSelection,
       },
     );
@@ -202,9 +208,7 @@ export class RapidStack extends cdk.Stack {
       logLevel: sfn.LogLevel.ALL,
       maxConcurrency: props.parameters.reviewMapConcurrency || 1,
       databaseConnection: database.connection,
-      documentProcessingModelId: props.parameters.documentProcessingModelId,
-      imageReviewModelId: props.parameters.imageReviewModelId,
-      bedrockRegion: props.parameters.bedrockRegion,
+      defaultModelId: props.parameters.defaultModelId,
       enableCitations: props.parameters.enableCitations,
       enableCodeInterpreter: props.parameters.enableCodeInterpreter,
       availableModels: props.parameters.availableModels,
@@ -248,8 +252,7 @@ export class RapidStack extends cdk.Stack {
       {
         vpc,
         databaseConnection: database.connection,
-        bedrockRegion: props.parameters.bedrockRegion,
-        documentProcessingModelId: props.parameters.documentProcessingModelId,
+        defaultModelId: props.parameters.defaultModelId,
         subnetSelection: lambdaSubnetSelection,
       },
     );
@@ -293,7 +296,7 @@ export class RapidStack extends cdk.Stack {
         REVIEW_QUEUE_URL: reviewQueueProcessor.queue.queueUrl,
         REVIEW_QUEUE_MAX_DEPTH: props.parameters.reviewQueueMaxDepth.toString(),
         AVAILABLE_MODELS: JSON.stringify(props.parameters.availableModels),
-        DEFAULT_MODEL_ID: props.parameters.documentProcessingModelId,
+        DEFAULT_MODEL_ID: props.parameters.defaultModelId,
       },
       auth: auth, // Authインスタンスを渡す
     });
@@ -425,16 +428,20 @@ export class RapidStack extends cdk.Stack {
       value: s3TempStorage.bucket.bucketName,
     });
 
-    new cdk.CfnOutput(this, "BedrockRegion", {
-      value: props.parameters.bedrockRegion,
+    // model-id-consolidation: 既定モデル ID の CfnOutput。
+    new cdk.CfnOutput(this, "DefaultModelId", {
+      value: props.parameters.defaultModelId,
     });
 
+    // 後方互換（deprecated）: 旧出力名を参照する外部ツール（例: review-item-processor/
+    // test_mcp.py が outputs["DocumentProcessingModelId"] を読む）を壊さないため、
+    // 統合後の単一値を同じ名前でエコーする。将来のリリースで削除予定。
     new cdk.CfnOutput(this, "DocumentProcessingModelId", {
-      value: props.parameters.documentProcessingModelId,
+      value: props.parameters.defaultModelId,
     });
 
     new cdk.CfnOutput(this, "ImageReviewModelId", {
-      value: props.parameters.imageReviewModelId,
+      value: props.parameters.defaultModelId,
     });
 
     // Fix migrationLambda.functionArn

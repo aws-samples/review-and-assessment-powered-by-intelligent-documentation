@@ -65,9 +65,9 @@ RAPID は AWS のサーバーレスサービス（Amazon CloudFront、API Gatewa
 
 ローカル環境の準備が不要で、AWS CloudShell を使用してブラウザから直接デプロイできる方法です。
 
-1. **Amazon Bedrock モデルの有効化**
+1. **Amazon Bedrock で利用するモデルの確認**
 
-   AWS Management Console から Bedrock モデルアクセスにアクセスし、利用するモデルへのアクセスを有効化してください（モデルの一覧は [AI モデルのカスタマイズ](./deployment-options.md#ai-モデルのカスタマイズ)をご覧ください）。デフォルトではオレゴン (us-west-2) リージョンを使用しますが、`--bedrock-region` オプションで変更可能です。
+   Amazon Bedrock は、スタックをデプロイしたリージョン（AWS CloudShell を開いたリージョン）のものを使用します。デプロイ先のリージョンで対象のモデル（推論プロファイル）が有効になっていることを確認してください。クロスリージョン（`global.` / `us.` / `eu.` / `apac.` / `jp.`）の推論プロファイルを利用する場合は、[AI モデルのカスタマイズ](./deployment-options.md#ai-モデルのカスタマイズ)をご覧ください。
 
 2. **AWS CloudShell を開く**
 
@@ -183,9 +183,10 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます�
 |                        | cognitoDomainPrefix                  | Cognito ドメインのプレフィックス                                                                                                                                       | 自動生成                                  |
 |                        | cognitoSelfSignUpEnabled             | Cognito User Pool のセルフサインアップを有効にするかどうか                                                                                                             | true (有効)                               |
 | **マイグレーション**   | autoMigrate                          | デプロイ時に自動的にデータベースマイグレーションを実行するかどうか                                                                                                     | true (自動実行する)                       |
+| **Bedrock**           | defaultModelId                  | アプリ全体（ドキュメント処理・画像レビュー・チェックリスト生成・曖昧性検出・WebUI の既定）で使う既定の AI モデルを指定します。`availableModels` による項目個別の選択が優先されます。                                                                                                       | global.anthropic.claude-sonnet-5                                                               |
+|                       | availableModels                 | チェックリスト項目ごとに選択できるモデルの一覧を指定します。モデル ID には、デプロイリージョンと整合する推論プロファイルのプレフィックス（`global.` / `jp.` など）が必要です（[AI モデルのカスタマイズ](./deployment-options.md#ai-モデルのカスタマイズ)参照）。空配列 `[]` にするとモデル選択 UI が非表示になります。                                                | Claude Sonnet 5 (Global)・Opus 4.8 / 4.7・Sonnet 4.6・Haiku 4.5 (Global / JP) と Opus 4.6 (Global) |
 | **MCP 機能**           | mcpAdmin                             | MCP ランタイム Lambda 関数に管理者権限を付与するかどうか                                                                                                               | false (無効)                              |
 | **Citations API**      | enableCitations                      | PDF ドキュメントの Citations API を有効にするかどうか ([AWS 発表](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/)) | true (有効)                               |
-| **モデル選択**         | availableModels                      | チェックリスト項目ごとに選択可能なモデル一覧。空配列 `[]` に設定するとモデル選択 UI が非表示になる                                                                     | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Claude Sonnet 4 |
 | **ネットワークモード** | s3ApiGatewayFrontend                 | CloudFront の代わりに専用の REGIONAL API Gateway（S3 プロキシ）経由で SPA を配信する。ネットワーク構成は標準のまま。詳細は[閉域網デプロイ](#閉域網デプロイ)をご覧ください。 | false                                     |
 |                        | closedNetwork                        | 完全プライベートモード: 分離サブネット、NAT なし、VPC エンドポイント、PRIVATE API Gateway、Cognito PrivateLink。`s3ApiGatewayFrontend` を含意する。詳細は[閉域網デプロイ](#閉域網デプロイ)をご覧ください。 | false                                     |
 |                        | agentCoreNetworkMode                 | AgentCore Runtime のネットワークモード（`closedNetwork` 時のみ適用）。`PUBLIC` = ランタイムにインターネットあり（MCP/uv 動作）、`VPC` = ランタイム完全分離。呼び出し経路はいずれもプライベート | PUBLIC                                    |
@@ -218,24 +219,19 @@ CDK デプロイ時に以下のパラメータをカスタマイズできます�
 
 ### AI モデルのカスタマイズ
 
-RAPID では Strands エージェントがファイル読み込みなどのツールを使用するため、**ツール使用に対応したモデル**を選択する必要があります。処理に使うモデル（`documentProcessingModelId` / `imageReviewModelId`）と項目ごとの選択リスト（`availableModels`）は `parameter.ts` で変更できます。ツール使用に対応したモデルの一覧、クロスリージョン推論プロファイルに関する注意、設定例は、[AI モデルのカスタマイズ](./deployment-options.md#ai-モデルのカスタマイズ)をご覧ください。
+RAPID では Strands エージェントがファイル読み込みなどのツールを使用するため、**ツール使用に対応したモデル**を選択する必要があります。アプリ全体の既定モデル（`defaultModelId`）と項目ごとの選択リスト（`availableModels`）は `parameter.ts` で変更できます。チェック項目にモデルが選択されていない場合、審査は既定モデルにフォールバックします。同梱モデルの一覧、リージョンと推論プロファイルに関する注意、設定例、モデル追加時の単価の登録方法は、[AI モデルのカスタマイズ](./deployment-options.md#ai-モデルのカスタマイズ)をご覧ください。
 
 ## 料金について
 
 このソリューションでは、インフラ固定費（目安は約 5 ドル/日、約 150 ドル/月。NAT Gateway と Aurora Serverless v2 が主なコスト要因です）に加えて、ドキュメント処理量に応じた Amazon Bedrock の利用料金（従量課金）が発生します。
 
-| モデルの種類                                   | 1 回の審査で扱えるページ数 | コスト例             |
-| ---------------------------------------------- | -------------------------- | -------------------- |
-| 予算重視の軽量モデル（Claude Haiku 4.5 など）  | 約 80〜85 ページ           | 80 ページで約 0.28 ドル  |
-| 高精度大容量モデル（Claude Opus 4.6 など）     | 約 430 ページ              | 400 ページで約 5.75 ドル |
+| モデルの種類                              | 1 回の審査で扱えるページ数（コンテキストウィンドウによる目安） | コスト例                 |
+| ----------------------------------- | -------------------------------- | -------------------- |
+| 予算重視の軽量モデル（Claude Haiku 4.5 など）     | 約 80〜85 ページ                      | 80 ページで約 0.28 ドル     |
+| 高精度大容量モデル（Claude Opus 4.x など）       | 約 430 ページ                        | 400 ページで約 5.75 ドル    |
 
 > [!Important]
-> - **実際のコストは、お手元のサンプルドキュメントでテストして確認してください。** コストはテキスト量、画像の数とサイズ、チェックリストの項目数により大きく変動します（ページ数は目安のみです）。
-> - **エージェント機能**（Knowledge Bases、Code Interpreter など）を持つ項目は、最大 10 倍のコストがかかることがあります。
-> - 詳細な料金とトークン使用量は、審査結果画面で確認できます。
-> - Amazon Bedrock Converse API には 4.5 MB のファイルサイズ制限があります。
->
-> 最新の料金情報については、[Amazon Bedrock 料金ページ](https://aws.amazon.com/jp/bedrock/pricing/)をご覧ください。
+> 実際のコストは、お手元のサンプルドキュメントでテストして確認してください。コストはテキスト量、画像の数とサイズ、チェックリストの項目数、ツール（Knowledge Bases、Code Interpreter など）の利用状況によって大きく変動します。審査結果画面に表示される料金は、その 1 回の審査のトークン利用量のみに基づく推定値であり、実際の費用と一致しない場合があります。
 
 ## ユーザー権限と管理者セットアップ
 

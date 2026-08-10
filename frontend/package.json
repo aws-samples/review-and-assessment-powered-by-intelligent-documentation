@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\""
   },
@@ -45,11 +47,14 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "fast-check": "^3.23.2",
+    "jsdom": "^25.0.1",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.2.2",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "vitest": "^3.2.2"
   }
 }
