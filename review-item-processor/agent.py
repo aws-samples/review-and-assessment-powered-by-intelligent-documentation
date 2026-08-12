@@ -439,8 +439,6 @@ def _run_agent_with_file_read_tool(
     }
 
     if model_supports_cache:
-        # Auto strategy caches the document/image content too, not just
-        # system prompt + tools.
         _apply_cache_config(bedrock_config)
         logger.debug("Caching enabled (auto strategy)")
     else:
@@ -554,7 +552,6 @@ def _run_agent_with_document_block(
     }
 
     if model.supports_caching:
-        # Auto strategy caches the PDF/document prefix for items 2..N of a job.
         _apply_cache_config(bedrock_config)
 
     agent = Agent(
