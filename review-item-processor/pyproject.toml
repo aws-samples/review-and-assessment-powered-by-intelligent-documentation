@@ -3,7 +3,7 @@ name = "review-item-processor"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "strands-agents>=1.15.0",
+    "strands-agents>=1.30.0",
     "strands-agents-tools[agent_core_code_interpreter]>=0.2.14",
     "bedrock-agentcore==0.1.0",
     "pillow>=11.2.1",

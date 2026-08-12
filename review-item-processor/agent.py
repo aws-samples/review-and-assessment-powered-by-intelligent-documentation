@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import boto3
 from strands import Agent
 from strands.models import BedrockModel
+from strands.models.model import CacheConfig
 from strands.tools.mcp import MCPClient
 from strands_tools import file_read, image_reader
 
@@ -105,6 +106,12 @@ BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
 # Tool text truncate length
 TOOL_TEXT_TRUNCATE_LENGTH = 500
+
+
+def _apply_cache_config(bedrock_config: Dict[str, Any]) -> None:
+    """Enable auto prompt caching so the document/image prefix is cached too."""
+    bedrock_config["cache_config"] = CacheConfig(strategy="auto")
+    bedrock_config["cache_tools"] = "default"
 
 
 def supports_caching(model_id: str) -> bool:
@@ -432,9 +439,10 @@ def _run_agent_with_file_read_tool(
     }
 
     if model_supports_cache:
-        bedrock_config["cache_prompt"] = "default"  # Enable system prompt caching
-        bedrock_config["cache_tools"] = "default"  # Enable tool definitions caching
-        logger.debug("Caching enabled for system prompt and tools")
+        # Auto strategy caches the document/image content too, not just
+        # system prompt + tools.
+        _apply_cache_config(bedrock_config)
+        logger.debug("Caching enabled (auto strategy)")
     else:
         logger.debug("Caching disabled - model does not support prompt caching")
 
@@ -546,8 +554,8 @@ def _run_agent_with_document_block(
     }
 
     if model.supports_caching:
-        bedrock_config["cache_prompt"] = "default"
-        bedrock_config["cache_tools"] = "default"
+        # Auto strategy caches the PDF/document prefix for items 2..N of a job.
+        _apply_cache_config(bedrock_config)
 
     agent = Agent(
         model=BedrockModel(**bedrock_config),
