@@ -17,7 +17,6 @@ from s3_temp_utils import S3TempStorage
 # Environment variables
 DOCUMENT_BUCKET = os.environ.get("DOCUMENT_BUCKET", "")
 TEMP_BUCKET = os.environ.get("TEMP_BUCKET", "")
-BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 
 
 @app.entrypoint
@@ -36,11 +35,27 @@ def handler(event, context):
         "languageName": "language name"
     }
     """
-    logger.info(f"[Strands MCP] Received event: {json.dumps(event)}")
-    
+    # 生の event 全体（toolConfiguration の MCP 秘密・headers/env を含みうる）を
+    # ログに出さない。相関に必要な非機微スカラのみを記録する
+    # （詳細な相関 ID は直後の info ログで出力）。
+    logger.info(
+        "[Strands MCP] Received event "
+        f"(reviewJobId={event.get('reviewJobId', 'N/A')}, "
+        f"reviewResultId={event.get('reviewResultId', 'N/A')}, "
+        f"checkId={event.get('checkId', 'N/A')}, "
+        f"documentPaths={len(event.get('documentPaths', []) or [])})"
+    )
+
     # Log session and trace information from context
+    # bedrock-agentcore 1.x では RequestContext.request_headers は「属性は常に
+    # 存在するが値は None になり得る」Optional フィールドのため、getattr の
+    # デフォルト値では None を防げない。`or {}` で None を空 dict に正規化する
+    # （0.1.0 は属性自体が無く getattr のデフォルトが効いていた）。
+    # In bedrock-agentcore 1.x, RequestContext.request_headers is an Optional
+    # field: the attribute always exists but may be None, so getattr's default
+    # alone no longer protects the .get() below. Normalize None with `or {}`.
     session_id = getattr(context, 'session_id', 'N/A')
-    request_headers = getattr(context, 'request_headers', {})
+    request_headers = getattr(context, 'request_headers', None) or {}
     trace_id = request_headers.get('X-Amzn-Trace-Id', 'N/A')
     
     logger.info(f"AgentCore Session ID: {session_id}")
@@ -50,7 +65,7 @@ def handler(event, context):
     logger.info(f"checkId: {event.get('checkId', 'N/A')}")
 
     # Check required environment variables
-    required_vars = ["DOCUMENT_BUCKET", "BEDROCK_REGION"]
+    required_vars = ["DOCUMENT_BUCKET"]
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
     if missing_vars:
         logger.error(
@@ -82,13 +97,18 @@ def handler(event, context):
         # The agent.py will automatically detect file types and select the appropriate model
         # Extract tool configuration if available
         tool_configuration = event.get("toolConfiguration")
-        feedback_summary = event.get("feedbackSummary")
         model_id_override = event.get("modelId")
-        logger.debug(
-            f"[DEBUG LAMBDA] Tool configuration: {json.dumps(tool_configuration)}"
-        )
-        if feedback_summary:
-            logger.debug(f"[DEBUG LAMBDA] Feedback summary available for check")
+        # toolConfiguration には MCP 資格情報（headers/env）が含まれうるため、
+        # 値をシリアライズしない。有無とトップレベルキーのみを記録する。
+        if isinstance(tool_configuration, dict):
+            logger.debug(
+                f"[DEBUG LAMBDA] Tool configuration present; "
+                f"keys={sorted(tool_configuration.keys())}"
+            )
+        else:
+            logger.debug(
+                f"[DEBUG LAMBDA] Tool configuration present={tool_configuration is not None}"
+            )
         if model_id_override:
             logger.info(f"[DEBUG LAMBDA] Per-item model override: {model_id_override}")
 
@@ -100,7 +120,6 @@ def handler(event, context):
             language_name=language_name,
             model_id=model_id_override,
             toolConfiguration=tool_configuration,
-            feedback_summary=feedback_summary,
         )
 
         # Return results to Step Functions - handle both PDF and image results

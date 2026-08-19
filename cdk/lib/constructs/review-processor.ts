@@ -22,22 +22,10 @@ export interface ReviewProcessorProps {
   maxConcurrency?: number; // Add parameter for controlling parallel executions
 
   /**
-   * ドキュメント処理に使用するAIモデルID
-   * @default "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+   * 既定の AI モデル ID。ドキュメント用・画像用の
+   * 2 つを 1 つに統合した（Lambda へは互換のため両 env キーに供給）。
    */
-  documentProcessingModelId: string;
-
-  /**
-   * 画像レビューに使用するAIモデルID
-   * @default "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-   */
-  imageReviewModelId: string;
-
-  /**
-   * Amazon Bedrockを利用するリージョン
-   * @default "us-west-2"
-   */
-  bedrockRegion: string;
+  defaultModelId: string;
 
   /**
    * Citation機能を有効にするかどうか
@@ -124,9 +112,11 @@ export class ReviewProcessor extends Construct {
         environment: {
           DOCUMENT_BUCKET: props.documentBucket.bucketName,
           TEMP_BUCKET: props.tempBucket.bucketName,
-          BEDROCK_REGION: props.bedrockRegion,
-          DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
-          IMAGE_REVIEW_MODEL_ID: props.imageReviewModelId,
+          // env キー（DOCUMENT_PROCESSING_MODEL_ID /
+          // IMAGE_REVIEW_MODEL_ID）は backend/Python の互換のため維持し、双方に
+          // 統合後の単一 defaultModelId を供給する。
+          DOCUMENT_PROCESSING_MODEL_ID: props.defaultModelId,
+          IMAGE_REVIEW_MODEL_ID: props.defaultModelId,
           AVAILABLE_MODELS: JSON.stringify(props.availableModels),
         },
         securityGroups: [this.securityGroup],
@@ -137,11 +127,9 @@ export class ReviewProcessor extends Construct {
 
     // AgentCore Runtime を作成
     this.reviewAgent = new Agent(this, "ReviewAgent", {
-      bedrockRegion: props.bedrockRegion,
       documentBucket: props.documentBucket,
       tempBucket: props.tempBucket,
-      documentProcessingModelId: props.documentProcessingModelId,
-      imageReviewModelId: props.imageReviewModelId,
+      defaultModelId: props.defaultModelId,
       enableCitations: props.enableCitations,
       enableCodeInterpreter: props.enableCodeInterpreter,
       // AgentCore runtime network mode. VPC mode (max isolation) runs the
@@ -187,7 +175,6 @@ export class ReviewProcessor extends Construct {
           : {}),
         environment: {
           AGENT_RUNTIME_ARN: this.reviewAgent.runtimeArn,
-          BEDROCK_REGION: props.bedrockRegion,
         },
         architecture: lambda.Architecture.ARM_64,
         bundling: {

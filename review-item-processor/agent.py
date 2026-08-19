@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import json
 import os
 import re
@@ -8,16 +9,18 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
+from logger import logger
+from model_config import ModelConfig
 from strands import Agent
 from strands.models import BedrockModel
 from strands.models.model import CacheConfig
-from strands.tools.mcp import MCPClient
-from strands_tools import file_read, image_reader
-
-from logger import logger
-from model_config import ModelConfig
+from strands.types.tools import AgentTool
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
+from tools.file_access import (
+    create_bounded_file_read_tool,
+    create_bounded_image_reader_tool,
+)
 
 
 class ReviewMetaTracker:
@@ -42,8 +45,10 @@ class ReviewMetaTracker:
             f"Token usage from metrics: input={input_tokens}, output={output_tokens}, total={total_tokens}"
         )
 
-        input_cost = (input_tokens / 1000) * self.model.input_per_1k
-        output_cost = (output_tokens / 1000) * self.model.output_per_1k
+        # Pricing is per 1,000,000 (1M) tokens (see model_config.py), so divide
+        # the token counts by 1M to get the USD cost.
+        input_cost = (input_tokens / 1_000_000) * self.model.input_per_1m
+        output_cost = (output_tokens / 1_000_000) * self.model.output_per_1m
         total_cost = input_cost + output_cost
 
         return {
@@ -54,8 +59,8 @@ class ReviewMetaTracker:
             "output_cost": output_cost,
             "total_cost": total_cost,
             "pricing": {
-                "input_per_1k": self.model.input_per_1k,
-                "output_per_1k": self.model.output_per_1k,
+                "input_per_1m": self.model.input_per_1m,
+                "output_per_1m": self.model.output_per_1m,
             },
             "duration_seconds": round(duration, 2),
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -76,8 +81,10 @@ IMAGE_FILE_EXTENSIONS = [
 PDF_FILE_EXTENSIONS = [".pdf"]
 
 # Default model IDs
-DEFAULT_DOCUMENT_MODEL_ID = "global.anthropic.claude-sonnet-4-6"  # For all processing
-DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"  # For image processing (same as document by default)
+DEFAULT_DOCUMENT_MODEL_ID = (
+    "global.anthropic.claude-sonnet-5"  # For all processing
+)
+DEFAULT_IMAGE_MODEL_ID = "global.anthropic.claude-sonnet-5"  # For image processing (same as document by default)
 
 # Get model IDs from environment variables with fallback to defaults
 DOCUMENT_MODEL_ID = os.environ.get(
@@ -102,7 +109,6 @@ NOVA_PREMIER_MODEL_ID = IMAGE_MODEL_ID
 
 # Get environment variables
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
-BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-west-2")
 ENABLE_CITATIONS = os.environ.get("ENABLE_CITATIONS", "true").lower() == "true"
 # Tool text truncate length
 TOOL_TEXT_TRUNCATE_LENGTH = 500
@@ -150,22 +156,6 @@ def _should_use_document_block(
 
     model = ModelConfig.create(model_id)
     return ENABLE_CITATIONS and model.supports_document_block
-
-
-def create_mcp_client(mcp_server_cfg: Dict[str, Any]) -> MCPClient:
-    """
-    Create an MCP client for the given server configuration.
-
-    Args:
-        mcp_server_cfg: MCP server configuration
-
-    Returns:
-        MCPClient: Initialized MCP client
-    """
-    logger.info(f"Creating MCP client with config: {mcp_server_cfg}")
-    # TODO
-    # return MCPClient(...)
-    raise NotImplementedError("MCP is handled directly by AgentCore Runtime")
 
 
 def sanitize_file_name(filename: str) -> str:
@@ -325,6 +315,14 @@ def _execute_review_core(
 
     else:
         # File read tool path (images or non-citation support)
+        # 素の file_read / image_reader を無制限で渡すと LFI に至るため、このジョブの
+        # 対象ファイルが置かれた作業ディレクトリ（temp_dir）配下に束縛したラッパーに
+        # 差し替える。allowed_dirs は file_paths の親ディレクトリ集合から導出する。
+        allowed_dirs = sorted(
+            {os.path.dirname(os.path.realpath(p)) for p in file_paths}
+        )
+        bounded_file_read = create_bounded_file_read_tool(allowed_dirs)
+
         if has_images:
             prompt = get_image_review_prompt(
                 language_name,
@@ -334,7 +332,10 @@ def _execute_review_core(
                 toolConfiguration,
                 feedback_summary,
             )
-            tools = [file_read, image_reader]
+            # image_reader も file_read と同じ allowed_dirs に束縛する
+            # （素の image_reader は ~ 展開・任意パス読み取り可）。
+            bounded_image_reader = create_bounded_image_reader_tool(allowed_dirs)
+            tools = [bounded_file_read, bounded_image_reader]
             review_type = "IMAGE"
         else:
             prompt = get_document_review_prompt(
@@ -345,7 +346,7 @@ def _execute_review_core(
                 tool_config=toolConfiguration,
                 feedback_summary=feedback_summary,
             )
-            tools = [file_read]
+            tools = [bounded_file_read]
             review_type = "PDF"
 
         system_prompt = (
@@ -373,46 +374,42 @@ def _execute_review_core(
     return result
 
 
-def list_tools_sync(client: MCPClient) -> List[Dict[str, Any]]:
-    """
-    List available tools from an MCP client.
-
-    Args:
-        client: MCP client
-
-    Returns:
-        List of tool definitions
-    """
-    logger.debug("Listing tools from MCP client")
-    try:
-        # Use the built-in list_tools_sync method directly
-        tools = client.list_tools_sync()
-        logger.debug(f"Found {len(tools)} tools from MCP client")
-        return tools
-    except Exception as e:
-        logger.error(f"Error listing tools from MCP client: {e}")
-        return []
-
-
 # Agent execution functions
 def _run_agent_with_file_read_tool(
     prompt: str,
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
     system_prompt: str = "You are an expert document reviewer.",
-    temperature: float = 0.0,
     base_tools: Optional[List[Any]] = None,
     toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run Strands agent with traditional file_read approach"""
     logger.debug(f"Running Strands agent with {len(file_paths)} files")
-    logger.debug(f"Tool configuration: {toolConfiguration}")
+    # toolConfiguration には MCP 資格情報（headers/env/oauthScopes、資格情報を埋め込み
+    # うる url）が含まれるため値をログ出力しない。有無とトップレベルキーのみを記録する
+    # （index.py の修正パターンに合わせる）。
+    if isinstance(toolConfiguration, dict):
+        logger.debug(
+            f"Tool configuration present; keys={sorted(toolConfiguration.keys())}"
+        )
+    else:
+        logger.debug(
+            f"Tool configuration present={toolConfiguration is not None}"
+        )
 
     meta_tracker = ReviewMetaTracker(model_id)
     history_collector = ToolHistoryCollector(truncate_length=TOOL_TEXT_TRUNCATE_LENGTH)
 
-    # Use provided base tools or default to file_read
-    tools_to_use = base_tools if base_tools else [file_read]
+    # Use provided base tools or default to a bounded file_read.
+    # file_read を直接 import しなくなったため、フォールバックも file_paths の親
+    # ディレクトリに束縛した安全版を使う（無制限 file_read は使わない）。
+    if base_tools:
+        tools_to_use = base_tools
+    else:
+        fallback_allowed_dirs = sorted(
+            {os.path.dirname(os.path.realpath(p)) for p in file_paths}
+        )
+        tools_to_use = [create_bounded_file_read_tool(fallback_allowed_dirs)]
 
     # Add custom tools based on configuration
     custom_tools = create_custom_tools(toolConfiguration)
@@ -430,11 +427,16 @@ def _run_agent_with_file_read_tool(
     model_supports_cache = model.supports_caching
     logger.debug(f"Model {model_id} caching support: {model_supports_cache}")
 
-    # Configure BedrockModel with conditional caching
+    # Configure BedrockModel with conditional caching.
+    # Sampling params (temperature etc.) are intentionally not sent: recent
+    # Claude models (Sonnet 5, Opus 4.7+) reject them with ValidationException,
+    # and AWS recommends omitting them entirely.
+    # sampling パラメータ（temperature 等）は意図的に送信しません。新しい Claude
+    # モデル（Sonnet 5 / Opus 4.7 以降）は ValidationException で拒否するため、
+    # AWS の推奨どおりリクエストから省略します。
     bedrock_config = {
         "model_id": model_id,
-        "region_name": BEDROCK_REGION,
-        "temperature": temperature,
+        "region_name": AWS_REGION,
         "streaming": False,  # Always disable streaming since this app doesn't use streaming
     }
 
@@ -489,7 +491,6 @@ def _run_agent_with_document_block(
     file_paths: List[str],
     model_id: str = DOCUMENT_MODEL_ID,
     system_prompt: str = "You are an expert document reviewer.",
-    temperature: float = 0.0,
     toolConfiguration: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
@@ -541,13 +542,40 @@ def _run_agent_with_document_block(
 
         content.append(doc_block)
 
+    # 文書ブロック群と項目別プロンプトの間に明示 cachePoint を置き、キャッシュ
+    # 境界を「文書まで」に固定する。auto 戦略の自動配置はメッセージ末尾
+    # （= 項目ごとに変わるプロンプトの後）に入るため、項目間でプレフィックスが
+    # 一致せず文書キャッシュが共有されない。手動配置は strands-agents 1.52.0 の
+    # honor 挙動（_honor_placed_cache_point）で尊重される（pyproject の下限固定と
+    # 対）。同一文書・同一モデル・同一ツール構成の審査項目間で、2 項目目以降は
+    # 文書プレフィックスをキャッシュから読める。モデルが最小トークン数
+    # （例: 4.5 世代 Claude は 4,096）未満のプレフィックスは無害に不発となる。
+    # Place an explicit cachePoint between the document blocks and the
+    # per-item prompt so the cache boundary ends at the documents. The auto
+    # strategy would append the cachePoint at the end of the message (after
+    # the per-item prompt), so prefixes would differ between review items and
+    # the document cache would never be shared. Manually placed points are
+    # honored by strands-agents >= 1.52.0 (_honor_placed_cache_point; the
+    # pyproject floor is pinned accordingly). Review items that share the
+    # same documents, model, and tool configuration can then read the
+    # document prefix from cache from the second item onward. Prefixes below
+    # the model's minimum token count (e.g. 4,096 for 4.5-generation Claude)
+    # are harmlessly not cached.
+    if model.supports_caching and content:
+        content.append({"cachePoint": {"type": "default"}})
+
     content.append({"text": prompt})
 
-    # Configure model
+    # Configure model.
+    # Sampling params (temperature etc.) are intentionally not sent: recent
+    # Claude models (Sonnet 5, Opus 4.7+) reject them with ValidationException,
+    # and AWS recommends omitting them entirely.
+    # sampling パラメータ（temperature 等）は意図的に送信しません。新しい Claude
+    # モデル（Sonnet 5 / Opus 4.7 以降）は ValidationException で拒否するため、
+    # AWS の推奨どおりリクエストから省略します。
     bedrock_config = {
         "model_id": model_id,
-        "region_name": BEDROCK_REGION,
-        "temperature": temperature,
+        "region_name": AWS_REGION,
         "streaming": False,
     }
 
@@ -723,9 +751,7 @@ def _build_tool_usage_section(
         tool_descriptions.append(
             "- **code_interpreter**: Perform calculations, data analysis, or process structured data"
         )
-        use_cases.append(
-            "- Perform calculations or data analysis → Use code_interpreter"
-        )
+        use_cases.append("- Perform calculations or data analysis → Use code_interpreter")
 
     # Knowledge Base
     kb_config = tool_config.get("knowledgeBase")
@@ -770,26 +796,6 @@ When calling multiple independent tools, execute them in parallel. Only call too
 """
 
 
-def _build_feedback_section(feedback_summary: Optional[str]) -> str:
-    """Build feedback section for prompt if feedback summary exists"""
-    if not feedback_summary:
-        return ""
-    return f"""
-<HISTORICAL_FEEDBACK>
-**CRITICAL - PAST REVIEWER FEEDBACK**: Previous reviewers provided the following feedback for this specific check item:
-
-{feedback_summary}
-
-**YOU MUST:**
-- Carefully consider this feedback when making your judgment
-- Pay special attention to the issues and patterns mentioned
-- Apply the lessons learned from previous reviews
-
-This feedback represents real-world review experience and should significantly influence your evaluation.
-</HISTORICAL_FEEDBACK>
-"""
-
-
 # Prompt generation functions
 def _get_document_review_prompt_legacy(
     language_name: str,
@@ -810,7 +816,6 @@ def _get_document_review_prompt_legacy(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -831,7 +836,6 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 <<JSON_END>>
 
 <CRITICAL_RULES>
-{feedback_rule}
 <BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 **CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
 Do NOT use your pre-trained general knowledge or make assumptions.
@@ -878,7 +882,6 @@ def _get_document_review_prompt_with_citations(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""You are an expert document reviewer. Review the attached documents against this check item:
 
@@ -912,7 +915,6 @@ Generate your entire response in {language_name}. Output only the JSON below, en
 Write the explanation field as clear, flowing prose in {language_name}. Include relevant quotes in the citations array.
 
 <CRITICAL_RULES>
-{feedback_rule}
 <BASE_JUDGMENT_ON_DOCUMENTS_ONLY>
 **CRITICAL**: Base your judgment ONLY on the provided documents and information obtained through tools.
 Do NOT use your pre-trained general knowledge or make assumptions.
@@ -999,7 +1001,6 @@ def get_image_review_prompt(
 }}"""
 
     tool_section = _build_tool_usage_section(tool_config, language_name)
-    feedback_rule = _build_feedback_section(feedback_summary)
 
     return f"""
 You are an AI assistant who reviews images.
@@ -1047,7 +1048,6 @@ contain exactly that single index; an empty array means “none used”.
 
 
 <CRITICAL_RULES>
-{feedback_rule}
 <BASE_JUDGMENT_ON_IMAGES_ONLY>
 **CRITICAL**: Base your judgment ONLY on the provided images and information obtained through tools.
 Do NOT use your pre-trained general knowledge or make assumptions.
@@ -1147,7 +1147,7 @@ def process_review_from_s3(
             feedback_summary=feedback_summary,
         )
 
-        logger.info("S3 review completed successfully")
+        logger.info(f"S3 review completed successfully")
         return result
 
     finally:
@@ -1216,7 +1216,7 @@ def process_review_from_local(
         feedback_summary=feedback_summary,
     )
 
-    logger.info("Local review completed successfully")
+    logger.info(f"Local review completed successfully")
     return result
 
 

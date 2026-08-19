@@ -1,5 +1,4 @@
 import { Construct } from "constructs";
-import * as cdk from "aws-cdk-lib";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
@@ -14,10 +13,20 @@ import { DockerPrismaFunction } from "./docker-prisma-function";
 export interface AmbiguityDetectionProcessorProps {
   vpc: ec2.Vpc;
   databaseConnection: DatabaseConnectionProps;
-  bedrockRegion: string;
-  documentProcessingModelId: string;
   /**
-   * Subnet selection for the worker Lambda. Defaults to PRIVATE_WITH_EGRESS.
+   * 曖昧性検出に使う Bedrock モデル ID（= 全処理共通の既定モデル）。
+   * model-id-consolidation で defaultModelId に統合した。Worker Lambda へは互換のため
+   * env キー `DOCUMENT_PROCESSING_MODEL_ID` として注入する。これを渡さないと
+   * ambiguity-detector.ts のハードコード fallback が使われ、parameter.ts の
+   * defaultModelId を変えても曖昧性検出だけ旧モデルのままになってしまう
+   * （他の処理経路と挙動が食い違う）。
+   */
+  defaultModelId: string;
+  /**
+   * Worker Lambda のサブネット選択。未指定時は PRIVATE_WITH_EGRESS
+   * （従来挙動）。閉域モードでは isolated サブネットが渡される。
+   * Subnet selection for the worker Lambda. Defaults to
+   * PRIVATE_WITH_EGRESS.
    */
   subnetSelection?: ec2.SubnetSelection;
 }
@@ -31,7 +40,7 @@ export class AmbiguityDetectionProcessor extends Construct {
   constructor(
     scope: Construct,
     id: string,
-    props: AmbiguityDetectionProcessorProps,
+    props: AmbiguityDetectionProcessorProps
   ) {
     super(scope, id);
 
@@ -67,7 +76,7 @@ export class AmbiguityDetectionProcessor extends Construct {
           file: "Dockerfile.prisma.lambda",
           platform: Platform.LINUX_ARM64,
           cmd: ["dist/handlers/ambiguity-detection-handler.handler"],
-        },
+        }
       ),
       memorySize: 1024,
       timeout: Duration.minutes(15),
@@ -78,9 +87,11 @@ export class AmbiguityDetectionProcessor extends Construct {
       securityGroups: [this.securityGroup],
       database: props.databaseConnection,
       architecture: lambda.Architecture.ARM_64,
+      // 曖昧性検出も既定モデル（defaultModelId）を使う。
+      // これが無いと ambiguity-detector.ts の fallback（旧モデル）が使われてしまう。
+      // model-id-consolidation: env キーは backend の互換のため維持する。
       environment: {
-        BEDROCK_REGION: props.bedrockRegion,
-        DOCUMENT_PROCESSING_MODEL_ID: props.documentProcessingModelId,
+        DOCUMENT_PROCESSING_MODEL_ID: props.defaultModelId,
       },
     });
 
@@ -88,7 +99,7 @@ export class AmbiguityDetectionProcessor extends Construct {
     this.workerLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(this.queue, {
         batchSize: 1, // Process one message at a time
-      }),
+      })
     );
 
     // Grant Lambda permission to consume messages
@@ -102,7 +113,7 @@ export class AmbiguityDetectionProcessor extends Construct {
           "bedrock:InvokeModelWithResponseStream",
         ],
         resources: ["*"],
-      }),
+      })
     );
   }
 }

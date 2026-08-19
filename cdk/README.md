@@ -7,40 +7,37 @@ The `cdk.json` file tells the CDK Toolkit how to execute the app.
 
 ## Deploy
 
-From a fresh checkout, `npm run deploy` builds all packages (backend and CDK)
-and deploys automatically. The review invoke-agent Lambda is compiled and
-bundled from TypeScript by esbuild during synth, so it needs no separate build
-step:
+From a fresh checkout, `npm run deploy` builds all packages (backend, the
+review invoke-agent Lambda, and CDK) and deploys automatically:
 
-```
+```bash
 cd cdk
-npx cdk bootstrap   # one-time per account/region
+npx cdk bootstrap
 npm run deploy
 ```
 
-> Note: `npm run deploy` uses the `review` AWS profile. If you use a different
-> profile, adjust the `deploy` script in `package.json` (or deploy manually,
-> see below).
+`npx cdk bootstrap` is required only once per account/region.
 
 ## Manual step-by-step deployment
 
 ```bash
-# Prepare the backend
 cd backend
 npm ci
 npm run prisma:generate
 npm run build
-
-# Install CDK packages and deploy
 cd ../cdk
 npm ci
 npx cdk deploy --require-approval never --all
 ```
 
+`npm ci` in `cdk/` also prepares the backend Prisma client (`preinstall`) and
+builds the invoke-agent Lambda (`postinstall`), so no extra build step is
+needed before `cdk deploy`.
+
 ## Other commands
 
 - `npm run build` compile CDK TypeScript to js (run `npm ci` first)
-- `npm run build:all` build backend + CDK (the invoke-agent Lambda is bundled by esbuild at synth time)
+- `npm run build:all` build backend + invoke-agent Lambda + CDK
 - `npm run watch` watch for changes and compile
 - `npm run test` run the jest unit tests
 - `npx cdk diff` compare deployed stack with current state

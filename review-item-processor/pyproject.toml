@@ -3,9 +3,31 @@ name = "review-item-processor"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "strands-agents>=1.30.0",
-    "strands-agents-tools[agent_core_code_interpreter]>=0.2.14",
-    "bedrock-agentcore==0.1.0",
+    # 手動配置 cachePoint を尊重する挙動（_honor_placed_cache_point）は
+    # strands-agents 1.52.0 で導入された。agent.py は文書ブロックと項目別
+    # プロンプトの間に明示 cachePoint を置いて項目間キャッシュ共有を実現して
+    # おり、1.30〜1.51 の auto は手動配置をストリップして共有を静かに失わせる
+    # ため、下限を 1.52.0 に固定する。
+    # The honor-placed-cachePoint behavior (_honor_placed_cache_point) landed
+    # in strands-agents 1.52.0. agent.py places an explicit cachePoint between
+    # the document blocks and the per-item prompt to share the document prefix
+    # across review items; auto mode in 1.30-1.51 strips manually placed
+    # points and silently loses that sharing, so the floor is pinned at 1.52.0.
+    "strands-agents>=1.52.0",
+    # agent_core_code_interpreter extra は bedrock-agentcore(<1.2.0) を引き込む
+    # だけで他の依存を追加しない。本プロジェクトは strands-agents-tools 側の
+    # code interpreter ツールを使わず（独自の tools/code_interpreter.py が
+    # bedrock_agentcore.tools.code_interpreter_client.code_session を直接使用）、
+    # bedrock-agentcore は下で直接ピン留めしているため、extra の古いバージョン
+    # 制約が SDK 更新を妨げないよう extra を外す。
+    # The agent_core_code_interpreter extra only pulls in bedrock-agentcore
+    # (<1.2.0) and nothing else. This project does not use the
+    # strands-agents-tools code interpreter tool (our own
+    # tools/code_interpreter.py calls the SDK's code_session directly), and
+    # bedrock-agentcore is pinned directly below, so the extra is dropped to
+    # keep its stale version cap from blocking SDK upgrades.
+    "strands-agents-tools>=0.2.14",
+    "bedrock-agentcore==1.18.0",
     "pillow>=11.2.1",
     "boto3>=1.40.22",
     "anyio>=4.0.0",

@@ -46,15 +46,33 @@ const parameterSchema = z.object({
     ),
 
   // AI モデル設定
+  // Single default AI model used across the app (checklist generation and
+  // document review).
+  // アプリ全体（チェックリスト生成・書類審査）で使用する既定 AI モデル。
+  defaultModelId: z
+    .string()
+    .default("global.anthropic.claude-sonnet-5")
+    .describe(
+      "全処理（ドキュメント処理・画像レビュー・チェックリスト生成・曖昧性検出・WebUI 既定）で使う既定 AI モデル ID",
+    ),
+
+  // Deprecated aliases of defaultModelId, accepted for backward compatibility
+  // (normalized in resolveParameters). To be removed in a future release.
+  // defaultModelId の非推奨エイリアス。後方互換のため受け付けます
+  // （resolveParameters で正規化）。将来のリリースで削除予定です。
   documentProcessingModelId: z
     .string()
-    .default("global.anthropic.claude-sonnet-4-6")
-    .describe("ドキュメント処理に使用するAIモデルID"),
+    .optional()
+    .describe(
+      "[非推奨] defaultModelId に統合。後方互換のため受け付ける（旧: ドキュメント処理モデル ID）",
+    ),
 
   imageReviewModelId: z
     .string()
-    .default("global.anthropic.claude-sonnet-4-6")
-    .describe("画像レビューに使用するAIモデルID"),
+    .optional()
+    .describe(
+      "[非推奨] defaultModelId に統合。後方互換のため受け付ける（旧: 画像レビューモデル ID）",
+    ),
 
   // チェックリスト項目ごとに選択可能なモデル一覧
   availableModels: z
@@ -66,6 +84,26 @@ const parameterSchema = z.object({
     )
     .default([
       {
+        modelId: "global.anthropic.claude-sonnet-5",
+        displayName: "Claude Sonnet 5 (Global)",
+      },
+      {
+        modelId: "global.anthropic.claude-opus-4-8",
+        displayName: "Claude Opus 4.8 (Global)",
+      },
+      {
+        modelId: "jp.anthropic.claude-opus-4-8",
+        displayName: "Claude Opus 4.8 (JP)",
+      },
+      {
+        modelId: "global.anthropic.claude-opus-4-7",
+        displayName: "Claude Opus 4.7 (Global)",
+      },
+      {
+        modelId: "jp.anthropic.claude-opus-4-7",
+        displayName: "Claude Opus 4.7 (JP)",
+      },
+      {
         modelId: "global.anthropic.claude-opus-4-6-v1",
         displayName: "Claude Opus 4.6 (Global)",
       },
@@ -74,12 +112,16 @@ const parameterSchema = z.object({
         displayName: "Claude Sonnet 4.6 (Global)",
       },
       {
+        modelId: "jp.anthropic.claude-sonnet-4-6",
+        displayName: "Claude Sonnet 4.6 (JP)",
+      },
+      {
         modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
         displayName: "Claude Haiku 4.5 (Global)",
       },
       {
-        modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0",
-        displayName: "Claude Sonnet 4 (Global)",
+        modelId: "jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+        displayName: "Claude Haiku 4.5 (JP)",
       },
     ])
     .describe(
@@ -173,7 +215,23 @@ const parameterSchema = z.object({
     .describe(
       "Feedback Aggregatorの実行スケジュール（EventBridge schedule expression）",
     ),
-});
+})
+  // PR02-3: defaultModelId は availableModels から選択可能でなければならない。
+  // 不一致のまま通すと、WebUI（先頭へ無言 fallback）・/models handler（素通し）・
+  // ワーカー（固定定数へ独自 fallback）の 3 系統で解決が分岐する。synth 時に
+  // fail-fast する（availableModels を空にしてモデル選択 UI を隠す構成は対象外）。
+  .superRefine((p, ctx) => {
+    if (
+      p.availableModels.length > 0 &&
+      !p.availableModels.some((m) => m.modelId === p.defaultModelId)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["defaultModelId"],
+        message: `defaultModelId '${p.defaultModelId}' is not in availableModels — add it to availableModels or pick one of: ${p.availableModels.map((m) => m.modelId).join(", ")}`,
+      });
+    }
+  });
 
 // パラメータの型定義（型安全性のため）
 export type Parameters = z.infer<typeof parameterSchema>;
@@ -187,10 +245,29 @@ export function resolveParameters(
 ): Parameters {
   try {
     // パラメータをマージ
-    const mergedParams = {
+    // Merge as Record<string, any> so deprecated alias keys are also allowed.
+    // 非推奨エイリアスのキーも扱えるよう Record<string, any> としてマージします。
+    const mergedParams: Record<string, any> = {
       ...userParameters, // parameter.tsからの値
       ...contextParams, // コンテキストパラメータ（コマンドラインから渡された値）
     };
+
+    // Backward compatibility: when defaultModelId is not set, inherit the
+    // value from the deprecated names (documentProcessingModelId first).
+    // 後方互換: defaultModelId が未設定の場合、非推奨の旧パラメータ名から
+    // 値を引き継ぎます（documentProcessingModelId を優先）。
+    if (
+      mergedParams.defaultModelId === undefined ||
+      mergedParams.defaultModelId === null ||
+      mergedParams.defaultModelId === ""
+    ) {
+      const legacy =
+        mergedParams.documentProcessingModelId ??
+        mergedParams.imageReviewModelId;
+      if (typeof legacy === "string" && legacy.length > 0) {
+        mergedParams.defaultModelId = legacy;
+      }
+    }
 
     // バリデーションを実行（デフォルト値は自動的に適用される）
     const validatedParams = parameterSchema.parse(mergedParams);

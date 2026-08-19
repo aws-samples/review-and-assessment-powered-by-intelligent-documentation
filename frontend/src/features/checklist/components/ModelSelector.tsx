@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { HiChevronDown, HiCheck } from "react-icons/hi";
 import { useAvailableModels } from "../hooks/useCheckListItemQueries";
 import { useUpdateCheckListItemModel } from "../hooks/useCheckListItemMutations";
+import { formatModelLabel } from "../utils/modelLabel";
 
 interface ModelSelectorProps {
   setId: string;
@@ -27,12 +28,16 @@ export default function ModelSelector({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentModel = models.find((m) => m.modelId === currentModelId);
-  const defaultModel = models.find((m) => m.modelId === defaultModelId);
-  const defaultLabel = defaultModel
-    ? `${t("checklist.modelDefault")} (${defaultModel.displayName})`
-    : t("checklist.modelDefault");
-  const displayName = currentModel?.displayName ?? defaultLabel;
+  const defaultWord = t("checklist.modelDefault");
+  // モデル名整形は単一の整形器 `formatModelLabel` に集約する（二重括弧解消）。
+  // 既定ラベル: 明示指定なし扱いで `デフォルト: <既定 displayName>`（既定解決不可なら `デフォルト`）。
+  const defaultLabel = formatModelLabel(undefined, models, defaultModelId, {
+    defaultWord,
+  });
+  // トリガ表示: 明示指定があればその displayName、無ければ既定ラベル。
+  const triggerLabel = formatModelLabel(currentModelId, models, defaultModelId, {
+    defaultWord,
+  });
 
   const handleSelect = async (modelId: string | null) => {
     setIsOpen(false);
@@ -80,23 +85,7 @@ export default function ModelSelector({
         aria-label={t("checklist.modelSelector")}
         aria-haspopup="listbox"
         aria-expanded={isOpen}>
-        <span className="text-right leading-tight">
-          {isDefault ? (
-            <>
-              {t("checklist.modelDefault")}
-              {defaultModel && (
-                <>
-                  <br />
-                  <span className="text-[10px] text-aws-font-color-gray">
-                    ({defaultModel.displayName})
-                  </span>
-                </>
-              )}
-            </>
-          ) : (
-            currentModel?.displayName
-          )}
-        </span>
+        <span className="text-right leading-tight">{triggerLabel}</span>
         <HiChevronDown className="h-3 w-3 flex-shrink-0" />
       </button>
 
@@ -117,17 +106,7 @@ export default function ModelSelector({
             <HiCheck
               className={`h-4 w-4 flex-shrink-0 ${isDefault ? "text-aws-sea-blue-light" : "invisible"}`}
             />
-            <span>
-              {t("checklist.modelDefault")}
-              {defaultModel && (
-                <>
-                  <br />
-                  <span className="text-xs font-normal text-aws-font-color-gray">
-                    ({defaultModel.displayName})
-                  </span>
-                </>
-              )}
-            </span>
+            <span>{defaultLabel}</span>
           </li>
 
           {/* 区切り線 */}

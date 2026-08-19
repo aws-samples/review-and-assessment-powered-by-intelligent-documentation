@@ -29,7 +29,12 @@ COPY . ./
 
 EXPOSE 8080
 
-# uses the pre-built venv as-is; UV_OFFLINE forbids any network access.
+# 依存関係はイメージビルド時に uv sync --frozen で確定済みのため、起動時の
+# 再同期とネットワーク取得を無効化する。VPC 配置（特に閉域）では起動時に
+# インターネットへ出られず失敗するため必須で、それ以外の構成でも無害。
+# Dependencies are locked into the image at build time, so disable runtime
+# re-sync and network fetches. Required when the runtime has no internet
+# (VPC/closed placement) and harmless otherwise.
 ENV UV_NO_SYNC=1 \
     UV_OFFLINE=1
 

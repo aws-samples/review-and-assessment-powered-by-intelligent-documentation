@@ -31,6 +31,8 @@ S3_API_GATEWAY_FRONTEND="false"
 CLOSED_NETWORK="false"
 AGENT_CORE_NETWORK_MODE="PUBLIC"
 BEDROCK_REGION="us-west-2"
+DEFAULT_MODEL_ID=""
+# 後方互換（deprecated）: --document-model / --image-model は --default-model に統合済み
 DOCUMENT_PROCESSING_MODEL_ID=""
 IMAGE_REVIEW_MODEL_ID=""
 REPO_URL="https://github.com/aws-samples/review-and-assessment-powered-by-intelligent-documentation.git"
@@ -87,6 +89,10 @@ while [[ "$#" -gt 0 ]]; do
     ;;
   --bedrock-region)
     BEDROCK_REGION="$2"
+    shift
+    ;;
+  --default-model)
+    DEFAULT_MODEL_ID="$2"
     shift
     ;;
   --document-model)
@@ -173,8 +179,7 @@ aws cloudformation deploy \
   ClosedNetwork="$CLOSED_NETWORK" \
   AgentCoreNetworkMode="$AGENT_CORE_NETWORK_MODE" \
   BedrockRegion="$BEDROCK_REGION" \
-  DocumentProcessingModelId="$DOCUMENT_PROCESSING_MODEL_ID" \
-  ImageReviewModelId="$IMAGE_REVIEW_MODEL_ID" \
+  DefaultModelId="${DEFAULT_MODEL_ID:-${DOCUMENT_PROCESSING_MODEL_ID:-$IMAGE_REVIEW_MODEL_ID}}" \
   RepoUrl="$REPO_URL" \
   Branch="$BRANCH" \
   GitTag="$GIT_TAG"

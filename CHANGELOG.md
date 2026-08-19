@@ -9,17 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Refreshed the model lineup: Claude Sonnet 5 (Global) and Claude Opus 4.8 / 4.7 (Global and JP inference profiles) joined `availableModels`, Claude Sonnet 4.6 and Claude Haiku 4.5 gained JP profiles, Claude Sonnet 4 (Global) left the bundled list, and the app-wide default model is now Claude Sonnet 5 (Global).
+- Frontend test infrastructure (vitest, jsdom, fast-check) with an `npm test` entry point.
 
 ### Changed
 
 - Refreshed package dependencies across backend, frontend, CDK, and the UC008 example CDK app.
 - Restructured the documentation (EN/JA): deployment options and local development moved into dedicated guides, and the README gained a document navigation table and "How It Works" / "Key Features" sections (content-neutral moves).
 - Stopped tracking `cdk/outputs.json` (a deploy-time output) and reorganized `.gitignore`.
+- **Breaking (CDK parameters):** consolidated `documentProcessingModelId` / `imageReviewModelId` into a single `defaultModelId`. The old parameter names and the CloudShell `--document-model` / `--image-model` flags remain accepted as deprecated aliases. Amazon Bedrock now runs in the region where the stack is deployed (one legacy exception: the experimental Feedback Aggregator keeps using the old `bedrockRegion` value until that construct is removed).
+- Upgraded the review agent runtime (bedrock-agentcore SDK 1.18, refreshed Strands Agents and tooling) and pinned the AgentCore idle session timeout to 900 seconds so long-running review items are no longer terminated mid-invocation (persistent `RuntimeClientError`).
+- Reduced backend workflow and agent logging to metadata on the normal path (item counts, response lengths, log level pinned to INFO) so successful runs do not write document contents to CloudWatch Logs in plain text (the AgentCore response body is still logged verbatim on non-200 calls, for failure diagnosis).
 
 ### Fixed
 
 - MCP tool preview and review-time MCP execution: stdio MCP servers launched with `uvx` (including the bundled `mcp-server-fetch` example) began dying on import before the handshake ("MCP error -32000: Connection closed") once MCP Python SDK 2.0.0 (2026-07-28, a breaking rework) was released, because many servers declare no upper bound on `mcp`; both container images now ship `mcp-uv-constraints.txt` and constrain uv/uvx dependency resolution to `mcp<2` (remove the constraint once the ecosystem has migrated to 2.x).
 - Getting started: the README now runs `npm ci` in `cdk/` before `npx cdk bootstrap` (bootstrapping loads the CDK app, so the documented command failed on a fresh clone without installing the CDK dependencies first), and the local development guide now syncs the optional `dev` extra before `uv run pytest` (a plain `uv sync` does not install it, so pytest could not start).
+
+### Security
+
+- Hardened the review agent's file-access tool so it can only read files inside the review's own workspace (path-traversal / local-file-inclusion prevention), and added an environment-variable blocklist and stricter configuration validation for MCP tools.
 
 ## [1.25.2] - 2026-07-01
 

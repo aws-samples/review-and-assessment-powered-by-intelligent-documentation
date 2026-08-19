@@ -145,6 +145,13 @@ To run a single suite:
 npm run test -- "<suite>"
 ```
 
+Frontend (Vitest):
+
+```bash
+cd frontend
+npm test
+```
+
 Review agent (pytest via uv). `pytest` lives in the optional `dev` extra, so it has to be synced once (a plain `uv sync` does not install optional extras):
 
 ```bash

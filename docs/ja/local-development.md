@@ -145,6 +145,13 @@ npm test
 npm run test -- "<suite>"
 ```
 
+フロントエンド（Vitest）:
+
+```bash
+cd frontend
+npm test
+```
+
 審査エージェント（uv 経由の pytest）。`pytest` はオプションの `dev` extra に含まれるため、一度だけ同期が必要です（素の `uv sync` はオプションの extra をインストールしません）:
 
 ```bash

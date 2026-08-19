@@ -543,17 +543,27 @@ uv run python evals/scripts/run_eval.py [OPTIONS]
 
 **Examples:**
 
+Run comprehensive evaluation (default):
+
 ```bash
-# Run comprehensive evaluation (default)
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json
+```
 
-# Run with verbose output
+Run with verbose output:
+
+```bash
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --verbose
+```
 
-# Run single test case
+Run a single test case:
+
+```bash
 uv run python evals/scripts/run_eval.py --case my_tests/single_case.json
+```
 
-# Run accuracy-only (faster)
+Run accuracy-only (faster):
+
+```bash
 uv run python evals/scripts/run_eval.py --suite my_tests/my_suite.json --experiment accuracy
 ```
 

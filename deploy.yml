@@ -73,15 +73,10 @@ Parameters:
     Default: "us-west-2"
     Description: Amazon Bedrockを利用するリージョン
 
-  DocumentProcessingModelId:
+  DefaultModelId:
     Type: String
     Default: ""
-    Description: ドキュメント処理に使用するAIモデルID
-
-  ImageReviewModelId:
-    Type: String
-    Default: ""
-    Description: 画像レビューに使用するAIモデルID
+    Description: すべての処理で使う既定AIモデルID（defaultModelId に対応。旧 DocumentProcessingModelId/ImageReviewModelId は統合済み）
 
   RepoUrl:
     Type: String
@@ -214,10 +209,8 @@ Resources:
             Value: !Ref AgentCoreNetworkMode
           - Name: BEDROCK_REGION
             Value: !Ref BedrockRegion
-          - Name: DOCUMENT_PROCESSING_MODEL_ID
-            Value: !Ref DocumentProcessingModelId
-          - Name: IMAGE_REVIEW_MODEL_ID
-            Value: !Ref ImageReviewModelId
+          - Name: DEFAULT_MODEL_ID
+            Value: !Ref DefaultModelId
           - Name: REPO_URL
             Value: !Ref RepoUrl
           - Name: BRANCH
@@ -268,8 +261,7 @@ Resources:
                   "echo '' >> cdk/lib/parameter.ts",
                   "echo '  // Bedrock設定' >> cdk/lib/parameter.ts",
                   "echo '  bedrockRegion: \"'$BEDROCK_REGION'\",' >> cdk/lib/parameter.ts",
-                  "if [ ! -z \"$DOCUMENT_PROCESSING_MODEL_ID\" ]; then echo '  documentProcessingModelId: \"'$DOCUMENT_PROCESSING_MODEL_ID'\",' >> cdk/lib/parameter.ts; fi",
-                  "if [ ! -z \"$IMAGE_REVIEW_MODEL_ID\" ]; then echo '  imageReviewModelId: \"'$IMAGE_REVIEW_MODEL_ID'\",' >> cdk/lib/parameter.ts; fi",
+                  "if [ ! -z \"$DEFAULT_MODEL_ID\" ]; then echo '  defaultModelId: \"'$DEFAULT_MODEL_ID'\",' >> cdk/lib/parameter.ts; fi",
                   "echo '' >> cdk/lib/parameter.ts",
                   "echo '  // MCP設定' >> cdk/lib/parameter.ts",
                   "if [ \"$MCP_ADMIN\" = \"true\" ]; then echo '  mcpAdmin: true,' >> cdk/lib/parameter.ts; else echo '  mcpAdmin: false,' >> cdk/lib/parameter.ts; fi",

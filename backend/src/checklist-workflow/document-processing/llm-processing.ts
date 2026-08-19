@@ -19,18 +19,33 @@ import { ParsedChecklistItem, ProcessWithLLMResult } from "../common/types";
 import { getLanguageName, DEFAULT_LANGUAGE } from "../../utils/language";
 import { ulid } from "ulid";
 
-// Define model ID with environment variable override
-const DEFAULT_MODEL_ID = "global.anthropic.claude-sonnet-4-6";
-const MODEL_ID = process.env.DOCUMENT_PROCESSING_MODEL_ID || DEFAULT_MODEL_ID;
+// Default extraction model used when neither a per-request modelId nor the
+// DOCUMENT_PROCESSING_MODEL_ID environment variable is provided.
+const DEFAULT_MODEL_ID = "global.anthropic.claude-sonnet-5"; // Sonnet 5 (Global)
 
-// Log model configuration
-if (process.env.DOCUMENT_PROCESSING_MODEL_ID) {
-  console.info(`Using custom document processing model: ${MODEL_ID}`);
-} else {
-  console.info(`Using default document processing model: ${MODEL_ID}`);
+/**
+ * Resolve the model ID to use for checklist extraction.
+ *
+ * Resolution order (additive / backward compatible):
+ *  1. Non-empty `passedModelId` (per-request override from the workflow) wins.
+ *  2. Otherwise, fall back to a non-empty `envModelId`
+ *     (DOCUMENT_PROCESSING_MODEL_ID), preserving the existing env default.
+ *  3. Otherwise, fall back to the fixed `DEFAULT_MODEL_ID`.
+ *
+ * Always returns a non-empty string and never throws.
+ */
+export function resolveExtractionModelId(
+  passedModelId: string | null | undefined,
+  envModelId: string | null | undefined
+): string {
+  if (typeof passedModelId === "string" && passedModelId.length > 0) {
+    return passedModelId;
+  }
+  if (typeof envModelId === "string" && envModelId.length > 0) {
+    return envModelId;
+  }
+  return DEFAULT_MODEL_ID;
 }
-
-const BEDROCK_REGION = process.env.BEDROCK_REGION || "us-west-2";
 
 // Helper function to get the checklist extraction prompt based on language
 export const getChecklistExtractionPrompt = (language: string) => {
@@ -110,6 +125,7 @@ export interface ProcessWithLLMParams {
   documentId: string;
   pageNumber: number;
   userId?: string; // Optional user ID for language preference
+  modelId?: string | null; // Optional per-request extraction model override
 }
 
 /**
@@ -121,10 +137,20 @@ export async function processWithLLM({
   documentId,
   pageNumber,
   userId,
+  modelId,
 }: ProcessWithLLMParams): Promise<ProcessWithLLMResult> {
   const s3Client = new S3Client({});
-  const bedrockClient = new BedrockRuntimeClient({ region: BEDROCK_REGION });
+  // region はデプロイ先（Lambda 実行）リージョンを自動利用する
+  const bedrockClient = new BedrockRuntimeClient({});
   const bucketName = process.env.DOCUMENT_BUCKET || "";
+
+  // Resolve the model for this invocation: per-request modelId wins, then the
+  // DOCUMENT_PROCESSING_MODEL_ID env default, then the fixed DEFAULT_MODEL_ID.
+  const effectiveModelId = resolveExtractionModelId(
+    modelId,
+    process.env.DOCUMENT_PROCESSING_MODEL_ID
+  );
+  console.info(`Using document processing model: ${effectiveModelId}`);
 
   // Get user preference for language if userId is provided
   let userLanguage = DEFAULT_LANGUAGE;
@@ -137,9 +163,10 @@ export async function processWithLLM({
         await makePrismaUserPreferenceRepository();
       const userPreference =
         await userPreferenceRepository.getUserPreference(userId);
+      // 文書由来の機微情報を CloudWatch に全文出力しないよう、
+      // language のみのメタログに縮小する。
       console.log(
-        `[DEBUG] User preference retrieved:`,
-        JSON.stringify(userPreference, null, 2)
+        `[DEBUG] User preference retrieved: language=${userPreference?.language ?? "(none)"}`
       );
 
       if (userPreference && userPreference.language) {
@@ -189,13 +216,13 @@ export async function processWithLLM({
   console.log(
     `[DEBUG] Final language used for checklist extraction: ${userLanguage}`
   );
-  console.log(`[DEBUG] Using model: ${MODEL_ID}`);
+  console.log(`[DEBUG] Using model: ${effectiveModelId}`);
   console.log(`[DEBUG] PDF size: ${pdfBytes.length} bytes`);
 
   const checklistExtractionPrompt = getChecklistExtractionPrompt(userLanguage);
 
   // Determine citations setting based on model type
-  const isNovaModel = MODEL_ID.includes("nova");
+  const isNovaModel = effectiveModelId.includes("nova");
   const citationsConfig = isNovaModel
     ? { enabled: false } // Disable citations for Nova models as they cause InternalServerException
     : { enabled: true }; // Keep enabled for Other models for PDF image analysis workaround
@@ -209,7 +236,7 @@ export async function processWithLLM({
   try {
     response = await bedrockClient.send(
       new ConverseCommand({
-        modelId: MODEL_ID,
+        modelId: effectiveModelId,
         messages: [
           {
             role: "user",
@@ -244,7 +271,7 @@ export async function processWithLLM({
     );
   } catch (error: any) {
     console.error(`[ERROR] Bedrock API call failed:`, error);
-    console.error(`[ERROR] Model ID: ${MODEL_ID}`);
+    console.error(`[ERROR] Model ID: ${effectiveModelId}`);
     console.error(`[ERROR] PDF size: ${pdfBytes.length} bytes`);
     console.error(`[ERROR] Citations enabled: ${citationsConfig.enabled}`);
     console.error(
@@ -288,8 +315,9 @@ export async function processWithLLM({
       const jsonText = extractJsonBlocks(llmResponse);
       checklistItems = JSON.parse(jsonText);
     }
+    // 抽出した文書内容（name/description 等）を平文ログに出さず、件数のみを記録する。
     console.log(
-      `Parsed LLM response as JSON: ${JSON.stringify(checklistItems, null, 2)}`
+      `Parsed LLM response as JSON: ${Array.isArray(checklistItems) ? checklistItems.length : 0} items`
     );
 
     // パース直後に各項目にIDを割り当て
@@ -298,10 +326,13 @@ export async function processWithLLM({
       id: ulid(),
     }));
   } catch (error) {
+    // 生の LLM レスポンス全文を出さず、文字数のみを記録する。
     console.error(
-      `[ERROR] JSON parsing failed: ${error}\nLLM response: ${llmResponse}`
+      `[ERROR] JSON parsing failed: ${error} (response length: ${llmResponse.length} characters)`
     );
-    console.error(`[ERROR] Starting retry process for model: ${MODEL_ID}`);
+    console.error(
+      `[ERROR] Starting retry process for model: ${effectiveModelId}`
+    );
 
     // If JSON parsing fails, send error message to Bedrock for retry
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -309,7 +340,7 @@ export async function processWithLLM({
     try {
       const retryResponse = await bedrockClient.send(
         new ConverseCommand({
-          modelId: MODEL_ID,
+          modelId: effectiveModelId,
           messages: [
             {
               role: "user",
@@ -360,8 +391,8 @@ export async function processWithLLM({
         checklistItems = JSON.parse(retryLlmResponse);
         console.log(`[DEBUG] Retry JSON parsing successful`);
       } catch (retryError) {
+        // 生の retry レスポンス全文ログを削除。
         console.error(`[ERROR] Retry JSON parsing also failed: ${retryError}`);
-        console.error(`[ERROR] Retry LLM response: ${retryLlmResponse}`);
         throw new Error(
           `Both initial and retry JSON parsing failed. Original error: ${errorMessage}, Retry error: ${retryError}`
         );
@@ -389,7 +420,10 @@ export async function processWithLLM({
     });
   }
 
-  console.log(`Response from LLM: ${JSON.stringify(checklistItems, null, 2)}`);
+  // 文書内容を平文ログに出さず、件数のみを記録する。
+  console.log(
+    `Response from LLM: ${Array.isArray(checklistItems) ? checklistItems.length : 0} items`
+  );
 
   const updatedChecklist = convertToUlid(checklistItems);
 

@@ -33,12 +33,14 @@ Most options map directly to the CDK parameters described in [Parameter Customiz
 | `--closed-network`               | Deploy in fully closed network mode (true/false, default: false). Maps to `closedNetwork`; see [Closed / Private Network Deployment](#closed--private-network-deployment). |
 | `--agentcore-network-mode`       | AgentCore Runtime network mode when closed, `PUBLIC` or `VPC` (default: PUBLIC). Maps to `agentCoreNetworkMode`.    |
 | `--bedrock-region`               | Region to use for Amazon Bedrock (default: us-west-2). Maps to `bedrockRegion`.                                     |
-| `--document-model`               | AI model ID for document processing (default: global.anthropic.claude-sonnet-4-6). Maps to `documentProcessingModelId`. |
-| `--image-model`                  | AI model ID for image review processing (default: global.anthropic.claude-sonnet-4-6). Maps to `imageReviewModelId`. |
+| `--default-model`                | AI model ID to use as the default for all processing. Maps to `defaultModelId`. Example: `--default-model global.anthropic.claude-sonnet-5` |
 | `--disable-ipv6`                 | Disable IPv6 support in the frontend WAF and CloudFront.                                                            |
 | `--repo-url`                     | URL of the repository to deploy.                                                                                    |
 | `--branch`                       | Branch name to deploy.                                                                                              |
 | `--tag`                          | Deploy a specific Git tag.                                                                                          |
+
+> [!Note]
+> The former `--document-model` and `--image-model` options are deprecated and will be removed in a future release. They are still accepted for backward compatibility, but both now map to the single `defaultModelId` parameter. Use `--default-model` instead.
 
 ## Closed / Private Network Deployment
 
@@ -82,55 +84,45 @@ Please review the following characteristics and constraints before enabling clos
 
 This application uses Strands agents with tools such as file reading, so you must select **models that support tool use**.
 
-**Examples of tool-use supported models**:
+**Examples of tool-use supported models** (the models included in `availableModels` by default):
 
-- `global.anthropic.claude-opus-4-6-v1` (Claude Opus 4.6 Global)
-- `global.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 Global)
-- `us.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 US)
-- `eu.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 EU)
-- `jp.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6 JP)
-- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5 Global)
-- `global.anthropic.claude-opus-4-5-20251101-v1:0` (Claude Opus 4.5 Global)
-- `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 Global)
-- `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 US)
-- `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 EU)
-- `jp.anthropic.claude-sonnet-4-5-20250929-v1:0` (Claude Sonnet 4.5 JP)
-- `global.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 Global)
-- `us.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 US)
-- `eu.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 EU)
-- `apac.anthropic.claude-sonnet-4-20250514-v1:0` (Claude Sonnet 4 APAC)
-- `mistral.mistral-large-2407-v1:0` (Mistral Large 2)
-- `us.amazon.nova-premier-v1:0` (Amazon Nova Premier)
-- `us.amazon.nova-2-omni-v1:0` (Amazon Nova 2 Omni)
+- `global.anthropic.claude-sonnet-5` (Claude Sonnet 5, Global) — default
+- `global.anthropic.claude-opus-4-8` (Claude Opus 4.8, Global)
+- `jp.anthropic.claude-opus-4-8` (Claude Opus 4.8, JP)
+- `global.anthropic.claude-opus-4-7` (Claude Opus 4.7, Global)
+- `jp.anthropic.claude-opus-4-7` (Claude Opus 4.7, JP)
+- `global.anthropic.claude-opus-4-6-v1` (Claude Opus 4.6, Global)
+- `global.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6, Global)
+- `jp.anthropic.claude-sonnet-4-6` (Claude Sonnet 4.6, JP)
+- `global.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5, Global)
+- `jp.anthropic.claude-haiku-4-5-20251001-v1:0` (Claude Haiku 4.5, JP)
 
 **Important notes**:
 
-- **Cross-region inference profiles**: When using cross-region inference, regional prefixes like `us.`, `eu.`, `apac.` are required for model IDs
-- **Official documentation**: [Supported models and model features - Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
+- **Cross-region inference profiles**: When using cross-region inference, a regional prefix (`global.`, `us.`, `eu.`, `apac.`, `jp.`) is required in the model ID, and the prefix must be consistent with the region where the stack (Amazon Bedrock) is deployed. For example, a `jp.*` model selected on a **us-east-1** deployment fails with `ValidationException: The provided model identifier is invalid.`. Note that the `availableModels` list bundled with this sample only ships `global.` / `jp.` profiles; add other prefixes (`us.` / `eu.` / `apac.`) yourself if your deployment region needs them.
+- **Official documentation**: [Supported models and model features - Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html) / [Amazon Bedrock model cards](https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards.html)
 
-**Configuration example**: edit the `cdk/lib/parameter.ts` file directly.
+**Configuration example (running inference in Japan)**: edit `cdk/lib/parameter.ts` as follows. Amazon Bedrock uses the region where the stack is deployed, so to use the `jp.` inference profiles, deploy the stack in a Japanese region (Tokyo, `ap-northeast-1`), for example by setting `CDK_DEFAULT_REGION=ap-northeast-1` before deployment.
 
 ```typescript
 export const parameters = {
-  documentProcessingModelId: "global.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (Global)
-  bedrockRegion: "us-west-2", // Oregon region
+  defaultModelId: "jp.anthropic.claude-sonnet-4-6", // Claude Sonnet 4.6 (JP)
   // ...
 };
 ```
 
 ### Per-Checklist-Item Model Selection
 
-By default, each checklist item can be assigned a specific AI model from the `availableModels` list. The default set includes Claude Opus 4.6, Sonnet 4.6, Haiku 4.5, and Sonnet 4 (Global). When no model is selected for an item, `documentProcessingModelId` (default: `global.anthropic.claude-sonnet-4-6`) is used for documents, and `imageReviewModelId` (default: `global.anthropic.claude-sonnet-4-6`) is used for images.
+By default, each checklist item can be assigned a specific AI model from the `availableModels` list. When no model is selected for an item, the review falls back to `defaultModelId` (the same default is used for documents and images alike — the model is multimodal). This lets you spend a high-accuracy model only on the items that need it and a cheaper model elsewhere.
 
-To customize the available models:
+To customize the available models, list the models you want in `cdk/lib/parameter.ts`:
 
 ```typescript
 export const parameters = {
   availableModels: [
-    { modelId: "global.anthropic.claude-opus-4-6-v1", displayName: "Claude Opus 4.6 (Global)" },
-    { modelId: "global.anthropic.claude-sonnet-4-6", displayName: "Claude Sonnet 4.6 (Global)" },
-    { modelId: "global.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5 (Global)" },
-    { modelId: "global.anthropic.claude-sonnet-4-20250514-v1:0", displayName: "Claude Sonnet 4 (Global)" },
+    { modelId: "global.anthropic.claude-sonnet-5", displayName: "Claude Sonnet 5 (Global)" },
+    { modelId: "jp.anthropic.claude-haiku-4-5-20251001-v1:0", displayName: "Claude Haiku 4.5 (JP)" },
+    // ... add the models you need
   ],
 };
 ```
@@ -142,6 +134,30 @@ export const parameters = {
   availableModels: [],
 };
 ```
+
+### Registering Prices When You Add a Model
+
+RAPID displays an estimated cost per review on the Web UI, calculated from each model's per-token price. These prices are maintained in a separate file, `review-item-processor/model_config.py` (the `_MODEL_REGISTRY` dictionary). When you add a new model to `availableModels` (or set it as a default model), please also register its input/output token prices in this file. If a model has no entry, it falls back to a default configuration whose prices are `0`, and the estimated cost for that model is displayed as `$0`.
+
+Add an entry to `review-item-processor/model_config.py`, keyed by the model ID and following the existing entries as a reference:
+
+```python
+_MODEL_REGISTRY = {
+    # ...
+    "global.anthropic.claude-sonnet-5": ModelConfig(
+        model_id="global.anthropic.claude-sonnet-5",
+        display_name="Claude Sonnet 5 (Global)",
+        input_per_1m=3.0,    # price per 1,000,000 input tokens (USD)
+        output_per_1m=15.0,  # price per 1,000,000 output tokens (USD)
+        supports_document_block=True,
+        supports_citation=True,
+        supports_caching=True,
+    ),
+    # ...
+}
+```
+
+For the per-token prices of each Bedrock model, refer to the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/). `input_per_1m` / `output_per_1m` are prices per 1,000,000 (1M) tokens, matching how the pricing page lists them, so you can copy the values directly (for example, `$3.00` per 1M input tokens becomes `input_per_1m=3.0`).
 
 ## Cleanup Details
 
