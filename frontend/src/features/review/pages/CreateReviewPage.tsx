@@ -22,7 +22,10 @@ import {
   validateFileSize,
   formatFileSize,
 } from "../../../utils/fileValidation";
-import { MAX_FILE_SIZE } from "../../../constants/index";
+import {
+  MAX_FILE_SIZE,
+  MAX_REVIEW_DOCUMENTS,
+} from "../../../constants/index";
 
 export const CreateReviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,8 +65,9 @@ export const CreateReviewPage: React.FC = () => {
 
   // ドキュメントアップロードフック
   const {
-    uploadDocument,
     uploadDocuments,
+    documentsPresignedUrlEndpoint,
+    imagesPresignedUrlEndpoint,
     clearUploadedDocuments,
     deleteDocument,
     isUploading,
@@ -71,6 +75,7 @@ export const CreateReviewPage: React.FC = () => {
     uploadedDocuments,
   } = useDocumentUpload({
     presignedUrlEndpoint: "/documents/review/presigned-url",
+    documentsPresignedUrlEndpoint: "/documents/review/documents/presigned-url",
     imagesPresignedUrlEndpoint: "/documents/review/images/presigned-url",
     deleteEndpointPrefix: "/documents/review/",
   });
@@ -120,19 +125,14 @@ export const CreateReviewPage: React.FC = () => {
       return;
     }
 
-    // ファイルタイプに基づいて検証
-    if (fileType === REVIEW_FILE_TYPE.PDF && newFiles.length > 1) {
+    // ファイル数の検証（PDF・画像とも同じ上限）
+    if (newFiles.length > MAX_REVIEW_DOCUMENTS) {
       setErrors((prev) => ({
         ...prev,
-        files: t("review.pdfLimitError"),
-      }));
-      return;
-    }
-
-    if (fileType === REVIEW_FILE_TYPE.IMAGE && newFiles.length > 20) {
-      setErrors((prev) => ({
-        ...prev,
-        files: t("review.imageLimitError"),
+        files:
+          fileType === REVIEW_FILE_TYPE.PDF
+            ? t("review.pdfLimitError")
+            : t("review.imageLimitError"),
       }));
       return;
     }
@@ -149,30 +149,21 @@ export const CreateReviewPage: React.FC = () => {
     if (filesToUpload.length === 0) return;
 
     try {
-      if (fileType === REVIEW_FILE_TYPE.PDF) {
-        // PDFファイルの場合は1つだけアップロード
-        const file = filesToUpload[0];
-        const uploadResult = await uploadDocument(file);
+      // PDF・画像とも同じ経路で複数アップロードする。
+      // エンドポイントだけがファイル種別で変わる
+      await uploadDocuments(
+        filesToUpload,
+        fileType === REVIEW_FILE_TYPE.PDF
+          ? documentsPresignedUrlEndpoint
+          : imagesPresignedUrlEndpoint
+      );
 
-        // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
-        if (newFiles.length === 1 && !jobName) {
-          // 拡張子を除いたファイル名を設定
-          const fileName = file.name;
-          const nameWithoutExtension =
-            fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
-          setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
-        }
-      } else {
-        // 画像ファイルの場合は複数アップロード
-        const uploadResults = await uploadDocuments(filesToUpload);
-
-        // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
-        if (newFiles.length === 1 && !jobName) {
-          const fileName = newFiles[0].name;
-          const nameWithoutExtension =
-            fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
-          setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
-        }
+      // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
+      if (newFiles.length === 1 && !jobName) {
+        const fileName = newFiles[0].name;
+        const nameWithoutExtension =
+          fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
+        setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
       }
 
       // ファイル選択時にエラーをクリア
@@ -346,7 +337,7 @@ export const CreateReviewPage: React.FC = () => {
                 files={selectedFiles}
                 onFilesChange={handleFilesChange}
                 isUploading={isUploading}
-                multiple={fileType === REVIEW_FILE_TYPE.IMAGE}
+                multiple={true}
                 uploadedDocuments={uploadedDocuments}
                 onDeleteFile={handleFileRemove}
                 fillHeight
