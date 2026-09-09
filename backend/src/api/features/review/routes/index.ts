@@ -6,6 +6,7 @@ import {
   getAllReviewJobsHandler,
   getReviewJobByIdHandler,
   getReviewPresignedUrlHandler,
+  getReviewDocumentsPresignedUrlHandler,
   getReviewImagesPresignedUrlHandler,
   getReviewResultItemsHandler,
   overrideReviewResultHandler,
@@ -20,6 +21,9 @@ export function registerReviewRoutes(fastify: FastifyInstance): void {
   // 審査ドキュメント関連
   fastify.post("/documents/review/presigned-url", {
     handler: getReviewPresignedUrlHandler,
+  });
+  fastify.post("/documents/review/documents/presigned-url", {
+    handler: getReviewDocumentsPresignedUrlHandler,
   });
   fastify.post("/documents/review/images/presigned-url", {
     handler: getReviewImagesPresignedUrlHandler,

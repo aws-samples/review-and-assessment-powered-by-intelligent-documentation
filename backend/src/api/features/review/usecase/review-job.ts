@@ -15,6 +15,7 @@ import {
   getReviewImageKey,
 } from "../../../../checklist-workflow/common/storage-paths";
 import { getQueueDepth, sendMessage } from "../../../core/sqs";
+import { MAX_REVIEW_DOCUMENTS } from "../../../constants";
 import { CreateReviewJobRequest } from "../routes/handlers";
 import { createInitialReviewJobModel } from "../domain/service/review-job-factory";
 import {
@@ -107,6 +108,44 @@ export const getReviewDocumentPresignedUrl = async (params: {
   return { url, key, documentId };
 };
 
+export const getReviewDocumentsPresignedUrl = async (params: {
+  filenames: string[];
+  contentTypes: string[];
+}): Promise<{
+  files: Array<{
+    url: string;
+    key: string;
+    filename: string;
+    documentId: string;
+  }>;
+}> => {
+  const { filenames, contentTypes } = params;
+  const bucketName = process.env.DOCUMENT_BUCKET;
+  if (!bucketName) {
+    throw new Error("S3_BUCKET_NAME is not defined");
+  }
+
+  // 審査ジョブ作成時の上限（createReviewJob）と同じ値に揃える
+  if (filenames.length > MAX_REVIEW_DOCUMENTS) {
+    throw new ApplicationError(
+      `Maximum ${MAX_REVIEW_DOCUMENTS} documents allowed`
+    );
+  }
+
+  const results = await Promise.all(
+    filenames.map(async (filename, index) => {
+      const contentType = contentTypes[index];
+      const documentId = ulid();
+      const key = getReviewDocumentKey(documentId, filename);
+      const url = await getPresignedUrl(bucketName, key, contentType);
+
+      return { url, key, filename, documentId };
+    })
+  );
+
+  return { files: results };
+};
+
 export const getReviewImagesPresignedUrl = async (params: {
   filenames: string[];
   contentTypes: string[];
@@ -124,8 +163,10 @@ export const getReviewImagesPresignedUrl = async (params: {
     throw new Error("S3_BUCKET_NAME is not defined");
   }
 
-  if (filenames.length > 20) {
-    throw new ApplicationError("Maximum 20 image files allowed");
+  if (filenames.length > MAX_REVIEW_DOCUMENTS) {
+    throw new ApplicationError(
+      `Maximum ${MAX_REVIEW_DOCUMENTS} image files allowed`
+    );
   }
 
   const results = await Promise.all(
@@ -163,8 +204,10 @@ export const createReviewJob = async (params: {
     throw new ApplicationError("At least one document is required");
   }
 
-  if (params.requestBody.documents.length > 20) {
-    throw new ApplicationError("Maximum 20 documents allowed");
+  if (params.requestBody.documents.length > MAX_REVIEW_DOCUMENTS) {
+    throw new ApplicationError(
+      `Maximum ${MAX_REVIEW_DOCUMENTS} documents allowed`
+    );
   }
 
   // Validate file sizes from S3
