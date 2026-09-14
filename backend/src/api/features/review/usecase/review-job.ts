@@ -202,16 +202,35 @@ export const createReviewJob = async (params: {
     throw error;
   }
 
-  await sendMessage(
-    queueUrl,
-    {
-      reviewJobId: reviewJob.id,
-      userId: reviewJob.userId,
-    },
-    reviewJob.id
-  );
-
+  // ジョブを保存してからキューに送る。先に送ると、審査の準備処理が
+  // まだ保存されていないジョブを更新しようとして失敗することがある
   await reviewJobRepo.createReviewJob(reviewJob);
+
+  try {
+    await sendMessage(
+      queueUrl,
+      {
+        reviewJobId: reviewJob.id,
+        userId: reviewJob.userId,
+      },
+      reviewJob.id
+    );
+  } catch (error) {
+    // キューに入らなかったジョブは処理されないので、待ちのまま残さず失敗にする
+    await reviewJobRepo
+      .updateJobStatus({
+        reviewJobId: reviewJob.id,
+        status: REVIEW_JOB_STATUS.FAILED,
+        errorDetail: "Failed to queue the review job",
+      })
+      .catch((statusError) =>
+        console.error(
+          `Failed to mark review job ${reviewJob.id} as failed:`,
+          statusError
+        )
+      );
+    throw error;
+  }
 };
 
 export const removeReviewJob = async (params: {
