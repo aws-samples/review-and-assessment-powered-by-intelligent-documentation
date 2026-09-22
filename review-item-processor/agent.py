@@ -16,6 +16,13 @@ from strands_tools import file_read, image_reader
 
 from logger import logger
 from model_config import ModelConfig
+from pricing import (
+    CACHE_READ_MULTIPLIER,
+    CACHE_WRITE_MULTIPLIER,
+    cost_of,
+    counts_from_usage,
+    saved_by_cache,
+)
 from tool_history_collector import ToolHistoryCollector
 from tools.factory import create_custom_tools
 
@@ -32,30 +39,45 @@ class ReviewMetaTracker:
         end_time = time.time()
         duration = end_time - self.start_time
 
-        metrics = agent_result.metrics
-        usage = metrics.accumulated_usage
-        input_tokens = usage.get("inputTokens", 0)
-        output_tokens = usage.get("outputTokens", 0)
-        total_tokens = usage.get("totalTokens", 0)
-
-        logger.debug(
-            f"Token usage from metrics: input={input_tokens}, output={output_tokens}, total={total_tokens}"
+        # Cached tokens are not included in inputTokens; Bedrock reports them
+        # separately. Counting only inputTokens and outputTokens left the
+        # documents out of the cost (see pricing.py).
+        usage = agent_result.metrics.accumulated_usage
+        counts = counts_from_usage(usage)
+        cost = cost_of(
+            counts,
+            input_per_1k=self.model.input_per_1k,
+            output_per_1k=self.model.output_per_1k,
         )
 
-        input_cost = (input_tokens / 1000) * self.model.input_per_1k
-        output_cost = (output_tokens / 1000) * self.model.output_per_1k
-        total_cost = input_cost + output_cost
+        logger.debug(
+            "Token usage: input=%s output=%s cache_read=%s cache_write=%s cost=%.6f",
+            counts.input_tokens,
+            counts.output_tokens,
+            counts.cache_read_tokens,
+            counts.cache_write_tokens,
+            cost.total,
+        )
 
         return {
             "model_id": self.model.model_id,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "input_cost": input_cost,
-            "output_cost": output_cost,
-            "total_cost": total_cost,
+            "input_tokens": counts.input_tokens,
+            "output_tokens": counts.output_tokens,
+            "cache_read_tokens": counts.cache_read_tokens,
+            "cache_write_tokens": counts.cache_write_tokens,
+            "input_cost": cost.input_cost,
+            "output_cost": cost.output_cost,
+            "cache_read_cost": cost.cache_read_cost,
+            "cache_write_cost": cost.cache_write_cost,
+            "cache_saving": saved_by_cache(
+                counts, input_per_1k=self.model.input_per_1k
+            ),
+            "total_cost": cost.total,
             "pricing": {
                 "input_per_1k": self.model.input_per_1k,
                 "output_per_1k": self.model.output_per_1k,
+                "cache_write_per_1k": self.model.input_per_1k * CACHE_WRITE_MULTIPLIER,
+                "cache_read_per_1k": self.model.input_per_1k * CACHE_READ_MULTIPLIER,
             },
             "duration_seconds": round(duration, 2),
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -540,6 +562,14 @@ def _run_agent_with_document_block(
         }
 
         content.append(doc_block)
+
+    # Mark the end of the reusable prefix before the per-check-item prompt.
+    # Without this, CacheConfig(strategy="auto") appends the cache point to the
+    # end of the message, so the cached prefix includes the prompt that changes
+    # for every check item: each call writes a new cache entry and none is ever
+    # read. Strands keeps a cache point that the caller has placed.
+    if model.supports_caching and content:
+        content.append({"cachePoint": {"type": "default"}})
 
     content.append({"text": prompt})
 

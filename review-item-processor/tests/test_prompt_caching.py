@@ -31,36 +31,89 @@ def test_supports_caching_gates_cache_config():
     assert agent.supports_caching("some.unregistered.model-id") is False
 
 
-def test_bedrock_auto_strategy_caches_after_document_block():
-    """SDK contract: cache_config=auto puts the cachePoint AFTER a document, so
-    the document ends up inside the cached prefix."""
+def _formatted_content(content):
     model = BedrockModel(
         model_id="global.anthropic.claude-sonnet-4-6",
         cache_config=CacheConfig(strategy="auto"),
     )
+    messages: Messages = [{"role": "user", "content": content}]
+    return model._format_bedrock_messages(messages)[0]["content"]
 
-    messages: Messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "document": {
-                        "name": "review_doc",
-                        "format": "pdf",
-                        "source": {"bytes": b"%PDF-1.4 fake pdf bytes"},
-                    }
-                },
-                {"text": "Evaluate this document against the check item."},
-            ],
-        }
+
+def _kinds(content):
+    return [next(iter(block)) for block in content]
+
+
+DOCUMENT = {
+    "document": {
+        "name": "review_doc",
+        "format": "pdf",
+        "source": {"bytes": b"%PDF-1.4 fake pdf bytes"},
+    }
+}
+PROMPT = {"text": "Evaluate this document against the check item."}
+
+
+def test_auto_strategy_alone_caches_the_per_item_prompt_too():
+    """Why the caller places the cache point itself.
+
+    Left to itself, the auto strategy appends the cache point to the end of the
+    message, so the prompt that changes for every check item is inside the
+    cached prefix. Every call then writes a new entry and none is read.
+    """
+    assert _kinds(_formatted_content([DOCUMENT, PROMPT])) == [
+        "document",
+        "text",
+        "cachePoint",
     ]
 
-    formatted = model._format_bedrock_messages(messages)
 
-    content = formatted[0]["content"]
-    cache_idxs = [i for i, b in enumerate(content) if "cachePoint" in b]
-    doc_idxs = [i for i, b in enumerate(content) if "document" in b]
+def test_a_cache_point_placed_after_the_documents_is_kept_there():
+    """SDK contract this fix relies on: a caller-placed cache point stays where
+    it is, so only the documents are cached and the per-item prompt is not."""
+    content = _formatted_content(
+        [DOCUMENT, {"cachePoint": {"type": "default"}}, PROMPT]
+    )
+    assert _kinds(content) == ["document", "cachePoint", "text"]
 
-    assert cache_idxs, "auto strategy must inject a cachePoint"
-    assert doc_idxs, "document block should be preserved"
-    assert max(doc_idxs) < max(cache_idxs)  # doc must precede the cache point
+
+def _captured_request(monkeypatch, tmp_path, model_id):
+    """Run _run_agent_with_document_block with a fake agent and return what
+    would have been sent to Bedrock."""
+    pdf = tmp_path / "doc.pdf"
+    pdf.write_bytes(b"%PDF-1.4 fake pdf bytes")
+    sent = {}
+
+    class FakeResponse:
+        message = {"content": [{"text": '<<JSON_START>>{"result": "pass"}<<JSON_END>>'}]}
+
+        class metrics:
+            accumulated_usage = {"inputTokens": 0, "outputTokens": 0}
+
+    class FakeAgent:
+        def __init__(self, **kwargs):
+            pass
+
+        def __call__(self, content):
+            sent["content"] = content
+            return FakeResponse()
+
+    monkeypatch.setattr(agent, "Agent", FakeAgent)
+    agent._run_agent_with_document_block(
+        prompt="Evaluate this document against the check item.",
+        file_paths=[str(pdf)],
+        model_id=model_id,
+    )
+    return sent["content"]
+
+
+def test_documents_are_cached_without_the_per_item_prompt(monkeypatch, tmp_path):
+    content = _captured_request(
+        monkeypatch, tmp_path, "global.anthropic.claude-sonnet-4-6"
+    )
+    assert _kinds(content) == ["document", "cachePoint", "text"]
+
+
+def test_no_cache_point_for_a_model_without_caching(monkeypatch, tmp_path):
+    content = _captured_request(monkeypatch, tmp_path, "some.unregistered.model-id")
+    assert "cachePoint" not in _kinds(content)
