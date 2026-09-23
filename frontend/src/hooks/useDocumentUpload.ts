@@ -31,6 +31,8 @@ export interface DocumentUploadResult {
 
 interface UseDocumentUploadOptions {
   presignedUrlEndpoint?: string;
+  /** 複数ドキュメント（PDF等）の presigned URL 一括取得エンドポイント */
+  documentsPresignedUrlEndpoint?: string;
   imagesPresignedUrlEndpoint?: string;
   deleteEndpointPrefix?: string;
   isImageMode?: boolean;
@@ -50,6 +52,9 @@ export function useDocumentUpload(options: UseDocumentUploadOptions = {}) {
 
   const presignedUrlEndpoint =
     options.presignedUrlEndpoint || "/documents/presigned-url";
+  const documentsPresignedUrlEndpoint =
+    options.documentsPresignedUrlEndpoint ||
+    "/documents/review/documents/presigned-url";
   const imagesPresignedUrlEndpoint =
     options.imagesPresignedUrlEndpoint ||
     "/documents/review/images/presigned-url";
@@ -119,27 +124,27 @@ export function useDocumentUpload(options: UseDocumentUploadOptions = {}) {
   };
 
   /**
-   * 複数の画像ファイルをアップロードする
+   * 複数ファイルをアップロードする
    * @param files アップロードするファイル配列
+   * @param endpoint presigned URL一括取得のエンドポイント。
+   *                 省略時は画像用（後方互換）。PDF等は documentsPresignedUrlEndpoint を渡す
    * @returns アップロード結果の配列
    */
   const uploadDocuments = async (
-    files: File[]
+    files: File[],
+    endpoint: string = imagesPresignedUrlEndpoint
   ): Promise<DocumentUploadResult[]> => {
     setIsUploading(true);
     setUploadProgress(0);
     setError(null);
 
     try {
-      // 画像ファイル用のpresigned URLを一括取得
+      // presigned URLを一括取得
       const presignedResponse =
-        await http.post<GetReviewImagesPresignedUrlResponse>(
-          imagesPresignedUrlEndpoint,
-          {
-            filenames: files.map((f) => f.name),
-            contentTypes: files.map((f) => f.type),
-          }
-        );
+        await http.post<GetReviewImagesPresignedUrlResponse>(endpoint, {
+          filenames: files.map((f) => f.name),
+          contentTypes: files.map((f) => f.type),
+        });
 
       if (!presignedResponse.data.success) {
         throw new Error(
@@ -247,5 +252,8 @@ export function useDocumentUpload(options: UseDocumentUploadOptions = {}) {
     uploadProgress,
     error,
     uploadedDocuments,
+    // 呼び出し側が uploadDocuments に渡せるよう公開する
+    documentsPresignedUrlEndpoint,
+    imagesPresignedUrlEndpoint,
   };
 }

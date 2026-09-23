@@ -7,6 +7,7 @@ import FormTextField from "../../../components/FormTextField";
 import { FileUploader } from "../../../components/FileUploader";
 import ChecklistSelector from "../components/ChecklistSelector";
 import ComparisonIndicator from "../components/ComparisonIndicator";
+import DuplicateFileModal from "../components/DuplicateFileModal";
 import { useCreateReviewJob } from "../hooks/useReviewJobMutations";
 import { useDocumentUpload } from "../../../hooks/useDocumentUpload";
 import { useChecklistSets } from "../../checklist/hooks/useCheckListSetQueries";
@@ -22,12 +23,25 @@ import {
   validateFileSize,
   formatFileSize,
 } from "../../../utils/fileValidation";
-import { MAX_FILE_SIZE } from "../../../constants/index";
+import {
+  MAX_FILE_SIZE,
+  MAX_REVIEW_DOCUMENTS,
+} from "../../../constants/index";
 
 export const CreateReviewPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  // 選択したファイルと、そのアップロード先のドキュメントIDの対応。
+  // 同じ名前の別ファイルを区別できるよう、名前ではなくファイルそのもので引く
+  const [documentIds, setDocumentIds] = useState<Map<File, string>>(
+    () => new Map()
+  );
+  // 同じ名前のファイルをどう扱うか確認している間の、取り込み待ちのファイル
+  const [pendingFiles, setPendingFiles] = useState<{
+    files: File[];
+    duplicates: string[];
+  } | null>(null);
   const [selectedChecklist, setSelectedChecklist] =
     useState<CheckListSet | null>(null);
   const [jobName, setJobName] = useState("");
@@ -62,8 +76,9 @@ export const CreateReviewPage: React.FC = () => {
 
   // ドキュメントアップロードフック
   const {
-    uploadDocument,
     uploadDocuments,
+    documentsPresignedUrlEndpoint,
+    imagesPresignedUrlEndpoint,
     clearUploadedDocuments,
     deleteDocument,
     isUploading,
@@ -71,6 +86,7 @@ export const CreateReviewPage: React.FC = () => {
     uploadedDocuments,
   } = useDocumentUpload({
     presignedUrlEndpoint: "/documents/review/presigned-url",
+    documentsPresignedUrlEndpoint: "/documents/review/documents/presigned-url",
     imagesPresignedUrlEndpoint: "/documents/review/images/presigned-url",
     deleteEndpointPrefix: "/documents/review/",
   });
@@ -85,6 +101,8 @@ export const CreateReviewPage: React.FC = () => {
   const handleFileTypeChange = (value: string) => {
     setFileType(value as REVIEW_FILE_TYPE);
     setSelectedFiles([]);
+    setDocumentIds(new Map());
+    setPendingFiles(null);
     clearUploadedDocuments();
   };
 
@@ -120,59 +138,74 @@ export const CreateReviewPage: React.FC = () => {
       return;
     }
 
-    // ファイルタイプに基づいて検証
-    if (fileType === REVIEW_FILE_TYPE.PDF && newFiles.length > 1) {
-      setErrors((prev) => ({
-        ...prev,
-        files: t("review.pdfLimitError"),
-      }));
+    // 既に選択されているファイルと同じ名前のものが追加されたら、
+    // 置き換えるか両方残すかを利用者に選んでもらう
+    const selectedNames = new Set(selectedFiles.map((file) => file.name));
+    const duplicates = [
+      ...new Set(
+        newFiles
+          .filter(
+            (file) =>
+              !selectedFiles.includes(file) && selectedNames.has(file.name)
+          )
+          .map((file) => file.name)
+      ),
+    ];
+    if (duplicates.length > 0) {
+      setPendingFiles({ files: newFiles, duplicates });
       return;
     }
 
-    if (fileType === REVIEW_FILE_TYPE.IMAGE && newFiles.length > 20) {
+    await applyFiles(newFiles);
+  };
+
+  // 選択ファイルを確定し、まだアップロードしていないものをアップロードする。
+  // 件数の上限を超える場合は何もせず false を返す
+  const applyFiles = async (files: File[]): Promise<boolean> => {
+    // ファイル数の検証（PDF・画像とも同じ上限）
+    if (files.length > MAX_REVIEW_DOCUMENTS) {
       setErrors((prev) => ({
         ...prev,
-        files: t("review.imageLimitError"),
+        files:
+          fileType === REVIEW_FILE_TYPE.PDF
+            ? t("review.pdfLimitError")
+            : t("review.imageLimitError"),
       }));
-      return;
+      return false;
     }
 
-    setSelectedFiles(newFiles);
+    setSelectedFiles(files);
 
     // 新しく追加されたファイルのみをアップロード
-    const existingFilenames =
-      uploadedDocuments?.map((doc) => doc.filename) || [];
-    const filesToUpload = newFiles.filter(
-      (file) => !existingFilenames.includes(file.name)
-    );
+    const filesToUpload = files.filter((file) => !documentIds.has(file));
 
-    if (filesToUpload.length === 0) return;
+    if (filesToUpload.length === 0) return true;
 
     try {
-      if (fileType === REVIEW_FILE_TYPE.PDF) {
-        // PDFファイルの場合は1つだけアップロード
-        const file = filesToUpload[0];
-        const uploadResult = await uploadDocument(file);
+      // PDF・画像とも同じ経路で複数アップロードする。
+      // エンドポイントだけがファイル種別で変わる
+      const results = await uploadDocuments(
+        filesToUpload,
+        fileType === REVIEW_FILE_TYPE.PDF
+          ? documentsPresignedUrlEndpoint
+          : imagesPresignedUrlEndpoint
+      );
 
-        // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
-        if (newFiles.length === 1 && !jobName) {
-          // 拡張子を除いたファイル名を設定
-          const fileName = file.name;
-          const nameWithoutExtension =
-            fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
-          setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
-        }
-      } else {
-        // 画像ファイルの場合は複数アップロード
-        const uploadResults = await uploadDocuments(filesToUpload);
+      // 結果は渡したファイルと同じ順に返る
+      setDocumentIds((prev) => {
+        const next = new Map(prev);
+        filesToUpload.forEach((file, index) =>
+          next.set(file, results[index].documentId)
+        );
+        return next;
+      });
 
-        // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
-        if (newFiles.length === 1 && !jobName) {
-          const fileName = newFiles[0].name;
-          const nameWithoutExtension =
-            fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
-          setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
-        }
+      // ファイル名をジョブ名の初期値として設定（ファイルが1つの場合）
+      if (files.length === 1 && !jobName) {
+        const fileName = files[0].name;
+        const nameWithoutExtension =
+          fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
+        setJobName(`${nameWithoutExtension}${t("review.jobNameSuffix")}`);
       }
 
       // ファイル選択時にエラーをクリア
@@ -185,6 +218,47 @@ export const CreateReviewPage: React.FC = () => {
     } catch (error) {
       console.error(t("review.fileUploadError"), error);
     }
+    return true;
+  };
+
+  // アップロード済みのファイルを、ドキュメント一覧とS3から削除する
+  const removeUploaded = async (files: File[]) => {
+    const ids = files
+      .map((file) => documentIds.get(file))
+      .filter((id): id is string => id !== undefined);
+
+    setDocumentIds((prev) => {
+      const next = new Map(prev);
+      files.forEach((file) => next.delete(file));
+      return next;
+    });
+
+    await Promise.all(ids.map((id) => deleteDocument(id)));
+  };
+
+  // 同名ファイルの確認: 選択済みの同名ファイルを新しいファイルに差し替える
+  const handleReplaceDuplicates = async () => {
+    if (!pendingFiles) return;
+    const { files, duplicates } = pendingFiles;
+    setPendingFiles(null);
+
+    const replaced = selectedFiles.filter((file) =>
+      duplicates.includes(file.name)
+    );
+    const kept = files.filter((file) => !replaced.includes(file));
+
+    // 上限で弾かれたら、置き換え前の選択をそのまま残す
+    if (await applyFiles(kept)) {
+      await removeUploaded(replaced);
+    }
+  };
+
+  // 同名ファイルの確認: 両方とも審査対象にする
+  const handleKeepBothDuplicates = async () => {
+    if (!pendingFiles) return;
+    const { files } = pendingFiles;
+    setPendingFiles(null);
+    await applyFiles(files);
   };
 
   // ファイル削除ハンドラ
@@ -192,18 +266,11 @@ export const CreateReviewPage: React.FC = () => {
     const fileToRemove = selectedFiles[index];
 
     // 選択済みファイルリストから削除
-    const newSelectedFiles = [...selectedFiles];
-    newSelectedFiles.splice(index, 1);
+    const newSelectedFiles = selectedFiles.filter((_, i) => i !== index);
     setSelectedFiles(newSelectedFiles);
 
-    // アップロード済みドキュメントリストからも削除
-    const docToRemove = uploadedDocuments.find(
-      (doc) => doc.filename === fileToRemove.name
-    );
-    if (docToRemove) {
-      // S3からも削除
-      await deleteDocument(docToRemove.documentId);
-    }
+    // アップロード済みドキュメントリストとS3からも削除
+    await removeUploaded([fileToRemove]);
 
     // ファイルがなくなった場合はエラーを表示
     if (newSelectedFiles.length === 0) {
@@ -346,8 +413,9 @@ export const CreateReviewPage: React.FC = () => {
                 files={selectedFiles}
                 onFilesChange={handleFilesChange}
                 isUploading={isUploading}
-                multiple={fileType === REVIEW_FILE_TYPE.IMAGE}
+                multiple={true}
                 uploadedDocuments={uploadedDocuments}
+                isFileUploaded={(file) => documentIds.has(file)}
                 onDeleteFile={handleFileRemove}
                 fillHeight
                 acceptedFileTypes={
@@ -411,6 +479,15 @@ export const CreateReviewPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* フォームの外に置く: ボタンがフォーム送信にならないように */}
+      <DuplicateFileModal
+        isOpen={pendingFiles !== null}
+        filenames={pendingFiles?.duplicates ?? []}
+        onReplace={handleReplaceDuplicates}
+        onKeepBoth={handleKeepBothDuplicates}
+        onCancel={() => setPendingFiles(null)}
+      />
     </div>
   );
 };

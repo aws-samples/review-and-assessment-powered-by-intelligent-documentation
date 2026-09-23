@@ -527,8 +527,10 @@ def _run_agent_with_document_block(
             logger.error(f"Failed to read file {file_path}: {e}")
             continue
 
-        filename = os.path.basename(file_path)
-        sanitized_name = sanitize_file_name(filename)
+        # The whole path, not the file name: Bedrock rejects a request with
+        # two documents of the same name, and files in different folders can
+        # share one.
+        sanitized_name = sanitize_file_name(file_path)
 
         doc_block = {
             "document": {
@@ -1120,7 +1122,10 @@ def process_review_from_s3(
 
         for path in document_paths:
             original_basename = os.path.basename(path)
-            sanitized_basename = sanitize_file_name(original_basename)
+            # Hash the whole key rather than the file name: files uploaded
+            # under the same name differ only by their document id folder,
+            # and the second download would overwrite the first.
+            sanitized_basename = sanitize_file_name(path)
             ext = os.path.splitext(original_basename)[1].lower()
             sanitized_path = os.path.join(temp_dir, sanitized_basename + ext)
 

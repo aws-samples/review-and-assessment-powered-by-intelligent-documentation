@@ -5,6 +5,7 @@ import {
   getAllReviewJobs,
   getReviewJobById,
   getReviewDocumentPresignedUrl,
+  getReviewDocumentsPresignedUrl,
   getReviewImagesPresignedUrl,
   removeReviewJob,
 } from "../usecase/review-job";
@@ -15,6 +16,7 @@ import {
   getReviewResults,
 } from "../usecase/review-result";
 import { getDocumentDownloadUrl } from "../usecase/document";
+import { MAX_REVIEW_DOCUMENTS } from "../../../constants";
 
 export const getAllReviewJobsHandler = async (
   request: FastifyRequest<{
@@ -73,6 +75,33 @@ export const getReviewPresignedUrlHandler = async (
   const result = await getReviewDocumentPresignedUrl({
     filename,
     contentType,
+  });
+
+  reply.code(200).send({
+    success: true,
+    data: result,
+  });
+};
+
+export const getReviewDocumentsPresignedUrlHandler = async (
+  request: FastifyRequest<{
+    Body: { filenames: string[]; contentTypes: string[] };
+  }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { filenames, contentTypes } = request.body;
+
+  if (filenames.length > MAX_REVIEW_DOCUMENTS) {
+    reply.code(400).send({
+      success: false,
+      error: `Maximum ${MAX_REVIEW_DOCUMENTS} documents allowed`,
+    });
+    return;
+  }
+
+  const result = await getReviewDocumentsPresignedUrl({
+    filenames,
+    contentTypes,
   });
 
   reply.code(200).send({

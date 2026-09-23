@@ -23,6 +23,11 @@ export interface FileUploaderProps {
   uploadedDocuments?: Array<{ documentId: string; filename: string }>;
   onDeleteFile?: (index: number) => void;
   fillHeight?: boolean;
+  /**
+   * ファイルがアップロード済みかを判定する。
+   * 省略時はファイル名で uploadedDocuments と照合する（同名ファイルは区別できない）
+   */
+  isFileUploaded?: (file: File) => boolean;
 }
 
 /**
@@ -41,6 +46,7 @@ export function FileUploader({
   uploadedDocuments = [],
   onDeleteFile,
   fillHeight = false,
+  isFileUploaded,
 }: FileUploaderProps) {
   const { t } = useTranslation();
   const supportedFormats = Object.values(acceptedFileTypes)
@@ -125,9 +131,9 @@ export function FileUploader({
           <ul className="space-y-2">
             {files.map((file, index) => {
               // アップロード済みかどうかを確認
-              const isUploaded = uploadedDocuments?.some(
-                (doc) => doc.filename === file.name
-              );
+              const isUploaded = isFileUploaded
+                ? isFileUploaded(file)
+                : uploadedDocuments?.some((doc) => doc.filename === file.name);
 
               return (
                 <li
