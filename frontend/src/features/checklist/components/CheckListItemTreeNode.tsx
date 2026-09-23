@@ -6,7 +6,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAlert } from "../../../hooks/useAlert";
 import { publicAsset } from "../../../utils/publicAsset";
-import { CheckListItemDetail, AmbiguityFilter } from "../types";
+import {
+  CheckListItemDetail,
+  AmbiguityFilter,
+  ImportanceFilterValue,
+} from "../types";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import {
   HiChevronDown,
@@ -25,6 +29,7 @@ import Button from "../../../components/Button";
 import ResultCard from "../../../components/ResultCard";
 import Tooltip from "../../../components/Tooltip";
 import ModelSelector from "./ModelSelector";
+import ImportanceSelector from "./ImportanceSelector";
 
 interface CheckListItemTreeNodeProps {
   setId: string;
@@ -33,6 +38,7 @@ interface CheckListItemTreeNodeProps {
   maxDepth?: number;
   autoExpand?: boolean;
   ambiguityFilter: AmbiguityFilter;
+  importanceFilter?: ImportanceFilterValue;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
 }
@@ -44,6 +50,7 @@ export default function CheckListItemTreeNode({
   maxDepth = 2,
   autoExpand = false,
   ambiguityFilter,
+  importanceFilter = "all",
   selectedIds,
   onToggleSelect,
 }: CheckListItemTreeNodeProps) {
@@ -75,7 +82,8 @@ export default function CheckListItemTreeNode({
     setId || null,
     shouldLoadChildren ? item.id : undefined,
     false,
-    ambiguityFilter
+    ambiguityFilter,
+    importanceFilter
   );
 
   // ルートレベルのアイテムを取得するためのフック
@@ -83,7 +91,8 @@ export default function CheckListItemTreeNode({
     setId || null,
     undefined,
     false,
-    ambiguityFilter
+    ambiguityFilter,
+    importanceFilter
   );
 
   // 親レベルのアイテムを取得するためのフック（親IDがある場合のみ）
@@ -91,7 +100,8 @@ export default function CheckListItemTreeNode({
     setId || null,
     item.parentId,
     false,
-    ambiguityFilter
+    ambiguityFilter,
+    importanceFilter
   );
 
   // 展開/折りたたみの切り替え
@@ -137,8 +147,8 @@ export default function CheckListItemTreeNode({
         <div style={indentStyle}>
           <ResultCard
             variant={item.ambiguityReview && isEditable ? "error" : "default"}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center">
                 {/* チェックボックス - リーフノードのみ */}
                 {!item.hasChildren && onToggleSelect && (
                   <input
@@ -187,7 +197,16 @@ export default function CheckListItemTreeNode({
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex shrink-0 items-center space-x-2">
+                {/* 重要度 - リーフノードのみ。判定に使わないので、編集できないチェックリストでも変えられる */}
+                {!item.hasChildren && (
+                  <ImportanceSelector
+                    setId={setId}
+                    itemId={item.id}
+                    importance={item.importance}
+                  />
+                )}
+
                 {/* モデル選択 - リーフノードのみ表示 */}
                 {!item.hasChildren && (
                   <ModelSelector
@@ -327,6 +346,7 @@ export default function CheckListItemTreeNode({
                   level={level + 1}
                   maxDepth={maxDepth}
                   ambiguityFilter={ambiguityFilter}
+                  importanceFilter={importanceFilter}
                   selectedIds={selectedIds}
                   onToggleSelect={onToggleSelect}
                 />

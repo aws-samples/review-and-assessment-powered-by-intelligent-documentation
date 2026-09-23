@@ -11,6 +11,8 @@ import { DetailSkeleton } from "../../../components/Skeleton";
 import { REVIEW_JOB_STATUS } from "../types";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TotalReviewCostSummary from "../components/TotalReviewCostSummary";
+import ImportanceFilter from "../../checklist/components/ImportanceFilter";
+import type { ImportanceFilterValue } from "../../checklist/types";
 
 export default function ReviewDetailPage() {
   const { t } = useTranslation();
@@ -19,6 +21,8 @@ export default function ReviewDetailPage() {
 
   // Start with showing fail items
   const [filter, setFilter] = useState<FilterType>("fail");
+  const [importanceFilter, setImportanceFilter] =
+    useState<ImportanceFilterValue>("all");
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.7);
 
   // Get review job details
@@ -166,7 +170,15 @@ export default function ReviewDetailPage() {
         </div>
 
         {/* Filtering */}
-        <ReviewResultFilter filter={filter} onChange={handleFilterChange} />
+        <div className="flex flex-wrap items-center gap-x-6">
+          <ReviewResultFilter filter={filter} onChange={handleFilterChange} />
+          <ImportanceFilter
+            value={importanceFilter}
+            onChange={setImportanceFilter}
+            name="review-importance-filter"
+            className="mb-4"
+          />
+        </div>
 
         {/* Tree view */}
         <ReviewResultTree
@@ -174,6 +186,7 @@ export default function ReviewDetailPage() {
           confidenceThreshold={confidenceThreshold}
           maxDepth={2}
           filter={filter}
+          importanceFilter={importanceFilter}
         />
       </div>
     </div>

@@ -5,12 +5,13 @@ import { useTranslation } from "react-i18next";
 import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import CheckListItemTreeNode from "./CheckListItemTreeNode";
 import { TreeSkeleton } from "../../../components/Skeleton";
-import { AmbiguityFilter } from "../types";
+import { AmbiguityFilter, ImportanceFilterValue } from "../types";
 
 interface CheckListItemTreeProps {
   setId: string;
   maxDepth?: number;
   ambiguityFilter: AmbiguityFilter;
+  importanceFilter?: ImportanceFilterValue;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
 }
@@ -19,6 +20,7 @@ export default function CheckListItemTree({
   setId,
   maxDepth = 2,
   ambiguityFilter = AmbiguityFilter.ALL,
+  importanceFilter = "all",
   selectedIds,
   onToggleSelect,
 }: CheckListItemTreeProps) {
@@ -27,7 +29,13 @@ export default function CheckListItemTree({
     items: rootItems,
     isLoading: isLoadingRoot,
     error: errorRoot,
-  } = useChecklistItems(setId || null, undefined, false, ambiguityFilter);
+  } = useChecklistItems(
+    setId || null,
+    undefined,
+    false,
+    ambiguityFilter,
+    importanceFilter
+  );
 
   if (isLoadingRoot) {
     return <TreeSkeleton nodes={3} />;
@@ -59,6 +67,7 @@ export default function CheckListItemTree({
           level={0}
           maxDepth={maxDepth}
           ambiguityFilter={ambiguityFilter}
+          importanceFilter={importanceFilter}
           selectedIds={selectedIds}
           onToggleSelect={onToggleSelect}
         />

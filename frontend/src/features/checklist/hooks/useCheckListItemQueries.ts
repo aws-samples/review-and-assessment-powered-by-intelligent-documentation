@@ -1,5 +1,5 @@
 import { useApiClient } from "../../../hooks/useApiClient";
-import { AmbiguityFilter } from "../types";
+import { AmbiguityFilter, ImportanceFilterValue } from "../types";
 import type {
   CheckListItemEntity,
   CheckListItemDetail,
@@ -14,7 +14,8 @@ export const getChecklistItemsKey = (
   setId: string | null,
   parentId?: string,
   includeAllChildren?: boolean,
-  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL
+  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL,
+  importance: ImportanceFilterValue = "all"
 ) => {
   if (!setId) return null;
   const base = `/checklist-sets/${setId}/items`;
@@ -23,6 +24,9 @@ export const getChecklistItemsKey = (
   if (includeAllChildren) params.append("includeAllChildren", "true");
   if (ambiguityFilter && ambiguityFilter !== AmbiguityFilter.ALL) {
     params.append("ambiguityFilter", ambiguityFilter);
+  }
+  if (importance !== "all") {
+    params.append("importance", importance);
   }
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
@@ -41,13 +45,15 @@ export function useChecklistItems(
   setId: string | null,
   parentId?: string,
   includeAllChildren?: boolean,
-  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL
+  ambiguityFilter: AmbiguityFilter = AmbiguityFilter.ALL,
+  importance: ImportanceFilterValue = "all"
 ) {
   const url = getChecklistItemsKey(
     setId,
     parentId,
     includeAllChildren,
-    ambiguityFilter
+    ambiguityFilter,
+    importance
   );
   const { data, isLoading, error, refetch } =
     useApiClient().useQuery<GetChecklistItemsResponse>(url);

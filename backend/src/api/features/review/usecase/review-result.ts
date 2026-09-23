@@ -14,12 +14,16 @@ import {
   assertHasOwnerAccessOrThrow,
   RequestUser,
 } from "../../../core/middleware/authorization";
+import { parseCheckItemImportance } from "../../checklist/domain/model/checklist";
+import { ValidationError } from "../../../core/errors";
 
 export const getReviewResults = async (params: {
   reviewJobId: string;
   parentId?: string;
   filter?: REVIEW_RESULT;
   includeAllChildren?: boolean;
+  /** 重要度で絞り込む。値は high / medium / low */
+  importance?: string;
   user?: RequestUser;
   deps?: {
     repo?: ReviewResultRepository;
@@ -40,11 +44,19 @@ export const getReviewResults = async (params: {
     logger: console,
   });
 
+  const importance = params.importance
+    ? parseCheckItemImportance(params.importance)
+    : undefined;
+  if (params.importance && !importance) {
+    throw new ValidationError(`Invalid importance: "${params.importance}"`);
+  }
+
   const reviewResults = await repo.findReviewResultsById({
     jobId: params.reviewJobId,
     parentId: params.parentId,
     filter: params.filter,
     includeAllChildren: params.includeAllChildren || false,
+    importance,
   });
   return reviewResults;
 };

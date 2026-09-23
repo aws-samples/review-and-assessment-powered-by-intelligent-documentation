@@ -19,6 +19,7 @@ export type PrismaCheckList = {
   feedbackSummaryUpdatedAt?: Date | null;
   ambiguityReview?: any | null;
   documentId?: string | null;
+  importance?: string | null;
 };
 
 export enum CHECK_LIST_STATUS {
@@ -38,6 +39,25 @@ export enum AmbiguityFilter {
   ALL = "all",
   HAS_AMBIGUITY = "hasAmbiguity",
 }
+
+/**
+ * チェック項目の重要度。審査結果の表示と絞り込みにだけ使い、AI の判定には使わない
+ */
+export enum CHECK_ITEM_IMPORTANCE {
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+}
+
+export const DEFAULT_CHECK_ITEM_IMPORTANCE = CHECK_ITEM_IMPORTANCE.MEDIUM;
+
+/** 重要度の値ならその値を、そうでなければ undefined を返す */
+export const parseCheckItemImportance = (
+  value: unknown
+): CHECK_ITEM_IMPORTANCE | undefined =>
+  Object.values(CHECK_ITEM_IMPORTANCE).includes(value as CHECK_ITEM_IMPORTANCE)
+    ? (value as CHECK_ITEM_IMPORTANCE)
+    : undefined;
 
 export interface CheckListSetEntity {
   id: string;
@@ -87,6 +107,8 @@ export interface CheckListItemEntity {
   setId: string;
   name: string;
   description?: string;
+  /** 重要度。審査結果の表示と絞り込みに使い、判定には使わない */
+  importance: CHECK_ITEM_IMPORTANCE;
   ambiguityReview?: AmbiguityDetectionResult;
   toolConfigurationId?: string;
   modelId?: string;
@@ -148,7 +170,7 @@ export const CheckListSetDomain = {
 export const CheckListItemDomain = {
   fromCreateRequest: (req: CreateChecklistItemRequest): CheckListItemEntity => {
     const { Body } = req;
-    const { name, description, parentId } = Body;
+    const { name, description, parentId, importance } = Body;
 
     return {
       id: ulid(),
@@ -156,6 +178,8 @@ export const CheckListItemDomain = {
       name,
       description: description || "",
       parentId: parentId || undefined,
+      importance:
+        parseCheckItemImportance(importance) ?? DEFAULT_CHECK_ITEM_IMPORTANCE,
     };
   },
 
@@ -191,6 +215,7 @@ export const CheckListItemDomain = {
       name,
       description: description || "",
       parentId: parent_id ? String(parent_id) : undefined,
+      importance: DEFAULT_CHECK_ITEM_IMPORTANCE,
     };
   },
 
@@ -203,6 +228,9 @@ export const CheckListItemDomain = {
       name: prismaItem.name,
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
+      importance:
+        parseCheckItemImportance(prismaItem.importance) ??
+        DEFAULT_CHECK_ITEM_IMPORTANCE,
       toolConfigurationId: prismaItem.toolConfigurationId ?? undefined,
       modelId: prismaItem.modelId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
@@ -229,6 +257,7 @@ export const CheckListItemDomain = {
       checkListSetId: item.setId,
       parentId: item.parentId ?? null,
       documentId: null,
+      importance: item.importance,
       toolConfigurationId: item.toolConfigurationId ?? null,
       modelId: item.modelId ?? null,
       feedbackSummary: item.feedbackSummary ?? null,
@@ -254,6 +283,9 @@ export const CheckListItemDomain = {
       name: prismaItem.name,
       description: prismaItem.description ?? undefined,
       parentId: prismaItem.parentId ?? undefined,
+      importance:
+        parseCheckItemImportance(prismaItem.importance) ??
+        DEFAULT_CHECK_ITEM_IMPORTANCE,
       modelId: prismaItem.modelId ?? undefined,
       feedbackSummary: prismaItem.feedbackSummary ?? undefined,
       feedbackSummaryUpdatedAt:

@@ -1,6 +1,8 @@
 import {
   CheckListItemEntity,
   CheckListSetEntity,
+  DEFAULT_CHECK_ITEM_IMPORTANCE,
+  parseCheckItemImportance,
 } from "../../../checklist/domain/model/checklist";
 
 /**
@@ -255,6 +257,9 @@ export const ReviewResultDomain = (() => {
           name: prismaResult.checkList.name,
           description: prismaResult.checkList.description ?? undefined,
           parentId: prismaResult.checkList.parentId ?? undefined,
+          importance:
+            parseCheckItemImportance(prismaResult.checkList.importance) ??
+            DEFAULT_CHECK_ITEM_IMPORTANCE,
         },
         hasChildren,
       };

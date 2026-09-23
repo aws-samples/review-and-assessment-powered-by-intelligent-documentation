@@ -32,7 +32,8 @@ import { useChecklistItems } from "../hooks/useCheckListItemQueries";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import { mutate } from "swr";
 import { getChecklistSetsKey } from "../hooks/useCheckListSetQueries";
-import { AmbiguityFilter } from "../types";
+import { AmbiguityFilter, ImportanceFilterValue } from "../types";
+import ImportanceFilter from "../components/ImportanceFilter";
 import { useBulkAssignToolConfiguration } from "../hooks/useCheckListItemMutations";
 
 /**
@@ -61,7 +62,15 @@ export function CheckListSetDetailPage() {
   const [ambiguityFilter, setAmbiguityFilter] = useState<AmbiguityFilter>(
     AmbiguityFilter.ALL
   );
-  const { refetch: refetchRoot } = useChecklistItems(id || null, undefined, false, ambiguityFilter);
+  const [importanceFilter, setImportanceFilter] =
+    useState<ImportanceFilterValue>("all");
+  const { refetch: refetchRoot } = useChecklistItems(
+    id || null,
+    undefined,
+    false,
+    ambiguityFilter,
+    importanceFilter
+  );
   const isDetecting = checklistSet?.processingStatus === 'detecting';
   const { bulkAssignToolConfiguration } = useBulkAssignToolConfiguration();
 
@@ -72,7 +81,7 @@ export function CheckListSetDetailPage() {
     if (id) {
       refetchRoot();
     }
-  }, [ambiguityFilter, id, refetchRoot]);
+  }, [ambiguityFilter, importanceFilter, id, refetchRoot]);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -267,25 +276,33 @@ export function CheckListSetDetailPage() {
         ) : (
           <>
             <div className="mb-4 flex items-center justify-between">
-              {checklistSet && checklistSet.isEditable && (
-                <SegmentedControl
-                  options={[
-                    {
-                      value: AmbiguityFilter.ALL,
-                      label: t("checklist.filterAll"),
-                    },
-                    {
-                      value: AmbiguityFilter.HAS_AMBIGUITY,
-                      label: t("checklist.filterNeedsReview"),
-                    },
-                  ]}
-                  value={ambiguityFilter}
-                  onChange={(value) =>
-                    setAmbiguityFilter(value as AmbiguityFilter)
-                  }
-                  name="ambiguity-filter"
+              <div className="flex flex-wrap items-center gap-4">
+                {checklistSet && checklistSet.isEditable && (
+                  <SegmentedControl
+                    options={[
+                      {
+                        value: AmbiguityFilter.ALL,
+                        label: t("checklist.filterAll"),
+                      },
+                      {
+                        value: AmbiguityFilter.HAS_AMBIGUITY,
+                        label: t("checklist.filterNeedsReview"),
+                      },
+                    ]}
+                    value={ambiguityFilter}
+                    onChange={(value) =>
+                      setAmbiguityFilter(value as AmbiguityFilter)
+                    }
+                    name="ambiguity-filter"
+                  />
+                )}
+                {/* 重要度は判定に使わないので、編集できないチェックリストでも絞り込める */}
+                <ImportanceFilter
+                  value={importanceFilter}
+                  onChange={setImportanceFilter}
+                  name="checklist-importance-filter"
                 />
-              )}
+              </div>
               {checklistSet && checklistSet.isEditable && (
                 <div className="flex space-x-2">
                   <Tooltip content={t("checklist.ambiguityDetectTooltip")}>
@@ -321,6 +338,7 @@ export function CheckListSetDetailPage() {
             <CheckListItemTree 
               setId={id} 
               ambiguityFilter={ambiguityFilter}
+              importanceFilter={importanceFilter}
               selectedIds={selectedItemIds}
               onToggleSelect={handleToggleSelect}
             />

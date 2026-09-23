@@ -23,6 +23,18 @@ export enum AmbiguityFilter {
   HAS_AMBIGUITY = "hasAmbiguity",
 }
 
+/**
+ * チェック項目の重要度。審査結果の表示と絞り込みにだけ使い、AI の判定には使わない
+ */
+export enum CHECK_ITEM_IMPORTANCE {
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+}
+
+/** 重要度での絞り込み。all は絞り込まない */
+export type ImportanceFilterValue = "all" | CHECK_ITEM_IMPORTANCE;
+
 export enum CHECK_LIST_STATUS {
   PENDING = "pending",
   PROCESSING = "processing",
@@ -70,6 +82,8 @@ export interface CreateChecklistItemRequest {
   name: string;
   description?: string;
   parentId?: string;
+  /** 省略すると medium */
+  importance?: CHECK_ITEM_IMPORTANCE;
 }
 
 /**
@@ -215,6 +229,22 @@ export type UpdateChecklistItemModelResponse = ApiResponse<
   Record<string, never>
 >;
 
+/**
+ * Request type for updating a checklist item's importance
+ * PATCH /checklist-sets/:setId/items/:itemId/importance
+ */
+export interface UpdateChecklistItemImportanceRequest {
+  importance: CHECK_ITEM_IMPORTANCE;
+}
+
+/**
+ * Response type for updating a checklist item's importance
+ * PATCH /checklist-sets/:setId/items/:itemId/importance
+ */
+export type UpdateChecklistItemImportanceResponse = ApiResponse<
+  Record<string, never>
+>;
+
 // Model types
 
 /**
@@ -226,6 +256,8 @@ export interface CheckListItemEntity {
   setId: string;
   name: string;
   description?: string;
+  /** 重要度を返さない API（この変更より前のバックエンド）では無い */
+  importance?: CHECK_ITEM_IMPORTANCE;
   ambiguityReview?: AmbiguityDetectionResult;
 }
 

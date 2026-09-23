@@ -13,7 +13,12 @@ import {
   REVIEW_FILE_TYPE,
   ReviewResultDomain,
 } from "./model/review";
-import { CHECK_LIST_STATUS } from "../../checklist/domain/model/checklist";
+import {
+  CHECK_LIST_STATUS,
+  CHECK_ITEM_IMPORTANCE,
+  DEFAULT_CHECK_ITEM_IMPORTANCE,
+  parseCheckItemImportance,
+} from "../../checklist/domain/model/checklist";
 
 export interface ReviewJobRepository {
   findAllReviewJobs(params?: {
@@ -348,6 +353,7 @@ export interface ReviewResultRepository {
     parentId?: string;
     filter?: REVIEW_RESULT;
     includeAllChildren?: boolean;
+    importance?: CHECK_ITEM_IMPORTANCE;
   }): Promise<ReviewResultDetail[]>;
   updateResult(params: { newResult: ReviewResultEntity }): Promise<void>;
   bulkUpdateResults(params: { results: ReviewResultEntity[] }): Promise<void>;
@@ -394,8 +400,9 @@ export const makePrismaReviewResultRepository = async (
     parentId?: string;
     filter?: REVIEW_RESULT;
     includeAllChildren: boolean;
+    importance?: CHECK_ITEM_IMPORTANCE;
   }): Promise<ReviewResultDetail[]> => {
-    const { jobId, parentId, filter, includeAllChildren } = params;
+    const { jobId, parentId, filter, includeAllChildren, importance } = params;
 
     console.log(
       `[Repository] findReviewResultsById - jobId: ${jobId}, parentId: ${
@@ -413,6 +420,17 @@ export const makePrismaReviewResultRepository = async (
       whereCondition.checkList = {
         parentId: parentId || null,
       };
+    }
+
+    // 重要度で絞り込むときも、子を持つ項目は配下を開けるように常に返す
+    if (importance) {
+      whereCondition.AND = [
+        {
+          checkList: {
+            OR: [{ children: { some: {} } }, { importance }],
+          },
+        },
+      ];
     }
 
     // フィルター条件を追加
@@ -491,6 +509,9 @@ export const makePrismaReviewResultRepository = async (
           name: result.checkList.name,
           description: result.checkList.description || undefined,
           parentId: result.checkList.parentId || undefined,
+          importance:
+            parseCheckItemImportance(result.checkList.importance) ??
+            DEFAULT_CHECK_ITEM_IMPORTANCE,
         },
         hasChildren: parentsWithChildren.has(result.checkId),
       };

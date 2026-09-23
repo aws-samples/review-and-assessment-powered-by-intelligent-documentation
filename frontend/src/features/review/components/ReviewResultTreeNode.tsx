@@ -11,6 +11,7 @@ import {
   FilterType,
 } from "../hooks/useReviewResultQueries";
 import Spinner from "../../../components/Spinner";
+import type { ImportanceFilterValue } from "../../checklist/types";
 
 interface ReviewResultTreeNodeProps {
   jobId: string;
@@ -20,6 +21,7 @@ interface ReviewResultTreeNodeProps {
   maxDepth?: number;
   autoExpand?: boolean;
   filter: FilterType;
+  importanceFilter?: ImportanceFilterValue;
   documents: Array<{
     id: string;
     filename: string;
@@ -36,6 +38,7 @@ export default function ReviewResultTreeNode({
   maxDepth = 2,
   autoExpand = false,
   filter,
+  importanceFilter = "all",
   documents,
 }: ReviewResultTreeNodeProps) {
   const { t } = useTranslation();
@@ -52,7 +55,8 @@ export default function ReviewResultTreeNode({
   } = useReviewResultItems(
     jobId || null,
     shouldLoadChildren ? item.checkId : undefined,
-    filter
+    filter,
+    importanceFilter
   );
 
   // 展開/折りたたみの切り替え
@@ -107,6 +111,7 @@ export default function ReviewResultTreeNode({
                 confidenceThreshold={confidenceThreshold}
                 maxDepth={maxDepth}
                 filter={filter}
+                importanceFilter={importanceFilter}
                 documents={documents}
               />
             ))

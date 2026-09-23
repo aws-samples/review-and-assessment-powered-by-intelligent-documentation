@@ -9,6 +9,9 @@ import type {
   DeleteChecklistItemResponse,
   UpdateChecklistItemModelRequest,
   UpdateChecklistItemModelResponse,
+  UpdateChecklistItemImportanceRequest,
+  UpdateChecklistItemImportanceResponse,
+  CHECK_ITEM_IMPORTANCE,
 } from "../types";
 
 /**
@@ -144,4 +147,32 @@ export function useUpdateCheckListItemModel(setId: string) {
   };
 
   return { updateCheckListItemModel, status, error };
+}
+
+/**
+ * チェックリスト項目の重要度更新
+ */
+export function useUpdateCheckListItemImportance(setId: string) {
+  const { mutateAsync, status, error } = useApiClient().useMutation<
+    UpdateChecklistItemImportanceResponse,
+    UpdateChecklistItemImportanceRequest
+  >("patch", `/checklist-sets/${setId}/items`);
+
+  const updateCheckListItemImportance = async (
+    itemId: string,
+    importance: CHECK_ITEM_IMPORTANCE
+  ) => {
+    const res = await mutateAsync(
+      { importance },
+      `/checklist-sets/${setId}/items/${itemId}/importance`
+    );
+    mutate(
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(`/checklist-sets/${setId}/items`)
+    );
+    return res;
+  };
+
+  return { updateCheckListItemImportance, status, error };
 }

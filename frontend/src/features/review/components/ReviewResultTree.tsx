@@ -9,12 +9,14 @@ import { useTranslation } from "react-i18next";
 import { useReviewJobDetail } from "../hooks/useReviewJobQueries";
 import ReviewResultTreeNode from "./ReviewResultTreeNode";
 import { TreeSkeleton } from "../../../components/Skeleton";
+import type { ImportanceFilterValue } from "../../checklist/types";
 
 interface ReviewResultTreeProps {
   jobId: string;
   confidenceThreshold: number;
   maxDepth?: number;
   filter: FilterType;
+  importanceFilter?: ImportanceFilterValue;
 }
 
 export default function ReviewResultTree({
@@ -22,6 +24,7 @@ export default function ReviewResultTree({
   confidenceThreshold,
   maxDepth = 2,
   filter,
+  importanceFilter = "all",
 }: ReviewResultTreeProps) {
   const { t } = useTranslation();
   // ルート項目を取得（フィルタリング条件を適用）
@@ -29,7 +32,12 @@ export default function ReviewResultTree({
     items: rootItems,
     isLoading: isLoadingRoot,
     error: errorRoot,
-  } = useReviewResultItems(jobId || null, undefined, filter);
+  } = useReviewResultItems(
+    jobId || null,
+    undefined,
+    filter,
+    importanceFilter
+  );
 
   // ジョブ情報を取得して、ドキュメントタイプとパスを取得
   const { job, isLoading: isLoadingJob } = useReviewJobDetail(jobId);
@@ -67,6 +75,7 @@ export default function ReviewResultTree({
           confidenceThreshold={confidenceThreshold}
           maxDepth={maxDepth}
           filter={filter}
+          importanceFilter={importanceFilter}
           documents={job?.documents || []}
         />
       ))}

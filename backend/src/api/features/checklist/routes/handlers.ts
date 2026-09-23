@@ -18,6 +18,7 @@ import {
   bulkAssignToolConfiguration,
   getAvailableModels,
   updateCheckListItemModel,
+  updateCheckListItemImportance,
 } from "../usecase/checklist-item";
 import { CHECK_LIST_STATUS, AmbiguityFilter } from "../domain/model/checklist";
 
@@ -233,12 +234,14 @@ export async function getChecklistItemsHandler(
       parentId?: string;
       includeAllChildren?: string;
       ambiguityFilter?: string;
+      importance?: string;
     };
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const { setId } = request.params;
-  const { parentId, includeAllChildren, ambiguityFilter } = request.query;
+  const { parentId, includeAllChildren, ambiguityFilter, importance } =
+    request.query;
 
   try {
     const parsedAmbiguityFilter = parseAmbiguityFilter(ambiguityFilter);
@@ -248,6 +251,7 @@ export async function getChecklistItemsHandler(
       parentId: parentId,
       includeAllChildren: includeAllChildren === "true",
       ambiguityFilter: parsedAmbiguityFilter,
+      importance,
       user: request.user,
     });
 
@@ -313,6 +317,8 @@ export interface CreateChecklistItemRequest {
     name: string;
     description?: string;
     parentId?: string;
+    /** high / medium / low。省略すると medium */
+    importance?: string;
   };
 }
 
@@ -462,6 +468,26 @@ export const updateChecklistItemModelHandler = async (
     user: request.user!,
   });
 
+  reply.code(200).send({
+    success: true,
+    data: {},
+  });
+};
+
+export const updateChecklistItemImportanceHandler = async (
+  request: FastifyRequest<{
+    Params: { setId: string; itemId: string };
+    Body: { importance: string };
+  }>,
+  reply: FastifyReply
+): Promise<void> => {
+  const { setId, itemId } = request.params;
+  await updateCheckListItemImportance({
+    setId,
+    itemId,
+    importance: request.body?.importance,
+    user: request.user!,
+  });
   reply.code(200).send({
     success: true,
     data: {},

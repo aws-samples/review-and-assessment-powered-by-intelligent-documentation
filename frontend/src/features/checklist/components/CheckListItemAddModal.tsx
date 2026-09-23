@@ -4,6 +4,8 @@ import { useCreateCheckListItem } from "../hooks/useCheckListItemMutations";
 import { useToast } from "../../../contexts/ToastContext";
 import Button from "../../../components/Button";
 import { HiX } from "react-icons/hi";
+import { CHECK_ITEM_IMPORTANCE } from "../types";
+import { IMPORTANCE_LABEL_KEYS, IMPORTANCE_LEVELS } from "../importance";
 
 type CheckListItemAddModalProps = {
   isOpen: boolean;
@@ -24,6 +26,7 @@ export default function CheckListItemAddModal({
     name: "",
     description: "",
     parentId: parentId || "",
+    importance: CHECK_ITEM_IMPORTANCE.MEDIUM as string,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +89,7 @@ export default function CheckListItemAddModal({
       const dataToSubmit = {
         ...formData,
         parentId: parentId !== undefined ? parentId : formData.parentId,
+        importance: formData.importance as CHECK_ITEM_IMPORTANCE,
       };
 
       await createCheckListItem(dataToSubmit);
@@ -174,6 +178,28 @@ export default function CheckListItemAddModal({
               )}
             />
           </div>
+
+          <fieldset className="mb-4">
+            <legend className="mb-2 block font-medium text-aws-squid-ink-light">
+              {t("checklist.importance")}
+            </legend>
+            <div className="flex gap-6">
+              {IMPORTANCE_LEVELS.map((level) => (
+                <label
+                  key={level}
+                  className="flex items-center gap-2 text-aws-squid-ink-light">
+                  <input
+                    type="radio"
+                    name="importance"
+                    value={level}
+                    checked={formData.importance === level}
+                    onChange={handleChange}
+                  />
+                  {t(IMPORTANCE_LABEL_KEYS[level])}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div className="mt-6 flex justify-end space-x-3">
             <Button outline onClick={onClose}>

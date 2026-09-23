@@ -19,6 +19,7 @@ import {
   bulkAssignToolConfigurationHandler,
   getAvailableModelsHandler,
   updateChecklistItemModelHandler,
+  updateChecklistItemImportanceHandler,
 } from "./handlers";
 
 /**
@@ -101,5 +102,11 @@ export function registerChecklistRoutes(fastify: FastifyInstance): void {
   // チェックリスト項目モデル ID 更新エンドポイント
   fastify.patch("/checklist-sets/:setId/items/:itemId/model", {
     handler: updateChecklistItemModelHandler,
+  });
+
+  // チェックリスト項目の重要度更新エンドポイント。
+  // 重要度は判定に使わないので、審査ジョブのあるチェックリストでも変更できる
+  fastify.patch("/checklist-sets/:setId/items/:itemId/importance", {
+    handler: updateChecklistItemImportanceHandler,
   });
 }

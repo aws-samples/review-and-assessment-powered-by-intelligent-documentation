@@ -73,6 +73,7 @@ model CheckList {
   ambiguityReview          Json?              @map("ambiguity_review")
   toolConfigurationId      String?            @map("tool_configuration_id") @db.VarChar(26)
   modelId                  String?            @map("model_id") @db.VarChar(255)
+  importance               String             @default("medium") @db.VarChar(10)
   feedbackSummary          String?            @map("feedback_summary") @db.Text
   feedbackSummaryUpdatedAt DateTime?          @map("feedback_summary_updated_at") @db.Timestamp(0)
   checkListSet             CheckListSet       @relation(fields: [checkListSetId], references: [id])

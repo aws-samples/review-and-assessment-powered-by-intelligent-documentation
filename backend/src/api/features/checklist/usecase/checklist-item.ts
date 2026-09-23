@@ -2,6 +2,7 @@ import { ValidationError } from "../../../core/errors";
 import {
   CheckListItemDomain,
   CheckListItemEntity,
+  parseCheckItemImportance,
 } from "../domain/model/checklist";
 import {
   getAvailableModels as getAvailableModelsFromEnv,
@@ -49,7 +50,7 @@ export const createChecklistItem = async (params: {
 
   const { req } = params;
   const { setId } = req.Params;
-  const { parentId } = req.Body;
+  const { parentId, importance } = req.Body;
 
   await assertChecklistSetOwner({
     user: params.user,
@@ -73,6 +74,10 @@ export const createChecklistItem = async (params: {
     if (!isValid) {
       throw new ValidationError("Invalid parent item");
     }
+  }
+
+  if (importance !== undefined && !parseCheckItemImportance(importance)) {
+    throw new ValidationError(`Invalid importance: "${importance}"`);
   }
 
   const item = CheckListItemDomain.fromCreateRequest(req);
@@ -255,5 +260,46 @@ export const updateCheckListItemModel = async (params: {
   await repo.updateCheckListItemModelId({
     itemId: params.itemId,
     modelId: params.modelId,
+  });
+};
+
+/**
+ * チェックリスト項目の重要度を更新する。
+ * 重要度は審査結果の表示と絞り込みにだけ使い、判定には影響しないので、
+ * モデルの変更と同じく、審査ジョブのあるチェックリストでも変更できる
+ */
+export const updateCheckListItemImportance = async (params: {
+  setId: string;
+  itemId: string;
+  importance: string;
+  user: RequestUser;
+  deps?: {
+    repo?: CheckRepository;
+  };
+}): Promise<void> => {
+  const repo = params.deps?.repo || (await makePrismaCheckRepository());
+
+  await assertChecklistSetOwner({
+    user: params.user,
+    setId: params.setId,
+    repo,
+    api: "updateCheckListItemImportance",
+    resourceId: params.itemId,
+  });
+
+  const importance = parseCheckItemImportance(params.importance);
+  if (!importance) {
+    throw new ValidationError(`Invalid importance: "${params.importance}"`);
+  }
+
+  // 所有者を確かめたチェックリストの項目であることを確かめる
+  const item = await repo.findCheckListItemById(params.itemId);
+  if (item.setId !== params.setId) {
+    throw new ValidationError("Invalid setId");
+  }
+
+  await repo.updateCheckListItemImportance({
+    itemId: params.itemId,
+    importance,
   });
 };

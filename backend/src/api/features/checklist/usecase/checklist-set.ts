@@ -10,6 +10,7 @@ import {
   CheckListSetDetailModel,
   CHECK_LIST_STATUS,
   AmbiguityFilter,
+  parseCheckItemImportance,
 } from "../domain/model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 import { ulid } from "ulid";
@@ -27,6 +28,7 @@ import {
   assertHasOwnerAccessOrThrow,
   RequestUser,
 } from "../../../core/middleware/authorization";
+import { ValidationError } from "../../../core/errors";
 
 const assertChecklistSetOwner = async (params: {
   user: RequestUser;
@@ -158,6 +160,7 @@ export const duplicateChecklistSet = async (params: {
     name: item.name,
     description: item.description || "",
     parentId: item.parentId ? idMapping.get(item.parentId) : undefined,
+    importance: item.importance,
   }));
 
   // 7. 新しいチェックリスト項目を階層順に保存
@@ -284,6 +287,8 @@ export const getChecklistItems = async (params: {
   parentId?: string;
   includeAllChildren?: boolean;
   ambiguityFilter?: AmbiguityFilter;
+  /** 重要度で絞り込む。値は high / medium / low */
+  importance?: string;
   user: RequestUser;
   deps?: {
     repo?: CheckRepository;
@@ -300,11 +305,18 @@ export const getChecklistItems = async (params: {
 
   const { checkListSetId, parentId, includeAllChildren, ambiguityFilter } =
     params;
+  const importanceFilter = params.importance
+    ? parseCheckItemImportance(params.importance)
+    : undefined;
+  if (params.importance && !importanceFilter) {
+    throw new ValidationError(`Invalid importance: "${params.importance}"`);
+  }
   const checkListItems = await repo.findCheckListItems(
     checkListSetId,
     parentId,
     includeAllChildren,
-    ambiguityFilter
+    ambiguityFilter,
+    importanceFilter
   );
   return checkListItems;
 };

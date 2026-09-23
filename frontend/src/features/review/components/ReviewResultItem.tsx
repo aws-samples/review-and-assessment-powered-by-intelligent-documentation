@@ -26,6 +26,7 @@ import ReviewItemCostBadge from "./ReviewItemCostBadge";
 import { useReviewItemCost } from "../hooks/useReviewItemCost";
 import ResultCard, { ResultCardVariant } from "../../../components/ResultCard";
 import ExternalSourceItem from "./ExternalSourceItem";
+import ImportanceBadge from "../../checklist/components/ImportanceBadge";
 
 interface ReviewResultItemProps {
   result: ReviewResultDetail;
@@ -236,6 +237,13 @@ export default function ReviewResultItem({
                       />
                     )}
                   </div>
+                )}
+                {/* 重要度は信頼度の右に出す */}
+                {!hasChildren && (
+                  <ImportanceBadge
+                    importance={result.checkList.importance}
+                    className="ml-3"
+                  />
                 )}
               </div>
 

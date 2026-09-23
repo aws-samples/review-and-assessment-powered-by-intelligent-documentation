@@ -12,6 +12,7 @@ import {
   CheckListItemDomain,
   AmbiguityDetectionResult,
   AmbiguityFilter,
+  CHECK_ITEM_IMPORTANCE,
 } from "./model/checklist";
 import { PaginatedResponse } from "../../../common/types";
 
@@ -33,7 +34,8 @@ export interface CheckRepository {
     setId: string,
     parentId?: string,
     includeAllChildren?: boolean,
-    ambiguityFilter?: AmbiguityFilter
+    ambiguityFilter?: AmbiguityFilter,
+    importanceFilter?: CHECK_ITEM_IMPORTANCE
   ): Promise<CheckListItemDetail[]>;
   findCheckListSetDetailById(setId: string): Promise<CheckListSetDetailModel>;
   storeCheckListItem(params: { item: CheckListItemEntity }): Promise<void>;
@@ -64,6 +66,10 @@ export interface CheckRepository {
   updateCheckListItemModelId(params: {
     itemId: string;
     modelId: string | null;
+  }): Promise<void>;
+  updateCheckListItemImportance(params: {
+    itemId: string;
+    importance: CHECK_ITEM_IMPORTANCE;
   }): Promise<void>;
 }
 
@@ -368,7 +374,8 @@ export const makePrismaCheckRepository = async (
     setId: string,
     parentId?: string,
     includeAllChildren?: boolean,
-    ambiguityFilter?: AmbiguityFilter
+    ambiguityFilter?: AmbiguityFilter,
+    importanceFilter?: CHECK_ITEM_IMPORTANCE
   ): Promise<CheckListItemDetail[]> => {
     console.log(
       `[Repository] findCheckListItems - setId: ${setId}, parentId: ${
@@ -392,6 +399,13 @@ export const makePrismaCheckRepository = async (
       ];
     }
 
+    // 重要度で絞り込むときも、子を持つ項目は配下を開けるように常に返す
+    if (importanceFilter) {
+      whereCondition.AND = [
+        { OR: [{ children: { some: {} } }, { importance: importanceFilter }] },
+      ];
+    }
+
     const items = await client.checkList.findMany({
       where: whereCondition,
       select: {
@@ -406,6 +420,7 @@ export const makePrismaCheckRepository = async (
         modelId: true,
         feedbackSummary: true,
         feedbackSummaryUpdatedAt: true,
+        importance: true,
         toolConfiguration: {
           select: {
             id: true,
@@ -559,7 +574,7 @@ export const makePrismaCheckRepository = async (
     item: CheckListItemEntity;
   }): Promise<void> => {
     const { item } = params;
-    const { id, name, description, setId, parentId } = item;
+    const { id, name, description, setId, parentId, importance } = item;
 
     await client.checkList.create({
       data: {
@@ -568,6 +583,7 @@ export const makePrismaCheckRepository = async (
         description,
         checkListSetId: setId,
         parentId: parentId,
+        importance,
       },
     });
   };
@@ -585,6 +601,7 @@ export const makePrismaCheckRepository = async (
           description: item.description,
           parentId: item.parentId,
           checkListSetId: item.setId,
+          importance: item.importance,
         })),
       });
     } catch (error) {
@@ -625,6 +642,7 @@ export const makePrismaCheckRepository = async (
         modelId: true,
         feedbackSummary: true,
         feedbackSummaryUpdatedAt: true,
+        importance: true,
       },
     });
 
@@ -748,6 +766,18 @@ export const makePrismaCheckRepository = async (
     });
   };
 
+  const updateCheckListItemImportance = async (params: {
+    itemId: string;
+    importance: CHECK_ITEM_IMPORTANCE;
+  }): Promise<void> => {
+    await client.checkList.update({
+      where: { id: params.itemId },
+      data: {
+        importance: params.importance,
+      },
+    });
+  };
+
   return {
     storeCheckListSet,
     deleteCheckListSetById,
@@ -765,5 +795,6 @@ export const makePrismaCheckRepository = async (
     updateAmbiguityReview,
     bulkUpdateToolConfiguration,
     updateCheckListItemModelId,
+    updateCheckListItemImportance,
   };
 };
