@@ -34,7 +34,8 @@
     "previous": "Previous",
     "description": "Description",
     "documentUrlError": "Failed to get document URL",
-    "pageNumber": "(Page {{page}})"
+    "pageNumber": "(Page {{page}})",
+    "createdAt": "Created At"
   },
   "imagePreview": {
     "zoomView": "Zoom View",

@@ -97,6 +97,27 @@ export function Table<T>({
 
       <div className="overflow-x-auto p-2">
         <table className="min-w-full divide-y divide-light-gray">
+          {/* 列の意味が分かるように見出しを出す。列定義の header は元からある */}
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={`header-${column.key}`}
+                  scope="col"
+                  style={column.width ? { width: column.width } : undefined}
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-aws-font-color-gray">
+                  {column.header}
+                </th>
+              ))}
+              {actions && actions.length > 0 && (
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-aws-font-color-gray">
+                  {t("table.actions")}
+                </th>
+              )}
+            </tr>
+          </thead>
           <tbody className="divide-y divide-light-gray bg-white dark:bg-aws-squid-ink-dark">
             {items.map((item) => {
               const key = keyExtractor(item);

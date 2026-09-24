@@ -34,7 +34,8 @@
     "previous": "前へ",
     "description": "説明",
     "documentUrlError": "ドキュメントのURLの取得に失敗しました",
-    "pageNumber": "（{{page}}ページ）"
+    "pageNumber": "（{{page}}ページ）",
+    "createdAt": "作成日"
   },
   "imagePreview": {
     "zoomView": "拡大表示",
