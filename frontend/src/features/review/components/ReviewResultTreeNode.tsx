@@ -60,41 +60,32 @@ export default function ReviewResultTreeNode({
     setIsExpanded(!isExpanded);
   };
 
-  // インデントのスタイル
-  const indentStyle = {
-    marginLeft: `${level * 20}px`,
-  };
-
   return (
     <div>
-      <div style={indentStyle}>
-        <ReviewResultItem
-          result={{
-            ...item,
-            children: [], // ReviewResultItemコンポーネントの型との互換性のため
-          }}
-          hasChildren={item.hasChildren}
-          isExpanded={isExpanded}
-          onToggleExpand={toggleExpand}
-          confidenceThreshold={confidenceThreshold}
-          isLoadingChildren={shouldLoadChildren && isLoadingChildren}
-          documents={documents}
-        />
-      </div>
+      <ReviewResultItem
+        result={{
+          ...item,
+          children: [], // ReviewResultItemコンポーネントの型との互換性のため
+        }}
+        hasChildren={item.hasChildren}
+        isExpanded={isExpanded}
+        onToggleExpand={toggleExpand}
+        confidenceThreshold={confidenceThreshold}
+        isLoadingChildren={shouldLoadChildren && isLoadingChildren}
+        documents={documents}
+      />
 
-      {/* 子項目を表示（展開時のみ） */}
+      {/* 子項目を表示（展開時のみ）。
+          親の開閉ボタンの下から縦線を引き、その内側に子を並べて、
+          どの親の配下かを見分けやすくする。入れ子にするので階層ごとに深くなる */}
       {isExpanded && item.hasChildren && (
-        <div className="mt-2 space-y-2">
+        <div className="ml-6 mt-2 space-y-2 border-l-2 border-gray pl-4">
           {isLoadingChildren ? (
-            <div
-              className="flex justify-center py-4"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}>
+            <div className="flex justify-center py-4">
               <Spinner size="md" />
             </div>
           ) : errorChildren ? (
-            <div
-              className="text-red-500 py-2"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}>
+            <div className="text-red-500 py-2">
               {t("review.childItemsLoadError")}
             </div>
           ) : childItems.length > 0 ? (
@@ -111,9 +102,7 @@ export default function ReviewResultTreeNode({
               />
             ))
           ) : (
-            <div
-              className="text-gray-500 py-2"
-              style={{ marginLeft: `${(level + 1) * 20}px` }}>
+            <div className="text-gray-500 py-2">
               {filter !== "all"
                 ? t("review.noChildItemsForFilter")
                 : t("review.noChildItems")}
