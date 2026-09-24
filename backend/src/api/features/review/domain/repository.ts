@@ -389,6 +389,54 @@ export const makePrismaReviewResultRepository = async (
     );
   };
 
+  /**
+   * 合否で絞り込んだときに見せる項目。条件に合う末端の項目と、その祖先。
+   *
+   * 階層を1段ずつ読み込む画面なので、祖先を返さないと条件に合う項目まで
+   * たどり着けない。逆に、子を持つ項目をすべて返すと、条件に合う子の無い
+   * 親まで中身の無いまま並ぶ（既定の「不合格」表示に、合格しか無い親が出る）。
+   */
+  const findCheckIdsMatchingFilter = async (
+    jobId: string,
+    filter: REVIEW_RESULT
+  ): Promise<string[]> => {
+    const rows = await client.reviewResult.findMany({
+      where: { reviewJobId: jobId },
+      select: {
+        checkId: true,
+        status: true,
+        result: true,
+        checkList: { select: { parentId: true } },
+      },
+    });
+
+    const parentOf = new Map<string, string | null>();
+    const hasChildren = new Set<string>();
+    for (const row of rows) {
+      const parentId = row.checkList.parentId ?? null;
+      parentOf.set(row.checkId, parentId);
+      if (parentId) hasChildren.add(parentId);
+    }
+
+    const visible = new Set<string>();
+    for (const row of rows) {
+      const matches =
+        !hasChildren.has(row.checkId) &&
+        row.status === REVIEW_RESULT_STATUS.COMPLETED &&
+        row.result === filter;
+      if (!matches) continue;
+      // 条件に合う項目から根までさかのぼって、道筋を見せる
+      for (
+        let id: string | null | undefined = row.checkId;
+        id && !visible.has(id);
+        id = parentOf.get(id)
+      ) {
+        visible.add(id);
+      }
+    }
+    return [...visible];
+  };
+
   const findReviewResultsById = async (params: {
     jobId: string;
     parentId?: string;
@@ -415,10 +463,13 @@ export const makePrismaReviewResultRepository = async (
       };
     }
 
-    // フィルター条件を追加
+    // 合否で絞り込むときは、条件に合う項目と、その祖先だけを返す。
+    // 親の判定は子から導いた値なので、判定だけで絞ると、子が合格・不合格の
+    // 混在する親（不合格）が「合格」で消え、合格の子にたどり着けなくなる。
     if (filter) {
-      whereCondition.status = REVIEW_RESULT_STATUS.COMPLETED;
-      whereCondition.result = filter;
+      whereCondition.checkId = {
+        in: await findCheckIdsMatchingFilter(jobId, filter),
+      };
     }
 
     // 審査結果を取得
