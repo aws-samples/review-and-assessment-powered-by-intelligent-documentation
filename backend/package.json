@@ -33,7 +33,7 @@
     "@aws-sdk/client-sqs": "^3.987.0",
     "@aws-sdk/s3-request-presigner": "^3.987.0",
     "@fastify/cors": "^11.0.1",
-    "@modelcontextprotocol/sdk": "1.26.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "@prisma/client": "^6.10.1",
     "fastify": "^5.8.5",
     "jose": "^5.10.0",
